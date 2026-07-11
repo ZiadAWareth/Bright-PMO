@@ -1,0 +1,1876 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  project_id          Int                   @id @default(autoincrement())
+  project_code        String                @unique
+  name                String
+  description         String?
+  start_date          DateTime
+  planned_end_date    DateTime?
+  must_finish_by_date DateTime?
+  actual_end_date     DateTime?
+  status                ProjectStatus         @default(planning)
+  budget_amount         Float
+  pending_budget_amount Float?
+  actual_cost           Float
+  allocated_cost        Float                 @default(0)
+  progress_percentage Float                 @default(0)
+  eps_level_id        Int
+  portfolio_id        Int
+  created_by          Int
+  created_at          DateTime              @default(now())
+  updated_at          DateTime              @updatedAt
+  required_approvals  Int                   @default(2)
+  priority            ProjectPriority       @default(medium)
+  compliance          projectCompliance     @default(pending)
+  roi                 Float?                @default(0)
+  expected_roi        Float?                @default(0)
+  location            String?
+  healthScore         Float                 @default(50)
+  riskScore           Float                 @default(0)
+  qualityScore        Float                 @default(50)
+  client              String?
+  contractor          String?
+  tags                String[]
+  strategicValue      ProjectStrategicValue @default(medium)
+  type                ProjectType
+  size                Float?
+  archived            Boolean               @default(false)
+  manager_id          Int
+  Alert               Alert[]
+  baselines           Baseline[]
+  budgets             Budget[]
+  documents           Document[]
+  evms                EVM[]
+  lessons             Lesson[]
+  procurements        Procurement[]
+  creator             User                  @relation("CreatedProjects", fields: [created_by], references: [user_id])
+  eps                 EPS                   @relation(fields: [eps_level_id], references: [eps_id])
+  manager             User                  @relation("ProjectManager", fields: [manager_id], references: [user_id])
+  portfolio           Portfolio             @relation(fields: [portfolio_id], references: [portfolio_id])
+  projectApprovals    ProjectApproval[]     @relation("Project_ProjectApprovals")
+  assignments         ProjectAssignment[]
+  checklists          ProjectChecklist[]
+  setup               ProjectSetup?
+  team_members        ProjectTeamMember[]
+  risks               Risk[]
+  sites               Site[]
+  time_entries        TimeEntry[]
+  timesheets          Timesheet[]
+  Transaction         Transaction[]
+  wbs                 WBS[]
+  closure_documents   ClosureDocumentItem[]
+  closure_checklists  ClosureChecklistItem[]
+  punch_list_items    PunchListItem[]
+  final_inspection    FinalInspection?
+  handover            Handover?
+  closure_approved_at DateTime?
+  closure_approved_by Int?
+  closure_notes       String?
+  closure_approved_user User?    @relation("ClosureApprovedProjects", fields: [closure_approved_by], references: [user_id])
+  
+  // Project Scheduler Relations
+  schedules            ProjectSchedule[]      @relation("ProjectSchedules")
+}
+
+model EPS {
+  eps_id        Int       @id @default(autoincrement())
+  eps_code      String    @unique @default(dbgenerated("('EPS-'::text || lpad((nextval('\"EPS_eps_id_seq\"'::regclass))::text, 3, '0'::text))"))
+  name          String
+  description   String?
+  level         Int
+  parent_eps_id Int?
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+  parent        EPS?      @relation("EPSHierarchy", fields: [parent_eps_id], references: [eps_id])
+  children      EPS[]     @relation("EPSHierarchy")
+  projects      Project[]
+  schedules     ProjectSchedule[] @relation("ScheduleEPS")
+}
+
+model Portfolio {
+  portfolio_id        Int               @id @default(autoincrement())
+  name                String
+  description         String?
+  manager_id          Int
+  created_at          DateTime          @default(now())
+  updated_at          DateTime          @updatedAt
+  strategic_objective String?
+  status              PortfolioStatus   @default(active)
+  priority            PortfolioPriority @default(medium)
+  tags                String[]
+  budget_capacity     Float?            @default(0)
+  manager             Account           @relation(fields: [manager_id], references: [account_id])
+  projects            Project[]
+  schedules           ProjectSchedule[] @relation("SchedulePortfolios")
+}
+
+model WBS {
+  wbs_id              Int             @id @default(autoincrement())
+  wbs_code            String
+  name                String
+  description         String?
+  status              WBSStatus       @default(not_started)
+  project_id          Int
+  parent_wbs_id       Int?
+  level               Int
+  progress_percentage Float
+  progress_weight     Float?            // Optional weight (0-100) for rolling up to project progress
+  start_date          DateTime?
+  end_date            DateTime?
+  created_at          DateTime        @default(now())
+  updated_at          DateTime        @updatedAt
+  budgets             Budget[]
+  documents           Document[]
+  procurements        Procurement[]
+  recurring_tasks     RecurringTask[]
+  tasks               Task[]
+  parent              WBS?            @relation("ParentChildWBS", fields: [parent_wbs_id], references: [wbs_id])
+  children            WBS[]           @relation("ParentChildWBS")
+  project             Project         @relation(fields: [project_id], references: [project_id])
+  wbsItems            WBSItem[]
+}
+
+model WBSItem {
+  wbs_item_id         Int      @id @default(autoincrement())
+  wbs_item_code       String
+  name                String
+  description         String?
+  start_date          DateTime?
+  end_date            DateTime?
+  budget_amount       Float
+  actual_cost         Float
+  progress_percentage Float
+  wbs_id              Int
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+  wbs                 WBS      @relation(fields: [wbs_id], references: [wbs_id])
+}
+
+model Task {
+  task_id                  Int                  @id @default(autoincrement())
+  name                     String
+  description              String?
+  wbs_id                   Int
+  start_date               DateTime
+  end_date                 DateTime
+  actual_start_date        DateTime?
+  actual_end_date          DateTime?
+  duration                 Int
+  progress_percentage      Float
+  is_milestone             Boolean              @default(false)
+  is_critical_path         Boolean              @default(false)
+  priority                 TaskPriority         @default(medium)
+  status                   TaskStatus           @default(todo)
+  early_start              DateTime?
+  early_finish             DateTime?
+  late_start               DateTime?
+  late_finish              DateTime?
+  total_float              Int?                 @default(0)
+  free_float               Int?                 @default(0)
+  created_by               Int
+  created_at               DateTime             @default(now())
+  updated_at               DateTime             @updatedAt
+  estimated_hours          Float                @default(0)
+  actual_hours             Float                @default(0)
+  work_package             String?
+  budgets                  Budget[]
+  documents                Document[]
+  Escalation               Escalation[]
+  FieldData                FieldData[]
+  PerformanceMetric        PerformanceMetric[]
+  resourceAssignments      ResourceAssignment[]
+  risk_mitigations         RiskMitigation[]
+  Scorecard                Scorecard[]
+  creator                  User                 @relation("CreatedTasks", fields: [created_by], references: [user_id])
+  wbs                      WBS                  @relation(fields: [wbs_id], references: [wbs_id])
+  assigned_users           TaskAssignment[]
+  comments                 TaskComment[]
+  predecessor_dependencies TaskDependency[]     @relation("Predecessor")
+  successor_dependencies   TaskDependency[]     @relation("Successor")
+  time_entries             TimeEntry[]
+  action_rules             WorkflowRule[]       @relation("ActionTask")
+  trigger_rules            WorkflowRule[]       @relation("TriggerTask")
+}
+
+model TaskDependency {
+  dependency_id       Int            @id @default(autoincrement())
+  predecessor_task_id Int
+  successor_task_id   Int
+  dependency_type     DependencyType
+  lag_time            Int
+  created_at          DateTime       @default(now())
+  updated_at          DateTime       @updatedAt
+  predecessor         Task           @relation("Predecessor", fields: [predecessor_task_id], references: [task_id])
+  successor           Task           @relation("Successor", fields: [successor_task_id], references: [task_id])
+}
+
+model Resource {
+  resource_id         Int                        @id @default(autoincrement())
+  name                String
+  type                ResourceType
+  role                String
+  skills              Json
+  rating              Int @default(0)
+  rate                Float
+  capacity            Int
+  availability_status ResourceAvailabilityStatus
+  department          String
+  phone_number        String?
+  email               String?
+  location            String?
+  created_at          DateTime                   @default(now())
+  updated_at          DateTime                   @updatedAt
+  equipment_logs      EquipmentSiteLog[]
+  MaintenanceLog      MaintenanceLog[]
+  MaintenanceSchedule MaintenanceSchedule[]
+  assignments         ResourceAssignment[]
+
+  // Optional fields for material resources
+  unit                String?                    // e.g. 'kg', 'ltr'
+  quantity            Float?                     // initial stock quantity
+
+  scheduleAssignments ScheduleAssignment[]
+
+}
+
+model ResourceAssignment {
+  assignment_id         Int         @id @default(autoincrement())
+  resource_id           Int
+  task_id               Int
+  allocation_percentage Float
+  start_date            DateTime
+  end_date              DateTime
+  progress              Int         @default(0)
+  planned_hours         Float
+  actual_hours          Float
+  created_at            DateTime    @default(now())
+  updated_at            DateTime    @updatedAt
+  field_data            FieldData[]
+  resource              Resource    @relation(fields: [resource_id], references: [resource_id])
+  task                  Task        @relation(fields: [task_id], references: [task_id])
+}
+
+model Budget {
+  budget_id      Int      @id @default(autoincrement())
+  project_id     Int
+  wbs_id         Int?
+  task_id        Int?
+  cost_type      String
+  planned_amount Float
+  actual_amount  Float
+  variance       Float
+  threshold      Float    @default(0)
+  fiscal_year    Int
+  fiscal_period  String
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+  project        Project  @relation(fields: [project_id], references: [project_id])
+  task           Task?    @relation(fields: [task_id], references: [task_id])
+  wbs            WBS?     @relation(fields: [wbs_id], references: [wbs_id])
+}
+
+model Risk {
+  risk_id          Int              @id @default(autoincrement())
+  project_id       Int
+  owner_id         Int
+  name             String
+  description      String?
+  category         RiskCategory     @default(other)
+  impact           ImpactLevel
+  probability      ProbabilityLevel
+  riskLevel        RiskLevel        @default(medium)
+  riskScore        Int
+  likelihood_score Float?
+  impact_score     Float?
+  status           RiskStatus       @default(identified)
+  approvalStatus   String
+  currentStatus    String
+  identified_date  DateTime
+  last_reviewed    DateTime?
+  next_review      DateTime?
+  review_frequency Int?
+  mitigationPlanId Int?
+  created_at       DateTime         @default(now())
+  updated_at       DateTime         @updatedAt
+  owner            User             @relation("RiskOwner", fields: [owner_id], references: [user_id])
+  project          Project          @relation(fields: [project_id], references: [project_id])
+  mitigations      RiskMitigation[]
+
+  @@index([project_id])
+  @@index([status])
+  @@index([category])
+  @@index([owner_id])
+  @@index([created_at])
+  @@index([next_review])
+}
+
+model RiskMitigation {
+  mitigation_id       Int              @id @default(autoincrement())
+  risk_id             Int
+  task_id             Int
+  user_id             Int
+  description         String
+  action_plan         String
+  mitigation_type     MitigationType   @default(mitigate)
+  start_date          DateTime
+  assigned_to         Int
+  due_date            DateTime
+  status              MitigationStatus @default(planned)
+  progress_percentage Float            @default(0)
+  completion_date     DateTime?
+  notes               String?
+  created_at          DateTime         @default(now())
+  updated_at          DateTime         @updatedAt
+  assignee            User             @relation("MitigationAssignee", fields: [assigned_to], references: [user_id])
+  risk                Risk             @relation(fields: [risk_id], references: [risk_id])
+  task                Task             @relation(fields: [task_id], references: [task_id])
+  owner               User             @relation("MitigationOwner", fields: [user_id], references: [user_id])
+
+  @@index([risk_id])
+  @@index([task_id])
+  @@index([assigned_to])
+  @@index([status])
+  @@index([due_date])
+}
+
+model ReminderLog {
+  id       Int      @id @default(autoincrement())
+  actionId Int
+  sentAt   DateTime
+  method   String
+  status   String
+}
+
+model Procurement {
+  procurement_id Int             @id @default(autoincrement())
+  project_id     Int
+  wbs_id         Int?
+  type           ProcurementType
+  description    String
+  estimated_cost Float
+  actual_cost    Float
+  status         String
+  created_at     DateTime        @default(now())
+  updated_at     DateTime        @updatedAt
+  contracts      Contract[]
+  project        Project         @relation(fields: [project_id], references: [project_id])
+  wbs            WBS?            @relation(fields: [wbs_id], references: [wbs_id])
+  rfq_responses  RFQResponse[]
+}
+
+model Contract {
+  contract_id     Int         @id @default(autoincrement())
+  procurement_id  Int
+  vendor_id       Int
+  contract_number String
+  name            String
+  description     String
+  start_date      DateTime
+  end_date        DateTime
+  value           Float
+  status          String
+  created_at      DateTime    @default(now())
+  updated_at      DateTime    @updatedAt
+  procurement     Procurement @relation(fields: [procurement_id], references: [procurement_id])
+  vendor          Vendor      @relation(fields: [vendor_id], references: [vendor_id])
+}
+
+model Vendor {
+  vendor_id          Int           @id @default(autoincrement())
+  name               String
+  contact_person     String
+  contact_info       String
+  address            String
+  category           String
+  performance_rating Float
+  created_at         DateTime      @default(now())
+  updated_at         DateTime      @updatedAt
+  contracts          Contract[]
+  rfq_responses      RFQResponse[]
+}
+
+model RFQResponse {
+  rfq_response_id  Int         @id @default(autoincrement())
+  procurement_id   Int
+  vendor_id        Int
+  quote_amount     Float
+  delivery_time    String
+  technical_score  Int
+  commercial_score Int
+  total_score      Int
+  status           String      @default("Submitted")
+  submitted_date   DateTime    @default(now())
+  notes            String?
+  created_at       DateTime    @default(now())
+  updated_at       DateTime    @updatedAt
+  procurement      Procurement @relation(fields: [procurement_id], references: [procurement_id])
+  vendor           Vendor      @relation(fields: [vendor_id], references: [vendor_id])
+}
+
+model Account {
+  account_id          Int                   @id @default(autoincrement())
+  user_id             Int                   @unique
+  first_name          String
+  last_name           String
+  department          String
+  phone_number        String?
+  is_active           Boolean               @default(true)
+  created_at          DateTime              @default(now())
+  updated_at          DateTime              @updatedAt
+  user                User                  @relation(fields: [user_id], references: [user_id])
+  created_baselines   Baseline[]
+  uploaded_documents  Document[]
+  logged_equipment    EquipmentSiteLog[]
+  FieldData           FieldData[]
+  submitted_lessons   Lesson[]
+  MaintenanceLog      MaintenanceLog[]
+  MaintenanceSchedule MaintenanceSchedule[]
+  managed_portfolios  Portfolio[]
+  created_reports     Report[]
+  managed_sites       Site[]
+}
+
+model User {
+  user_id               Int                 @id @default(autoincrement())
+  username              String              @unique
+  email                 String              @unique
+  password_hash         String
+  role_id               Int
+  status                String              @default("active")
+  idp_user_id           String?             @unique  // MongoDB ObjectId from IdP
+  created_at            DateTime            @default(now())
+  updated_at            DateTime            @updatedAt
+  account               Account?
+  processed_approvals   Approval[]          @relation("ProcessedApprovals")
+  requested_approvals   Approval[]          @relation("RequestedApprovals")
+  targeted_approvals    Approval[]          @relation("TargetedApprovals")
+  mentions              CommentMention[]    @relation("UserMentions")
+  created_notifications Notification[]      @relation("CreatedNotifications")
+  notifications         Notification[]      @relation("UserNotifications")
+  created_projects      Project[]           @relation("CreatedProjects")
+  managed_projects      Project[]           @relation("ProjectManager")
+  projectApprovals      ProjectApproval[]   @relation("User_ProjectApprovals")
+  project_assignments   ProjectAssignment[]
+  approved_checklists   ProjectChecklist[]  @relation("ChecklistApprover")
+  submitted_checklists  ProjectChecklist[]  @relation("ChecklistSubmitter")
+  project_teams         ProjectTeamMember[]
+  risks                 Risk[]              @relation("RiskOwner")
+  assigned_mitigations  RiskMitigation[]    @relation("MitigationAssignee")
+  risk_mitigations      RiskMitigation[]    @relation("MitigationOwner")
+  created_tasks         Task[]              @relation("CreatedTasks")
+  assigned_tasks        TaskAssignment[]    @relation("AssignedTasks")
+  comments              TaskComment[]
+  time_entries          TimeEntry[]
+  approved_timesheets   Timesheet[]         @relation("TimesheetApprover")
+  timesheets            Timesheet[]
+  role                  Role                @relation(fields: [role_id], references: [role_id])
+  completed_closures  ClosureChecklistItem[]
+  assigned_punch_items PunchListItem[]
+  inspector_inspections FinalInspection[] @relation("InspectorInspections")
+  submitted_inspections FinalInspection[] @relation("SubmittedInspections")
+  approved_inspections  FinalInspection[] @relation("ApprovedInspections")
+  handover_responsible  Handover[]        @relation("HandoverResponsible")
+  submitted_handovers   Handover[]        @relation("SubmittedHandovers")
+  approved_handovers    Handover[]        @relation("ApprovedHandovers")
+  closure_approved_projects Project[]     @relation("ClosureApprovedProjects")
+  scheduleApprovals    ScheduleApproval[]
+  
+  // Project Scheduler Relations
+  CreatedSchedules     ProjectSchedule[]      @relation("CreatedSchedules")
+  UserSchedules        ScheduleTeamMember[]   @relation("UserSchedules")
+  RiskOwnerSchedules   ScheduleRisk[]         @relation("RiskOwnerSchedules")
+  MitigationAssigneeSchedules ScheduleRiskMitigation[] @relation("MitigationAssigneeSchedules")
+  assigned_schedule_tasks ScheduleTaskAssignment[] @relation("UserAssignedTasks")
+  assigned_by_schedule_tasks ScheduleTaskAssignment[] @relation("AssignedBy")
+  
+  // Recent Activity Relations
+  recent_activities    RecentActivity[]
+}
+
+model IdpInbox {
+  id               Int       @id @default(autoincrement())
+  idempotency_key  String    @unique
+  event            String
+  payload          Json
+  status           String    @default("received")
+  last_error       String?
+  created_at       DateTime  @default(now())
+  processed_at     DateTime?
+
+  @@index([idempotency_key])
+}
+
+model Role {
+  role_id     Int      @id @default(autoincrement())
+  name        String
+  description String
+  permissions Json
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  users       User[]
+}
+
+model Report {
+  report_id   Int      @id @default(autoincrement())
+  name        String
+  description String?
+  type        String
+  template    Json
+  created_by  Int
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  creator     Account  @relation(fields: [created_by], references: [account_id])
+}
+
+model Document {
+  document_id        Int        @id @default(autoincrement())
+  name               String
+  description        String?
+  file_path          String
+  file_type          String
+  size               Int
+  project_id         Int?
+  wbs_id             Int?
+  task_id            Int?
+  uploaded_by        Int
+  created_at         DateTime   @default(now())
+  updated_at         DateTime   @updatedAt
+  parent_document_id Int?
+  version            Int        @default(1)
+  parent             Document?  @relation("DocumentVersion", fields: [parent_document_id], references: [document_id])
+  children           Document[] @relation("DocumentVersion")
+  project            Project?   @relation(fields: [project_id], references: [project_id])
+  task               Task?      @relation(fields: [task_id], references: [task_id])
+  uploader           Account    @relation(fields: [uploaded_by], references: [account_id])
+  wbs                WBS?       @relation(fields: [wbs_id], references: [wbs_id])
+  closure_documents  ClosureDocumentItem[]
+  handover_receipts  Handover[] @relation("HandoverReceipt")
+}
+
+model Lesson {
+  lesson_id       Int      @id @default(autoincrement())
+  project_id      Int
+  title           String
+  description     String
+  category        String
+  impact          String
+  recommendations String
+  submitted_by    Int
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+  project         Project  @relation(fields: [project_id], references: [project_id])
+  submitter       Account  @relation(fields: [submitted_by], references: [account_id])
+}
+
+model Baseline {
+  baseline_id       Int          @id @default(autoincrement())
+  project_id        Int
+  name              String
+  description       String
+  baseline_date     DateTime
+  baseline_type     BaselineType
+  scope_snapshot    Json
+  schedule_snapshot Json
+  cost_snapshot     Json
+  created_by        Int
+  created_at        DateTime     @default(now())
+  updated_at        DateTime     @updatedAt
+  creator           Account      @relation(fields: [created_by], references: [account_id])
+  project           Project      @relation(fields: [project_id], references: [project_id])
+}
+
+model EVM {
+  evm_id                     Int      @id @default(autoincrement())
+  project_id                 Int
+  fiscal_period              String
+  planned_value              Float
+  earned_value               Float
+  actual_cost                Float
+  cost_performance_index     Float
+  schedule_performance_index Float
+  estimate_at_completion     Float
+  estimate_to_complete       Float
+  variance_at_completion     Float
+  reporting_date             DateTime
+  created_at                 DateTime @default(now())
+  updated_at                 DateTime @updatedAt
+  project                    Project  @relation(fields: [project_id], references: [project_id])
+}
+
+model Transaction {
+  id          Int      @id @default(autoincrement())
+  project_id  Int
+  amount      Float
+  category    String
+  date        DateTime
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  project     Project  @relation(fields: [project_id], references: [project_id])
+}
+
+model Alert {
+  id          Int       @id @default(autoincrement())
+  project_id  Int
+  triggeredAt DateTime
+  resolvedAt  DateTime?
+  escalated   Boolean   @default(false)
+  recipients  Json
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  project     Project   @relation(fields: [project_id], references: [project_id])
+}
+
+model PerformanceMetric {
+  metric_id  Int      @id @default(autoincrement())
+  task_id    Int
+  cpi        Float
+  spi        Float
+  status     String
+  commentary String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  task       Task     @relation(fields: [task_id], references: [task_id])
+}
+
+model Scorecard {
+  scorecard_id Int      @id @default(autoincrement())
+  task_id      Int
+  cpi          Float
+  spi          Float
+  status       String
+  commentary   String
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+  task         Task     @relation(fields: [task_id], references: [task_id])
+}
+
+model Escalation {
+  escalation_id Int       @id @default(autoincrement())
+  task_id       Int
+  triggered_at  DateTime
+  resolved_at   DateTime?
+  escalated_to  String
+  reason        String
+  status        String    @default("open")
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+  task          Task      @relation(fields: [task_id], references: [task_id])
+}
+
+model Notification {
+  notification_id Int                  @id @default(autoincrement())
+  user_id         Int
+  type            NotificationType
+  title           String
+  message         String
+  priority        NotificationPriority
+  metadata        Json?
+  status          NotificationStatus   @default(UNREAD)
+  read_at         DateTime?
+  created_at      DateTime             @default(now())
+  updated_at      DateTime             @updatedAt
+  expires_at      DateTime?
+  created_by_id   Int
+  created_by      User                 @relation("CreatedNotifications", fields: [created_by_id], references: [user_id])
+  user            User                 @relation("UserNotifications", fields: [user_id], references: [user_id])
+
+  @@index([created_at])
+  @@index([status])
+  @@index([user_id])
+}
+
+model Approval {
+  approval_id    Int            @id @default(autoincrement())
+  type           ApprovalType
+  status         ApprovalStatus @default(PENDING)
+  project_id     Int
+  checklist_id   Int?
+  requested_by   Int
+  target_user_id Int
+  approved_by    Int?
+  comments       String?
+  created_at     DateTime       @default(now())
+  updated_at     DateTime       @updatedAt
+  approver       User?          @relation("ProcessedApprovals", fields: [approved_by], references: [user_id])
+  requester      User           @relation("RequestedApprovals", fields: [requested_by], references: [user_id])
+  target         User           @relation("TargetedApprovals", fields: [target_user_id], references: [user_id])
+
+  @@index([status])
+  @@index([project_id])
+  @@index([target_user_id])
+}
+
+model Site {
+  site_id        Int                @id @default(autoincrement())
+  site_code      String             @unique
+  name           String
+  description    String?
+  address        String
+  project_id     Int
+  manager_id     Int
+  is_active      Boolean            @default(true)
+  created_at     DateTime           @default(now())
+  updated_at     DateTime           @updatedAt
+  equipment_logs EquipmentSiteLog[]
+  manager        Account            @relation(fields: [manager_id], references: [account_id])
+  project        Project            @relation(fields: [project_id], references: [project_id])
+}
+
+model EquipmentSiteLog {
+  log_id           Int       @id @default(autoincrement())
+  resource_id      Int
+  site_id          Int
+  logged_in_date   DateTime
+  logged_out_date  DateTime?
+  usage_hours      Float?
+  condition_before String?
+  condition_after  String?
+  notes            String?
+  logged_by        Int
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+  user             Account   @relation(fields: [logged_by], references: [account_id])
+  resource         Resource  @relation(fields: [resource_id], references: [resource_id])
+  site             Site      @relation(fields: [site_id], references: [site_id])
+}
+
+model MaintenanceSchedule {
+  schedule_id       Int                 @id @default(autoincrement())
+  resource_id       Int
+  maintenance_type  MaintenanceType
+  trigger_type      TriggerType
+  trigger_value     String
+  next_due_date     DateTime
+  status            MaintenanceStatus   @default(scheduled)
+  priority          MaintenancePriority @default(medium)
+  description       String?
+  estimated_hours   Float?
+  estimated_cost    Float?
+  created_at        DateTime            @default(now())
+  updated_at        DateTime            @updatedAt
+  accountAccount_id Int?
+  maintenance_logs  MaintenanceLog[]
+  Account           Account?            @relation(fields: [accountAccount_id], references: [account_id])
+  resource          Resource            @relation(fields: [resource_id], references: [resource_id])
+
+  @@index([next_due_date])
+  @@index([status])
+  @@index([resource_id])
+}
+
+model MaintenanceLog {
+  log_id            Int                  @id @default(autoincrement())
+  schedule_id       Int?
+  resource_id       Int
+  maintenance_type  MaintenanceType
+  performed_date    DateTime
+  performed_by      Int
+  work_description  String
+  parts_used        String?
+  labor_hours       Float?
+  parts_cost        Float?
+  labor_cost        Float?
+  total_cost        Float?
+  condition_before  String?
+  condition_after   String?
+  next_service_date DateTime?
+  notes             String?
+  created_at        DateTime             @default(now())
+  updated_at        DateTime             @updatedAt
+  technician        Account              @relation(fields: [performed_by], references: [account_id])
+  resource          Resource             @relation(fields: [resource_id], references: [resource_id])
+  schedule          MaintenanceSchedule? @relation(fields: [schedule_id], references: [schedule_id])
+
+  @@index([performed_date])
+  @@index([resource_id])
+}
+
+model TaskAssignment {
+  id          Int      @id @default(autoincrement())
+  task_id     Int
+  user_id     Int
+  assigned_at DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  task        Task     @relation(fields: [task_id], references: [task_id])
+  user        User     @relation("AssignedTasks", fields: [user_id], references: [user_id])
+
+  @@unique([task_id, user_id])
+}
+
+model WorkflowRule {
+  rule_id          Int                 @id @default(autoincrement())
+  name             String
+  description      String?
+  trigger_type     WorkflowTriggerType
+  trigger_task_id  Int
+  action_type      WorkflowActionType
+  action_target_id Int?
+  is_active        Boolean             @default(true)
+  created_at       DateTime            @default(now())
+  updated_at       DateTime            @updatedAt
+  action_task      Task?               @relation("ActionTask", fields: [action_target_id], references: [task_id])
+  trigger_task     Task                @relation("TriggerTask", fields: [trigger_task_id], references: [task_id])
+}
+
+model RecurringTask {
+  recurring_task_id Int                 @id @default(autoincrement())
+  name              String
+  description       String?
+  wbs_id            Int
+  frequency         RecurrenceFrequency
+  start_date        DateTime
+  end_date          DateTime?
+  last_created      DateTime?
+  is_active         Boolean             @default(true)
+  created_at        DateTime            @default(now())
+  updated_at        DateTime            @updatedAt
+  wbs               WBS                 @relation(fields: [wbs_id], references: [wbs_id])
+}
+
+model Event {
+  event_id     Int         @id @default(autoincrement())
+  type         String
+  data         Json
+  status       EventStatus @default(PENDING)
+  error        String?
+  created_at   DateTime    @default(now())
+  processed_at DateTime?
+  retry_count  Int         @default(0)
+  max_retries  Int         @default(3)
+
+  @@index([status])
+  @@index([created_at])
+}
+
+model FieldData {
+  id                     Int                @id @default(autoincrement())
+  task_id                Int
+  resource_assignment_id Int
+  reported_by            Int
+  actual_progress        Float
+  actual_hours           Float
+  notes                  String?
+  timestamp              DateTime           @default(now())
+  is_according_to_plan   Boolean
+  reporter               Account            @relation(fields: [reported_by], references: [account_id])
+  resource_assignment    ResourceAssignment @relation(fields: [resource_assignment_id], references: [assignment_id])
+  task                   Task               @relation(fields: [task_id], references: [task_id])
+
+  @@index([task_id])
+  @@index([resource_assignment_id])
+  @@index([timestamp])
+}
+
+model TaskComment {
+  comment_id      Int              @id @default(autoincrement())
+  task_id         Int
+  author_id       Int
+  parent_id       Int?
+  message         String
+  mentioned_users Json?
+  is_edited       Boolean          @default(false)
+  created_at      DateTime         @default(now())
+  updated_at      DateTime         @updatedAt
+  mentions        CommentMention[]
+  author          User             @relation(fields: [author_id], references: [user_id])
+  parent          TaskComment?     @relation("CommentReplies", fields: [parent_id], references: [comment_id])
+  replies         TaskComment[]    @relation("CommentReplies")
+  task            Task             @relation(fields: [task_id], references: [task_id])
+
+  @@index([task_id])
+  @@index([author_id])
+  @@index([parent_id])
+  @@index([created_at])
+}
+
+model CommentMention {
+  mention_id        Int         @id @default(autoincrement())
+  comment_id        Int
+  mentioned_user_id Int
+  created_at        DateTime    @default(now())
+  comment           TaskComment @relation(fields: [comment_id], references: [comment_id], onDelete: Cascade)
+  mentioned_user    User        @relation("UserMentions", fields: [mentioned_user_id], references: [user_id])
+
+  @@unique([comment_id, mentioned_user_id])
+  @@index([mentioned_user_id])
+}
+
+model ProjectTeamMember {
+  id         Int      @id @default(autoincrement())
+  project_id Int
+  user_id    Int
+  role       String
+  department String
+  joined_at  DateTime @default(now())
+  updated_at DateTime @updatedAt
+  is_lead    Boolean  @default(false)
+  workload   Float    @default(0)
+  project    Project  @relation(fields: [project_id], references: [project_id])
+  user       User     @relation(fields: [user_id], references: [user_id])
+
+  @@unique([project_id, user_id])
+  @@index([project_id])
+  @@index([user_id])
+}
+
+model ProjectAssignment {
+  id        Int     @id @default(autoincrement())
+  projectId Int
+  userId    Int
+  workload  Float
+  isLead    Boolean
+  project   Project @relation(fields: [projectId], references: [project_id])
+  user      User    @relation(fields: [userId], references: [user_id])
+}
+
+model ProjectChecklist {
+  checklist_id Int                    @id @default(autoincrement())
+  project_id   Int
+  title        String
+  description  String?
+  category     ChecklistCategory      @default(CUSTOM)
+  items        Json
+  status       ProjectChecklistStatus @default(DRAFT)
+  is_completed Boolean                @default(false)
+  created_by   Int
+  submitted_by Int?
+  approved_by  Int?
+  approved_at  DateTime?
+  completed_at DateTime?
+  created_at   DateTime               @default(now())
+  updated_at   DateTime               @updatedAt
+  approver     User?                  @relation("ChecklistApprover", fields: [approved_by], references: [user_id])
+  project      Project                @relation(fields: [project_id], references: [project_id])
+  submitter    User?                  @relation("ChecklistSubmitter", fields: [submitted_by], references: [user_id])
+}
+
+model TimeEntry {
+  time_entry_id Int             @id @default(autoincrement())
+  user_id       Int
+  task_id       Int
+  project_id    Int
+  hours_spent   Float
+  date          DateTime
+  start_time    DateTime
+  end_time      DateTime
+  description   String?
+  status        TimeEntryStatus @default(DRAFT)
+  timesheet_id  Int?
+  created_at    DateTime        @default(now())
+  updated_at    DateTime        @updatedAt
+  project       Project         @relation(fields: [project_id], references: [project_id])
+  task          Task            @relation(fields: [task_id], references: [task_id])
+  timesheet     Timesheet?      @relation(fields: [timesheet_id], references: [timesheet_id])
+  user          User            @relation(fields: [user_id], references: [user_id])
+}
+
+model Timesheet {
+  timesheet_id Int             @id @default(autoincrement())
+  user_id      Int
+  project_id   Int
+  start_date   DateTime
+  end_date     DateTime
+  status       TimesheetStatus @default(DRAFT)
+  total_hours  Float           @default(0)
+  comments     String?
+  created_at   DateTime        @default(now())
+  updated_at   DateTime        @updatedAt
+  approved_by  Int?
+  approved_at  DateTime?
+  time_entries TimeEntry[]
+  approver     User?           @relation("TimesheetApprover", fields: [approved_by], references: [user_id])
+  project      Project         @relation(fields: [project_id], references: [project_id])
+  user         User            @relation(fields: [user_id], references: [user_id])
+
+  @@index([user_id])
+  @@index([project_id])
+  @@index([approved_by])
+}
+
+model ProjectSetup {
+  id         Int      @id @default(autoincrement())
+  project_id Int      @unique
+  wbs        Boolean  @default(false)
+  schedule   Boolean  @default(false)
+  budget     Boolean  @default(false)
+  team       Boolean  @default(false)
+  risk       Boolean  @default(false)
+  baseline   Boolean  @default(false)
+  execution  Boolean  @default(false)
+  off_days   String[] @default([])
+  project    Project  @relation(fields: [project_id], references: [project_id])
+}
+
+model Benchmark {
+  id                             Int         @id @default(autoincrement())
+  project_type                   ProjectType @unique
+  cost_per_m2                    Float
+  duration_per_m2                Float
+  expected_roi                   Float
+  cost_overrun_max               Float
+  schedule_slip_max              Float
+  cpi_threshold                  Float
+  spi_threshold                  Float
+  efficiency_ratio               Float
+  avg_task_delay_max             Float?
+  critical_path_delay_max        Int?
+  expected_task_completion_rate  Float?
+  max_budget_threshold_violation Int?
+  created_at                     DateTime    @default(now())
+  updated_at                     DateTime    @updatedAt
+}
+
+model ProjectApproval {
+  id          Int            @id @default(autoincrement())
+  project_id  Int
+  user_id     Int
+  status      ApprovalStatus @default(PENDING)
+  type        ApprovalType   @default(PROJECT_CREATION)
+  step        Int            @default(1)
+  comments    String?
+  reviewed_at DateTime?
+  project     Project        @relation("Project_ProjectApprovals", fields: [project_id], references: [project_id])
+  user        User           @relation("User_ProjectApprovals", fields: [user_id], references: [user_id])
+
+  @@index([project_id])
+  @@index([user_id])
+}
+
+enum ProjectStatus {
+  planning
+  execution
+  completed
+  closed
+  on_hold
+  pending_approval
+  approved
+  rejected
+}
+
+enum ProjectPriority {
+  low
+  medium
+  high
+}
+
+enum projectCompliance {
+  compliant
+  non_compliant
+  pending
+}
+
+enum DependencyType {
+  finish_to_start
+  start_to_start
+  finish_to_finish
+  start_to_finish
+}
+
+enum ResourceType {
+  labor
+  equipment
+  material
+}
+
+enum ImpactLevel {
+  high
+  medium
+  low
+}
+
+enum ProbabilityLevel {
+  high
+  medium
+  low
+}
+
+enum ProcurementType {
+  material
+  service
+  equipment
+}
+
+enum BaselineType {
+  initial
+  revised
+  re_baseline
+}
+
+enum NotificationType {
+  PROJECT_CREATION
+  PROJECT_UPDATE
+  TASK_ASSIGNMENT
+  DEADLINE_REMINDER
+  BUDGET_ALERT
+  RISK_ALERT
+  DOCUMENT_UPDATE
+  SYSTEM_ALERT
+  TASK_UPDATE
+  MAINTENANCE_DUE
+}
+
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+  ARCHIVED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REVISION_REQUESTED
+  WAITING
+}
+
+enum ApprovalType {
+  PROJECT_CREATION
+  BUDGET_CHANGE
+  SCHEDULE_CHANGE
+  SCOPE_CHANGE
+  PROJECT_CLOSURE
+}
+
+enum TaskStatus {
+  todo
+  in_progress
+  completed
+  on_hold
+}
+
+enum WorkflowTriggerType {
+  TASK_COMPLETED
+  TASK_STARTED
+  TASK_ON_HOLD
+  DEPENDENCY_COMPLETED
+}
+
+enum WorkflowActionType {
+  START_TASK
+  SEND_NOTIFICATION
+  UPDATE_TASK_STATUS
+  ASSIGN_RESOURCE
+  CREATE_RECURRING_TASK
+  ESCALATE_TASK
+  UPDATE_PROJECT_STATUS
+}
+
+enum RecurrenceFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum EventStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum ResourceAvailabilityStatus {
+  available
+  on_leave
+  inactive
+}
+
+enum MaintenanceType {
+  routine
+  repair
+  inspection
+  compliance
+  emergency
+}
+
+enum TriggerType {
+  time_based
+  usage_based
+  condition_based
+  regulatory
+}
+
+enum MaintenanceStatus {
+  scheduled
+  in_progress
+  completed
+  overdue
+  cancelled
+}
+
+enum MaintenancePriority {
+  low
+  medium
+  high
+  critical
+}
+
+enum ProjectStrategicValue {
+  high
+  medium
+  low
+}
+
+enum TaskPriority {
+  low
+  medium
+  high
+}
+
+enum ChecklistCategory {
+  DOCUMENT_VERIFICATION
+  FINANCIAL_CLOSURE
+  STAKEHOLDER_SIGNOFF
+  RESOURCE_RELEASE
+  LESSONS_LEARNED
+  FINAL_REPORT
+  CONTRACT_CLOSURE
+  CUSTOM
+}
+
+enum ProjectChecklistStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  NEEDS_REVISION
+}
+
+enum WBSStatus {
+  not_started
+  in_progress
+  completed
+  on_hold
+}
+
+enum PortfolioStatus {
+  active
+  completed
+  on_hold
+  archived
+}
+
+enum PortfolioPriority {
+  high
+  medium
+  low
+}
+
+enum TimeEntryStatus {
+  DRAFT
+  SUBMITTED
+}
+
+enum TimesheetStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum ProjectType {
+  residential
+  commercial
+  industrial
+  infrastructure
+  healthcare
+  educational
+  government
+  mixed_use
+  renovation
+  religious
+}
+
+enum RiskStatus {
+  identified
+  assessed
+  mitigated
+  closed
+  escalated
+  monitoring
+}
+
+enum RiskCategory {
+  technical
+  schedule
+  cost
+  resource
+  quality
+  communication
+  external
+  regulatory
+  environmental
+  security
+  other
+}
+
+enum RiskPriority {
+  critical
+  high
+  medium
+  low
+}
+
+enum RiskLevel {
+  low
+  medium
+  high
+}
+
+enum MitigationStatus {
+  planned
+  in_progress
+  completed
+  on_hold
+  cancelled
+  overdue
+}
+
+enum MitigationType {
+  avoid
+  transfer
+  mitigate
+  accept
+  contingency
+}
+
+model ClosureDocumentItem {
+  id          Int                   @id @default(autoincrement())
+  project_id  Int
+  document_id Int?
+  type        ClosureDocumentType
+  required    Boolean               @default(true)
+  submitted   Boolean               @default(false)
+  approved    Boolean               @default(false)
+  notes       String?
+  created_at  DateTime              @default(now())
+  updated_at  DateTime              @updatedAt
+
+  project     Project               @relation(fields: [project_id], references: [project_id])
+  document    Document?             @relation(fields: [document_id], references: [document_id])
+
+  @@unique([project_id, type])
+}
+
+model ClosureChecklistItem {
+  id            Int      @id @default(autoincrement())
+  project_id    Int
+  title         String   // e.g. "Upload Closure Documents"
+  type          String   // e.g. "inspection", "punch_list", "manual", "documents", "approval", "handover"
+  status        String   @default("pending") // pending, complete
+  auto_checked  Boolean  @default(false)
+  completed_at  DateTime?
+  completed_by  Int?
+
+  project       Project  @relation(fields: [project_id], references: [project_id])
+  completedBy   User? @relation(fields: [completed_by], references: [user_id])
+}
+
+model PunchListItem {
+  id           Int      @id @default(autoincrement())
+  project_id   Int
+  title        String   // e.g. "Fix broken tile in lobby"
+  status       String   @default("open") // open, in_progress, resolved
+  assigned_to  Int?
+  resolved_at  DateTime?
+
+  project      Project  @relation(fields: [project_id], references: [project_id])
+  assignee     User? @relation(fields: [assigned_to], references: [user_id])
+}
+
+model FinalInspection {
+  id                Int      @id @default(autoincrement())
+  project_id        Int      @unique
+  scheduled_date    DateTime
+  scheduled_time    String   // e.g., "14:30"
+  inspector_id      Int?
+  status            String   @default("scheduled") // scheduled, in_progress, completed, failed
+  notes             String?
+  documents         Json?    // Array of document references/paths
+  approved          Boolean  @default(false)
+  approval_notes    String?
+  submitted_at      DateTime?
+  submitted_by      Int?
+  approved_at       DateTime?
+  approved_by       Int?
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  project           Project  @relation(fields: [project_id], references: [project_id])
+  inspector         User?    @relation("InspectorInspections", fields: [inspector_id], references: [user_id])
+  submitter         User?    @relation("SubmittedInspections", fields: [submitted_by], references: [user_id])
+  approver          User?    @relation("ApprovedInspections", fields: [approved_by], references: [user_id])
+}
+
+model Handover {
+  id                    Int      @id @default(autoincrement())
+  project_id            Int      @unique
+  handover_date         DateTime
+  handover_time         String   // e.g., "14:30"
+  handover_receipt_id   Int?     // Reference to the handover receipt document
+  notes                 String?
+  status                String   @default("scheduled") // scheduled, in_progress, completed
+  handed_over_by        Int      // User from our team responsible for handover
+  handed_over_to        String?  // Client/recipient information
+  submitted_at          DateTime?
+  submitted_by          Int?
+  approved_at           DateTime?
+  approved_by           Int?
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  project               Project  @relation(fields: [project_id], references: [project_id])
+  handover_receipt      Document? @relation("HandoverReceipt", fields: [handover_receipt_id], references: [document_id])
+  handover_user         User     @relation("HandoverResponsible", fields: [handed_over_by], references: [user_id])
+  submitter             User?    @relation("SubmittedHandovers", fields: [submitted_by], references: [user_id])
+  approver              User?    @relation("ApprovedHandovers", fields: [approved_by], references: [user_id])
+}
+
+enum ClosureDocumentType {
+  AS_BUILT_DRAWING
+  CERTIFICATE_OF_COMPLETION
+  PUNCH_LIST_CONFIRMATION
+  HANDOVER_RECEIPT
+  FINAL_CLOSURE_REPORT
+}
+
+// ===== PROJECT SCHEDULER MODELS =====
+
+model ProjectSchedule {
+  schedule_id          Int                    @id @default(autoincrement())
+  name                 String
+  description          String?
+  user_id              Int                    // Creator
+  project_id           Int?                   // Link to real project when approved
+  portfolio_id         Int?                   // Link to portfolio
+  eps_level_id         Int?                   // Link to EPS level
+  status               ScheduleStatus         @default(draft)
+  
+  // Project Details
+  start_date           DateTime
+  planned_end_date     DateTime
+  budget_amount        Float
+  priority             ProjectPriority        @default(medium)
+  type                 ProjectType
+  location             String?
+  client               String?
+  contractor           String?
+  strategic_value      ProjectStrategicValue  @default(medium)
+  notes                String?
+  
+  // Analysis Results
+  feasibility_score    Float?                 // 0-100
+  conflicts_count      Int                    @default(0)
+  resource_utilization Float?
+  budget_variance      Float?
+  risk_score           Float?
+  
+  created_at           DateTime               @default(now())
+  updated_at           DateTime               @updatedAt
+  
+  // Relations
+  creator              User                   @relation("CreatedSchedules", fields: [user_id], references: [user_id])
+  project              Project?               @relation("ProjectSchedules", fields: [project_id], references: [project_id])
+  portfolio            Portfolio?             @relation("SchedulePortfolios", fields: [portfolio_id], references: [portfolio_id])
+  eps                  EPS?                   @relation("ScheduleEPS", fields: [eps_level_id], references: [eps_id])
+  approvals            ScheduleApproval[]
+  
+  // Comprehensive Planning Relations
+  wbs_items            ScheduleWBS[]
+  tasks                ScheduleTask[]
+  // resources            Resource[]   // REMOVE or implement as a proper many-to-many if needed
+  budgets              ScheduleBudget[]
+  risks                ScheduleRisk[]
+  team_members         ScheduleTeamMember[]
+  procurements         ScheduleProcurement[]
+  sites                ScheduleSite[]
+  conflicts            ScheduleConflict[]
+
+  @@index([user_id])
+  @@index([status])
+  @@index([created_at])
+  @@index([portfolio_id])
+  @@index([eps_level_id])
+}
+
+model ScheduleWBS {
+  wbs_id               Int                    @id @default(autoincrement())
+  schedule_id          Int
+  wbs_code             String
+  name                 String
+  description          String?
+  parent_wbs_id        Int?
+  level                Int
+  start_date           DateTime
+  end_date             DateTime
+  // budget_amount: removed, now handled by ScheduleBudget
+  progress_percentage  Float                  @default(0)
+  status               WBSStatus              @default(not_started)
+  created_at           DateTime               @default(now())
+  updated_at           DateTime               @updatedAt
+  // Relations
+  schedule             ProjectSchedule        @relation(fields: [schedule_id], references: [schedule_id])
+  parent               ScheduleWBS?           @relation("ParentChildWBS", fields: [parent_wbs_id], references: [wbs_id])
+  children             ScheduleWBS[]          @relation("ParentChildWBS")
+  tasks                ScheduleTask[]
+  budget               ScheduleBudget?        @relation("WBSBudget")
+  procurements         ScheduleProcurement[]
+  @@index([schedule_id])
+  @@index([parent_wbs_id])
+}
+
+model ScheduleTask {
+  task_id              Int                    @id @default(autoincrement())
+  schedule_id          Int
+  wbs_id               Int?
+  name                 String
+  description          String?
+  // Timing
+  start_date           DateTime
+  end_date             DateTime
+  duration             Int                    // days
+  early_start          DateTime?
+  early_finish         DateTime?
+  late_start           DateTime?
+  late_finish          DateTime?
+  total_float          Int?                   @default(0)
+  free_float           Int?                   @default(0)
+  // Progress & Status
+  progress_percentage  Float                  @default(0)
+  is_milestone         Boolean                @default(false)
+  is_critical_path     Boolean                @default(false)
+  priority             TaskPriority           @default(medium)
+  status               TaskStatus             @default(todo)
+  // Effort & Cost
+  estimated_hours      Float                  @default(0)
+  planned_hours        Float                  @default(0)
+  work_package         String?
+  // Dependencies
+  dependencies         String[]               // Array of task IDs
+  // Skills Required
+  required_skills      Json                   // Skills needed for this task
+  created_at           DateTime               @default(now())
+  updated_at           DateTime               @updatedAt
+  // Relations
+  schedule             ProjectSchedule        @relation(fields: [schedule_id], references: [schedule_id])
+  wbs                  ScheduleWBS?           @relation(fields: [wbs_id], references: [wbs_id])
+  assignments          ScheduleAssignment[]
+  budget               ScheduleBudget?        @relation("TaskBudget")
+  risks                ScheduleRisk[]
+  predecessors         ScheduleTaskDependency[] @relation("Predecessor")
+  successors           ScheduleTaskDependency[] @relation("Successor")
+  risk_mitigations     ScheduleRiskMitigation[]
+  user_assignments     ScheduleTaskAssignment[]
+  @@index([schedule_id])
+  @@index([wbs_id])
+  @@index([start_date])
+  @@index([end_date])
+}
+
+model ScheduleTaskAssignment {
+  assignment_id Int @id @default(autoincrement())
+  task_id       Int
+  user_id       Int
+  assigned_by   Int
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  // Relations
+  task     ScheduleTask @relation(fields: [task_id], references: [task_id])
+  user     User         @relation("UserAssignedTasks", fields: [user_id], references: [user_id])
+  assigner User         @relation("AssignedBy", fields: [assigned_by], references: [user_id])
+}
+
+model ScheduleTaskDependency {
+  dependency_id        Int                    @id @default(autoincrement())
+  predecessor_task_id  Int
+  successor_task_id    Int
+  dependency_type      DependencyType
+  lag_time             Int                    @default(0)
+  
+  created_at           DateTime               @default(now())
+  updated_at           DateTime               @updatedAt
+  
+  // Relations
+  predecessor          ScheduleTask           @relation("Predecessor", fields: [predecessor_task_id], references: [task_id])
+  successor            ScheduleTask           @relation("Successor", fields: [successor_task_id], references: [task_id])
+
+  @@index([predecessor_task_id])
+  @@index([successor_task_id])
+}
+
+
+model ScheduleAssignment {
+  assignment_id        Int         @id @default(autoincrement())
+  task_id              Int
+  resource_id          Int
+  allocation_percentage Float
+  start_date           DateTime
+  end_date             DateTime
+  planned_hours        Float
+  progress             Int         @default(0)
+  
+  created_at           DateTime    @default(now())
+  updated_at           DateTime    @updatedAt
+  
+  // Relations
+  task                 ScheduleTask @relation(fields: [task_id], references: [task_id])
+  resource             Resource     @relation(fields: [resource_id], references: [resource_id])
+
+  @@index([task_id])
+  @@index([resource_id])
+  @@index([start_date])
+  @@index([end_date])
+}
+
+model ScheduleTeamMember {
+  team_member_id       Int                    @id @default(autoincrement())
+  schedule_id          Int
+  user_id              Int                    // Must link to existing user
+  role                 String
+  department           String
+  is_lead              Boolean                @default(false)
+  workload             Float                  @default(100)
+  
+  created_at           DateTime               @default(now())
+  updated_at           DateTime               @updatedAt
+  
+  // Relations
+  schedule             ProjectSchedule        @relation(fields: [schedule_id], references: [schedule_id])
+  user                 User                   @relation("UserSchedules", fields: [user_id], references: [user_id])
+
+  @@unique([schedule_id, user_id])
+  @@index([schedule_id])
+  @@index([user_id])
+}
+
+model ScheduleBudget {
+  budget_id            Int                    @id @default(autoincrement())
+  schedule_id          Int
+  wbs_id               Int?                   @unique
+  task_id              Int?                   @unique
+  cost_type            String                 // labor, material, equipment, overhead, etc.
+  planned_amount       Float
+  actual_amount        Float                  @default(0)
+  variance             Float                  @default(0)
+  threshold            Float                  @default(0)
+  fiscal_year          Int
+  fiscal_period        String
+  description          String?
+  created_at           DateTime               @default(now())
+  updated_at           DateTime               @updatedAt
+  // Relations
+  schedule             ProjectSchedule        @relation(fields: [schedule_id], references: [schedule_id])
+  wbs                  ScheduleWBS?           @relation("WBSBudget", fields: [wbs_id], references: [wbs_id])
+  task                 ScheduleTask?          @relation("TaskBudget", fields: [task_id], references: [task_id])
+  @@index([schedule_id])
+  @@index([wbs_id])
+  @@index([task_id])
+  @@index([cost_type])
+}
+
+model ScheduleRisk {
+  risk_id              Int                    @id @default(autoincrement())
+  schedule_id          Int
+  task_id              Int?
+  owner_id             Int?                   // Link to user
+  name                 String
+  description          String?
+  category             RiskCategory           @default(other)
+  impact               ImpactLevel
+  probability          ProbabilityLevel
+  risk_level           RiskLevel              @default(medium)
+  risk_score           Int
+  likelihood_score     Float?
+  impact_score         Float?
+  status               RiskStatus             @default(identified)
+  identified_date      DateTime
+  mitigation_plan      String?
+  
+  created_at           DateTime               @default(now())
+  updated_at           DateTime               @updatedAt
+  
+  // Relations
+  schedule             ProjectSchedule        @relation(fields: [schedule_id], references: [schedule_id])
+  task                 ScheduleTask?          @relation(fields: [task_id], references: [task_id])
+  owner                User?                  @relation("RiskOwnerSchedules", fields: [owner_id], references: [user_id])
+  mitigations          ScheduleRiskMitigation[]
+
+  @@index([schedule_id])
+  @@index([task_id])
+  @@index([owner_id])
+  @@index([status])
+  @@index([category])
+}
+
+model ScheduleRiskMitigation {
+  mitigation_id        Int                    @id @default(autoincrement())
+  risk_id              Int
+  task_id              Int?
+  user_id              Int?                   // Assigned to
+  description          String
+  action_plan          String
+  mitigation_type      MitigationType         @default(mitigate)
+  start_date           DateTime
+  due_date             DateTime
+  status               MitigationStatus       @default(planned)
+  progress_percentage  Float                  @default(0)
+  notes                String?
+  
+  created_at           DateTime               @default(now())
+  updated_at           DateTime               @updatedAt
+  
+  // Relations
+  risk                 ScheduleRisk           @relation(fields: [risk_id], references: [risk_id])
+  task                 ScheduleTask?          @relation(fields: [task_id], references: [task_id])
+  assignee             User?                  @relation("MitigationAssigneeSchedules", fields: [user_id], references: [user_id])
+
+  @@index([risk_id])
+  @@index([task_id])
+  @@index([user_id])
+  @@index([status])
+  @@index([due_date])
+}
+
+model ScheduleProcurement {
+  procurement_id       Int                    @id @default(autoincrement())
+  schedule_id          Int
+  wbs_id               Int?
+  type                 ProcurementType
+  description          String
+  estimated_cost       Float
+  actual_cost          Float                  @default(0)
+  status               String                 @default("planned")
+  vendor_name          String?
+  delivery_date        DateTime?
+
+  created_at           DateTime               @default(now())
+  updated_at           DateTime               @updatedAt
+
+  // Relations
+  schedule             ProjectSchedule        @relation(fields: [schedule_id], references: [schedule_id])
+  wbs                  ScheduleWBS?           @relation(fields: [wbs_id], references: [wbs_id])
+
+  @@index([schedule_id])
+  @@index([wbs_id])
+  @@index([status])
+}
+
+model ScheduleSite {
+  site_id              Int                    @id @default(autoincrement())
+  schedule_id          Int
+  name                 String
+  address              String?
+  coordinates          String?                // lat,lng
+  site_type            String?                // office, construction, remote, etc.
+  capacity             Int?
+  description          String?
+  
+  created_at           DateTime               @default(now())
+  updated_at           DateTime               @updatedAt
+  
+  // Relations
+  schedule             ProjectSchedule        @relation(fields: [schedule_id], references: [schedule_id])
+
+  @@index([schedule_id])
+}
+
+model ScheduleConflict {
+  conflict_id          Int                    @id @default(autoincrement())
+  schedule_id          Int
+  conflict_type        ConflictType
+  severity             ConflictSeverity
+  description          String
+  affected_tasks       String[]               // Array of task IDs
+  affected_resources   String[]               // Array of resource IDs
+  suggested_resolution String?
+  resolved             Boolean                @default(false)
+  
+  created_at           DateTime               @default(now())
+  
+  // Relations
+  schedule             ProjectSchedule        @relation(fields: [schedule_id], references: [schedule_id])
+
+  @@index([schedule_id])
+  @@index([resolved])
+}
+
+model ScheduleApproval {
+  id         Int            @id @default(autoincrement())
+  schedule_id Int
+  user_id    Int
+  status     ApprovalStatus @default(PENDING)
+  schedule   ProjectSchedule @relation(fields: [schedule_id], references: [schedule_id])
+  user       User           @relation(fields: [user_id], references: [user_id])
+  created_at DateTime       @default(now())
+  updated_at DateTime       @updatedAt
+
+  @@index([schedule_id])
+  @@index([user_id])
+}
+
+// ===== PROJECT SCHEDULER ENUMS =====
+
+enum ScheduleStatus {
+  draft
+  analyzing
+  feasible
+  infeasible
+  pending_approval
+  approved
+  rejected
+  converted
+}
+
+enum ConflictType {
+  resource_overallocation
+  skill_mismatch
+  dependency_violation
+  timeline_conflict
+  budget_exceeded
+  resource_unavailable
+  team_conflict
+}
+
+enum ConflictSeverity {
+  low
+  medium
+  high
+  critical
+}
+
+model RecentActivity {
+  activity_id   Int                @id @default(autoincrement())
+  user_id       Int
+  action        String             // 'create', 'update', 'delete', 'assign', etc.
+  entity_type   String             // 'project', 'task', 'risk', 'rfq', etc.
+  entity_id     Int?               // ID of the entity that was acted upon
+  title         String             // Human readable title
+  description   String?            // Additional details
+  metadata      Json?              // Additional data (entity names, old/new values, etc.)
+  created_at    DateTime           @default(now())
+  
+  // Relations
+  user          User               @relation(fields: [user_id], references: [user_id])
+
+  @@index([user_id, created_at])
+  @@index([entity_type, entity_id])
+  @@index([created_at])
+}
