@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 
 function safeReturnTo(raw: string | null): string {
   if (!raw || !raw.startsWith('/') || raw.startsWith('//')) {
-    return '/dashboard';
+    return '/analytics/dashboard';
   }
   return raw;
 }

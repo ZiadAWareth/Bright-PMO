@@ -16,7 +16,7 @@ function CallbackCompleteContent() {
       console.log('[Callback Complete] Token stored in localStorage');
 
       // Redirect to dashboard
-      router.replace('/dashboard');
+      router.replace('/analytics/dashboard');
     } else {
       // No token provided, redirect to login
       console.error('[Callback Complete] No token provided');

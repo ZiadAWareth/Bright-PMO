@@ -29,7 +29,7 @@ export default function SyncTokenToLocalStorage() {
           console.log('[SyncToken] Token synced to localStorage for backward compatibility');
           
           // Redirect to dashboard
-          router.push('/dashboard');
+          router.push('/analytics/dashboard');
         } else {
           console.error('[SyncToken] Authentication failed');
           router.push('/auth/login');

@@ -32,7 +32,7 @@ function loginRedirect(request: NextRequest, error: string) {
 
 /**
  * Starts OAuth: sets state + PKCE cookies and redirects to IdP authorize URL.
- * GET /api/auth/idp/start?returnTo=/dashboard
+ * GET /api/auth/idp/start?returnTo=/analytics/dashboard
  */
 export async function GET(request: NextRequest) {
   const resolved = resolveIdpConfig();

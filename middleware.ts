@@ -19,6 +19,7 @@ function logDebug(message: string, data?: any) {
 
 // Public paths that don't require authentication
 const PUBLIC_PATHS = [
+  '/auth/signin',
   '/auth/login',
   '/auth/callback',
   '/auth/callback/complete',
@@ -157,6 +158,8 @@ export async function middleware(request: NextRequest) {
 // Configure which routes to run middleware on
 export const config = {
   matcher: [
+    '/api/analytics/:path*',          // Protect all analytics/dashboard routes
+    '/api/reporting/:path*',          // Protect the reporting-engine proxy (exposes schema)
     '/api/tasks/:path*',              // Protect all task routes
     '/api/auth/me',                   // Protect user info endpoint
     '/api/auth/refresh',              // Protect token refresh endpoint

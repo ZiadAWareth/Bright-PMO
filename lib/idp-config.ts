@@ -140,7 +140,7 @@ export function resolveIdpConfig(): IdpConfig {
  */
 export function sanitizeReturnTo(raw: string | null): string | null {
   if (raw == null || raw === '') {
-    return '/dashboard';
+    return '/analytics/dashboard';
   }
   const decoded = decodeURIComponent(raw);
   if (!decoded.startsWith('/') || decoded.startsWith('//')) {

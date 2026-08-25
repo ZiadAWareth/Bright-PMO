@@ -112,6 +112,71 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* ───────────────────────────────────────────────────────────────────────────
+   WUJHA design tokens.
+
+   A named brand/surface layer on top of the neutral shadcn scale above, so the
+   marketing landing page, auth screens and the floating app shell can all speak
+   the same vocabulary (`bg-wujha-primary`, `bg-bg-surface`, `text-text-primary`)
+   instead of hard-coding orange/slate utilities at every call site.
+
+   Declared `inline` so the utilities resolve to the custom properties at use
+   time — that is what lets `.dark` swap the whole palette in one place.
+   ─────────────────────────────────────────────────────────────────────────── */
+@theme inline {
+  --color-wujha-primary: rgb(var(--wujha-primary-rgb));
+  --color-wujha-primary-hover: rgb(var(--wujha-primary-hover-rgb));
+  --color-wujha-secondary: rgb(var(--wujha-secondary-rgb));
+  --color-wujha-secondary-hover: rgb(var(--wujha-secondary-hover-rgb));
+  --color-wujha-success: #10b981;
+  --color-wujha-warning: #f59e0b;
+  --color-wujha-danger: #ef4444;
+
+  --color-text-primary: rgb(var(--text-primary-rgb));
+  --color-text-secondary: rgb(var(--text-secondary-rgb));
+
+  --color-bg-light: rgb(var(--app-bg-rgb));
+  --color-bg-surface: rgb(var(--surface-bg-rgb));
+  --color-bg-surface-alt: rgb(var(--surface-alt-bg-rgb));
+  --color-bg-sidebar: rgb(var(--sidebar-bg-rgb));
+
+  /* Card elevation used by the list screens — a tight contact shadow plus a
+     soft ambient one, so a table card reads as lifted without a hard edge. */
+  --shadow-card: 0 1px 2px rgb(20 24 34 / 0.04), 0 4px 16px rgb(20 24 34 / 0.05);
+  --shadow-card-lg: 0 8px 40px rgb(20 24 34 / 0.12);
+}
+
+:root {
+  /* Brand — PMO orange, the colour already used across the app. */
+  --wujha-primary-rgb: 234 88 12; /* orange-600 */
+  --wujha-primary-hover-rgb: 194 65 12; /* orange-700 */
+  --wujha-secondary-rgb: 13 148 136; /* teal-600 */
+  --wujha-secondary-hover-rgb: 15 118 110; /* teal-700 */
+
+  /* Surfaces — matched to the greys the app shell already uses. */
+  --app-bg-rgb: 249 250 251; /* gray-50 */
+  --surface-bg-rgb: 255 255 255;
+  --surface-alt-bg-rgb: 248 250 252; /* slate-50 */
+  --sidebar-bg-rgb: 255 255 255;
+  --text-primary-rgb: 17 24 39; /* gray-900 */
+  --text-secondary-rgb: 75 85 99; /* gray-600 */
+}
+
+.dark {
+  /* Orange one stop brighter on dark so it keeps its contrast ratio. */
+  --wujha-primary-rgb: 249 115 22; /* orange-500 */
+  --wujha-primary-hover-rgb: 234 88 12; /* orange-600 */
+  --wujha-secondary-rgb: 45 212 191; /* teal-400 */
+  --wujha-secondary-hover-rgb: 20 184 166; /* teal-500 */
+
+  --app-bg-rgb: 15 23 42; /* slate-900 */
+  --surface-bg-rgb: 30 41 59; /* slate-800 */
+  --surface-alt-bg-rgb: 51 65 85; /* slate-700 */
+  --sidebar-bg-rgb: 30 41 59; /* slate-800 */
+  --text-primary-rgb: 226 232 240; /* slate-200 */
+  --text-secondary-rgb: 148 163 184; /* slate-400 */
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -220,13 +285,11 @@ html {
 
 body {
   font-family: var(--font-geist-sans);
-  background-color: theme('colors.gray.50');
-}
-
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: theme('colors.slate.900');
-  }
+  /* Follows the class-based `.dark` toggle rather than the OS preference — the
+     app's theme switch writes `.dark` onto <html>, and an OS-media rule here
+     used to disagree with it. */
+  background-color: rgb(var(--app-bg-rgb));
+  transition: background-color 180ms ease, color 180ms ease;
 }
 
 /* Dashboard Layout Specific Styles */
@@ -526,4 +589,97 @@ body {
 
 .dark .gradient-border > * {
   background: #1e293b;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Marketing motion (landing page + auth showcase). Animates opacity/transform
+   only so it stays GPU-friendly, and every effect is disabled under
+   prefers-reduced-motion.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Ambient aurora drift behind the landing hero. */
+@keyframes aurora-drift-a {
+  0%,
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(2rem, -1.75rem, 0) scale(1.08); }
+}
+@keyframes aurora-drift-b {
+  0%,
+  100% { transform: translate3d(0, 0, 0) scale(1.06); }
+  50%  { transform: translate3d(-1.75rem, 2rem, 0) scale(1); }
+}
+.animate-aurora-a {
+  animation: aurora-drift-a 18s ease-in-out infinite;
+}
+.animate-aurora-b {
+  animation: aurora-drift-b 24s ease-in-out infinite;
+}
+
+/* Entrance + scroll reveal. */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* On-load entrance for above-the-fold content. Stagger via inline delay. */
+.animate-rise {
+  animation: rise-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Scroll reveal for below-the-fold sections, driven by the RevealOnScroll
+   IntersectionObserver rather than the native `animation-timeline: view()`.
+
+   The native version cannot be used here: Tailwind v4 runs Lightning CSS, which
+   folds `animation` + `animation-timeline` into the CSS Animations Level 2
+   shorthand (`animation: .8s ... rise-in view()`). Chrome only accepts `view()`
+   as the longhand, so it drops the whole shorthand — leaving `animation-name:
+   none` with `opacity: 0` still applied, i.e. permanently invisible content.
+
+   Gated behind `.js-reveal`, which the observer sets once it is running, so the
+   content stays visible if the script never executes. */
+.js-reveal .reveal-on-scroll {
+  opacity: 0;
+}
+
+.js-reveal .reveal-on-scroll.is-revealed {
+  animation: rise-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Gentle floating accent (hero preview chips). Transform-only. */
+@keyframes float-soft {
+  0%,
+  100% { transform: translate3d(0, 0, 0); }
+  50%  { transform: translate3d(0, -8px, 0); }
+}
+.animate-float-soft {
+  animation: float-soft 6.5s ease-in-out infinite;
+}
+
+/* Slower, deeper float — used to de-sync stacked cards in the auth collage. */
+@keyframes float-slow {
+  0%,
+  100% { transform: translate3d(0, 0, 0); }
+  50%  { transform: translate3d(0, -14px, 0); }
+}
+.animate-float-slow {
+  animation: float-slow 8.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-aurora-a,
+  .animate-aurora-b,
+  .animate-rise,
+  .animate-float-soft,
+  .animate-float-slow,
+  .js-reveal .reveal-on-scroll,
+  .js-reveal .reveal-on-scroll.is-revealed {
+    animation: none;
+    opacity: 1;
+  }
 }

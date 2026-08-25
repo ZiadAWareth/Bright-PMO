@@ -7,9 +7,10 @@
 
 import axios from 'axios';
 import { refreshIdpToken, storeRefreshedToken } from '@/lib/idp-refresh';
+import { apiBaseUrl } from '@/lib/api-base-url';
 
 export const axiosWithAuth = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || '',
+  baseURL: apiBaseUrl,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',

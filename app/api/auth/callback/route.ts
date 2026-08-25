@@ -172,7 +172,7 @@ export async function GET(request: NextRequest) {
     return loginRedirect(request, 'missing_state');
   }
 
-  let returnTo = '/dashboard';
+  let returnTo = '/analytics/dashboard';
   if (returnToCookie) {
     try {
       const decoded = decodeURIComponent(returnToCookie);

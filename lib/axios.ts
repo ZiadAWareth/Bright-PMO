@@ -1,8 +1,10 @@
 import axios from 'axios';
+import { apiBaseUrl } from '@/lib/api-base-url';
 
 const instance = axios.create({
-  // Empty = same origin as the page (any dev port e.g. 3002). Do not default to :3000.
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "",
+  // Empty in the browser = same origin as the page (any dev port e.g. 3002).
+  // Never an absolute host client-side — that would be a cross-origin call.
+  baseURL: apiBaseUrl,
   headers: {
     'Content-Type': 'application/json',
   },

@@ -7,12 +7,13 @@
 
 import axios from 'axios';
 import { refreshIdpToken, storeRefreshedToken } from '@/lib/idp-refresh';
+import { apiBaseUrl } from '@/lib/api-base-url';
 
 // Configure axios to send cookies with all requests
 axios.defaults.withCredentials = true;
 
-// Configure axios to use the correct base URL
-axios.defaults.baseURL = process.env.NEXT_PUBLIC_API_URL || '';
+// Configure axios to use the correct base URL (same origin in the browser)
+axios.defaults.baseURL = apiBaseUrl;
 
 // After IdP bootstrap, the app JWT may live only in localStorage until /api/auth/set-token runs.
 // Attach it so middleware sees Authorization: Bearer (matches cookie-based auth).
