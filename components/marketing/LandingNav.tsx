@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { ThemeToggleButton } from "@/components/layout/ThemeToggleButton";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { BrandLockup } from "./BrandLockup";
 
 const LINKS = [
@@ -34,7 +34,7 @@ export function LandingNav() {
         <div className="flex items-center gap-2 sm:gap-3">
           <Link
             href="/auth/signin"
-            className="group inline-flex h-9 items-center gap-1.5 rounded-xl bg-wujha-primary px-4 text-sm font-semibold text-white shadow-md shadow-wujha-primary/20 transition-colors hover:bg-wujha-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wujha-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-surface"
+            className="group inline-flex h-9 items-center gap-1.5 rounded-xl bg-bright-primary px-4 text-sm font-semibold text-white shadow-md shadow-bright-primary/20 transition-colors hover:bg-bright-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bright-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-surface"
           >
             Sign in
             <ArrowRight
@@ -42,7 +42,7 @@ export function LandingNav() {
               aria-hidden="true"
             />
           </Link>
-          <ThemeToggleButton />
+          <ThemeToggle />
         </div>
       </nav>
     </header>

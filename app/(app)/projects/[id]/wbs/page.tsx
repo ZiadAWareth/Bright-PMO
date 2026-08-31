@@ -1,10 +1,9 @@
 "use client";
-
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
-
+import { Spinner } from "@/components/ui/spinner";
 // Add global styles for animations
 const globalStyles = `
 @keyframes fadeIn {
@@ -12,7 +11,6 @@ const globalStyles = `
   to { opacity: 1; transform: scale(1); }
 }
 `;
-
 // Insert global styles into document head
 if (typeof document !== "undefined") {
   const style = document.createElement("style");
@@ -26,7 +24,6 @@ import {
   Edit,
   Trash2,
   Copy,
-  Download,
   Upload,
   ChevronRight,
   ChevronDown,
@@ -59,11 +56,13 @@ import {
 import axios from "axios";
 import WBSTemplateManager from "@/components/WBSTemplateManager";
 import CreateWBSForm from "@/components/wbs/CreateWBSForm";
-
+import { Dropdown } from "@/components/ui/dropdown";
+import { StatGrid, StatTile } from "@/components/ui/entity-card";
+import { StatusBadge } from "@/components/ui/form-shell";
+import { wbsStatusTone } from "@/lib/status-tone";
 // Helper function to safely format dates
 const formatDateSafely = (dateValue: string | null | undefined): string => {
   if (!dateValue) return "Not set";
-  
   try {
     const date = new Date(dateValue);
     // Check if date is valid (not NaN and not Unix epoch)
@@ -75,7 +74,6 @@ const formatDateSafely = (dateValue: string | null | undefined): string => {
     return "Not set";
   }
 };
-
 interface WBSItem {
   wbs_id: number;
   project_id: number;
@@ -97,7 +95,6 @@ interface WBSItem {
   isExpanded?: boolean;
   isSelected?: boolean;
 }
-
 interface Project {
   project_id: number;
   project_code: string;
@@ -109,7 +106,6 @@ interface Project {
   budget_amount: number;
   progress_percentage: number;
 }
-
 const ProjectWBSPage = () => {
   const router = useRouter();
   const params = useParams();
@@ -130,7 +126,6 @@ const ProjectWBSPage = () => {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [exporting, setExporting] = useState(false);
   const [statistics, setStatistics] = useState<{
     overall_progress: number;
     total_budget: number;
@@ -138,7 +133,6 @@ const ProjectWBSPage = () => {
     budget_utilization: number;
     wbs_count: number;
   } | null>(null);
-
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [error, setError] = useState<{
     show: boolean;
@@ -153,7 +147,6 @@ const ProjectWBSPage = () => {
   const [itemToDelete, setItemToDelete] = useState<WBSItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [mouseDownOnBackdrop, setMouseDownOnBackdrop] = useState(false);
-
   // Filter state
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
@@ -164,13 +157,10 @@ const ProjectWBSPage = () => {
     budgetMin: "",
     budgetMax: "",
   });
-
   // Fix hydration mismatch by only accessing localStorage after mount
   const [token, setToken] = useState<string | null>(null);
-
   // Template modal state
   const [showTemplateModal, setShowTemplateModal] = useState(false);
-
   // Add at the top of the component, after hooks
   const [showNavButtons, setShowNavButtons] = useState(false);
   useEffect(() => {
@@ -180,12 +170,10 @@ const ProjectWBSPage = () => {
       setShowNavButtons(from === "setup" || from === "previous");
     }
   }, []);
-
   useEffect(() => {
     setMounted(true);
     setToken(localStorage.getItem("token"));
   }, []);
-
   useEffect(() => {
     if (mounted && token) {
       fetchProjectData();
@@ -194,7 +182,6 @@ const ProjectWBSPage = () => {
       fetchUserRole();
     }
   }, [projectId, mounted, token]);
-
   const fetchUserRole = async () => {
     try {
       const response = await axios.get("/api/auth/me", {
@@ -208,12 +195,10 @@ const ProjectWBSPage = () => {
       console.error("Error fetching user role:", err);
     }
   };
-
   // Helper function to check if user can edit WBS
   const canEditWBS = () => {
     return userRole === "PJM" || userRole === "PMO" || userRole === "ADMIN";
   };
-
   const fetchProjectData = async () => {
     try {
       const response = await axios
@@ -230,7 +215,6 @@ const ProjectWBSPage = () => {
       console.error("Error fetching project:", error);
     }
   };
-
   const fetchStatistics = async () => {
     try {
       const response = await axios.get(
@@ -247,12 +231,10 @@ const ProjectWBSPage = () => {
       console.error("Error fetching project statistics:", error);
     }
   };
-
   const refreshWBSAndStats = async () => {
     await fetchWBSData();
     await fetchStatistics();
   };
-
   const fetchWBSData = async () => {
     try {
       setLoading(true);
@@ -262,7 +244,6 @@ const ProjectWBSPage = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-
       // Budget already included in response (budget_amount, actual_cost, budgets)
       const hierarchicalWBS = buildHierarchy(response.data);
       setWbsData(hierarchicalWBS);
@@ -272,11 +253,9 @@ const ProjectWBSPage = () => {
       setLoading(false);
     }
   };
-
   const buildHierarchy = (items: WBSItem[]): WBSItem[] => {
     const itemMap = new Map<number, WBSItem>();
     const rootItems: WBSItem[] = [];
-
     // Create a map of all items
     items.forEach((item) => {
       itemMap.set(item.wbs_id, {
@@ -286,7 +265,6 @@ const ProjectWBSPage = () => {
         isSelected: false,
       });
     });
-
     // Build the hierarchy
     items.forEach((item) => {
       const wbsItem = itemMap.get(item.wbs_id)!;
@@ -300,10 +278,8 @@ const ProjectWBSPage = () => {
         }
       }
     });
-
     return rootItems;
   };
-
   // Helper function to recursively find WBS item by ID
   const findWBSItemById = (
     items: WBSItem[],
@@ -322,7 +298,6 @@ const ProjectWBSPage = () => {
     }
     return undefined;
   };
-
   const createSingleWBS = async (formData: {
     name: string;
     description: string;
@@ -335,7 +310,6 @@ const ProjectWBSPage = () => {
   }) => {
     try {
       setCreating(true);
-
       // Validation: Check if level 0 already exists
       if (formData.level === 0) {
         const flattenWBS = (items: WBSItem[]): WBSItem[] => {
@@ -348,7 +322,6 @@ const ProjectWBSPage = () => {
           });
           return result;
         };
-
         const allWBSItems = flattenWBS(wbsData);
         const hasRootLevel = allWBSItems.some(
           (item: WBSItem) => item.level === 0
@@ -361,7 +334,6 @@ const ProjectWBSPage = () => {
           return;
         }
       }
-
       const payload = {
         project_id: parseInt(projectId),
         name: formData.name,
@@ -377,14 +349,12 @@ const ProjectWBSPage = () => {
           progress_weight: formData.progress_weight,
         }),
       };
-
       const response = await axios.post("/api/wbs", payload, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
       });
-
       // Refresh WBS data and statistics
       await fetchWBSData();
       await fetchStatistics();
@@ -394,7 +364,6 @@ const ProjectWBSPage = () => {
       if (error.response) {
         console.error("Status:", error.response.status);
         console.error("Response data:", error.response.data);
-
         // Handle specific error cases
         if (error.response.status === 400) {
           const errorMessage =
@@ -428,49 +397,14 @@ const ProjectWBSPage = () => {
       setCreating(false);
     }
   };
-
   const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      not_started: {
-        bg: "bg-gray-100 dark:bg-gray-700",
-        text: "text-gray-700 dark:text-gray-300",
-        label: "Not Started",
-      },
-      in_progress: {
-        bg: "bg-blue-100 dark:bg-blue-900",
-        text: "text-blue-700 dark:text-blue-300",
-        label: "In Progress",
-      },
-      completed: {
-        bg: "bg-green-100 dark:bg-green-900",
-        text: "text-green-700 dark:text-green-300",
-        label: "Completed",
-      },
-      on_hold: {
-        bg: "bg-yellow-100 dark:bg-yellow-900",
-        text: "text-yellow-700 dark:text-yellow-300",
-        label: "On Hold",
-      },
-      delayed: {
-        bg: "bg-red-100 dark:bg-red-900",
-        text: "text-red-700 dark:text-red-300",
-        label: "Delayed",
-      },
-    };
-
-    const config =
-      statusConfig[status as keyof typeof statusConfig] ||
-      statusConfig.not_started;
-
     return (
-      <span
-        className={`px-2 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}
-      >
-        {config.label}
-      </span>
+      <StatusBadge
+        label={status.replace(/_/g, " ")}
+        tone={wbsStatusTone(status)}
+      />
     );
   };
-
   const toggleExpand = (wbsId: number) => {
     const updateExpanded = (items: WBSItem[]): WBSItem[] => {
       return items.map((item) => {
@@ -485,82 +419,7 @@ const ProjectWBSPage = () => {
     };
     setWbsData(updateExpanded(wbsData));
   }; // Export functionality
-  const exportToCSV = async () => {
-    try {
-      setExporting(true);
-
-      const flattenWBS = (items: WBSItem[]): WBSItem[] => {
-        let result: WBSItem[] = [];
-        items.forEach((item) => {
-          result.push(item);
-          if (item.children) {
-            result = result.concat(flattenWBS(item.children));
-          }
-        });
-        return result;
-      };
-
-      const allItems = flattenWBS(wbsData);
-      const filteredItems = hasActiveFilters()
-        ? applyFilters(allItems)
-        : allItems;
-      const headers = [
-        "WBS Code",
-        "Name",
-        "Level",
-        "Weight (%)",
-        "Description",
-        "Status",
-        "Progress (%)",
-        "Budget (OMR)",
-        "Actual Cost (OMR)",
-        "Start Date",
-        "End Date",
-      ];
-      const csvContent = [
-        headers.join(","),
-        ...filteredItems.map((item) =>
-          [
-            `"${item.wbs_code}"`,
-            `"${item.name}"`,
-            item.level,
-            item.progress_weight != null && item.progress_weight !== undefined ? item.progress_weight : "",
-            `"${item.description || ""}"`,
-            `"${item.status}"`,
-            item.progress_percentage,
-            item.budget_amount || 0,
-            item.actual_cost || 0,
-            `"${(item.start_date || "").toString().split("T")[0]}"`,
-            `"${(item.end_date || "").toString().split("T")[0]}"`,
-          ].join(",")
-        ),
-      ].join("\n");
-
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");
-      const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute(
-        "download",
-        `WBS_${project?.project_code || projectId}_${
-          new Date().toISOString().split("T")[0]
-        }.csv`
-      );
-      link.style.visibility = "hidden";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Error exporting WBS data:", error);
-      showError(
-        "Export Failed",
-        "Failed to export WBS data. Please try again."
-      );
-    } finally {
-      setExporting(false);
-    }
-  }; // Filter functionality
+  // Filter functionality
   const applyFilters = (items: WBSItem[]): WBSItem[] => {
     return items.filter((item) => {
       // Search term filter - apply first if there's a search term
@@ -570,23 +429,19 @@ const ProjectWBSPage = () => {
           item.name.toLowerCase().includes(searchLower) ||
           item.description?.toLowerCase().includes(searchLower) ||
           item.wbs_code.toLowerCase().includes(searchLower);
-
         // If search term doesn't match, exclude this item
         if (!matchesSearch) {
           return false;
         }
       }
-
       // Status filter
       if (filters.status && item.status !== filters.status) {
         return false;
       }
-
       // Level filter
       if (filters.level && item.level !== parseInt(filters.level)) {
         return false;
       }
-
       // Progress filter
       if (
         filters.progressMin &&
@@ -600,7 +455,6 @@ const ProjectWBSPage = () => {
       ) {
         return false;
       }
-
       // Budget filter
       if (
         filters.budgetMin &&
@@ -614,11 +468,9 @@ const ProjectWBSPage = () => {
       ) {
         return false;
       }
-
       return true;
     });
   };
-
   const resetFilters = () => {
     setFilters({
       status: "",
@@ -631,13 +483,11 @@ const ProjectWBSPage = () => {
     setSearchTerm("");
     setShowFilters(false);
   };
-
   const hasActiveFilters = () => {
     return (
       Object.values(filters).some((value) => value !== "") || searchTerm !== ""
     );
   };
-
   const showError = (title: string, message: string) => {
     setError({
       show: true,
@@ -649,38 +499,30 @@ const ProjectWBSPage = () => {
       setError((prev) => ({ ...prev, show: false }));
     }, 5000);
   };
-
   const handleDeleteClick = (item: WBSItem) => {
     setItemToDelete(item);
     setShowDeleteConfirmation(true);
   };
-
   const handleDeleteConfirm = async () => {
     if (!itemToDelete) return;
-
     try {
       setIsDeleting(true);
-
       // Add cascade parameter if the WBS has children
       const hasChildren =
         itemToDelete.children && itemToDelete.children.length > 0;
       const url = hasChildren
         ? `/api/wbs/${itemToDelete.wbs_id}?cascade=true`
         : `/api/wbs/${itemToDelete.wbs_id}`;
-
       const response = await axios.delete(url, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-
       // Refresh WBS data and statistics after successful delete
       await refreshWBSAndStats();
-
       // Close the confirmation dialog
       setShowDeleteConfirmation(false);
       setItemToDelete(null);
-
       // Show success message
       const deletedCount = response.data.deletedCount || 1;
       console.log(
@@ -690,7 +532,6 @@ const ProjectWBSPage = () => {
       );
     } catch (error: any) {
       console.error("Error deleting WBS item:", error);
-
       const hasChildren =
         itemToDelete.children && itemToDelete.children.length > 0;
       let errorMessage = "Failed to delete WBS item";
@@ -707,30 +548,24 @@ const ProjectWBSPage = () => {
           ? "Server error occurred while performing cascading delete"
           : "Server error occurred while deleting WBS item";
       }
-
       showError("Delete Failed", errorMessage);
     } finally {
       setIsDeleting(false);
     }
   };
-
   const handleDeleteCancel = () => {
     setShowDeleteConfirmation(false);
     setItemToDelete(null);
   };
-
   const handleBulkDelete = async () => {
     if (selectedItems.length === 0) return;
-
     try {
       setIsDeletingBulk(true);
-
       const authToken = localStorage.getItem("token");
       if (!authToken) {
         showError("Authentication Required", "Please log in to delete WBS items.");
         return;
       }
-
       const response = await axios.post(
         "/api/wbs/bulk-delete",
         { wbs_ids: selectedItems },
@@ -741,21 +576,17 @@ const ProjectWBSPage = () => {
           },
         }
       );
-
       // Refresh WBS data and statistics after successful delete
       await refreshWBSAndStats();
-
       // Clear selection and close dialog
       setSelectedItems([]);
       setShowBulkDeleteConfirm(false);
-
       // Show success message
       console.log(
         `${response.data.message} (${response.data.deletedCount} items deleted)`
       );
     } catch (error: any) {
       console.error("Error bulk deleting WBS items:", error);
-
       let errorMessage = "Failed to delete WBS items";
       if (error.response?.data?.error) {
         errorMessage = error.response.data.error;
@@ -768,13 +599,11 @@ const ProjectWBSPage = () => {
       } else if (error.response?.status === 500) {
         errorMessage = "Server error occurred while deleting WBS items.";
       }
-
       showError("Bulk Delete Failed", errorMessage);
     } finally {
       setIsDeletingBulk(false);
     }
   };
-
   const handleBulkDeleteCancel = () => {
     setShowBulkDeleteConfirm(false);
   }; // Render WBS as a flat list
@@ -789,16 +618,14 @@ const ProjectWBSPage = () => {
       });
       return result;
     };
-
     const allItems = flattenWBS(items);
     const filteredItems = applyFilters(allItems);
-
     return filteredItems.map((item) => (
       <div key={item.wbs_id} className="mb-1">
         <div
-          className={`flex items-center p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
+          className={`flex items-center p-3 rounded-lg border border-line hover:bg-surface-2  transition-colors ${
             selectedItems.includes(item.wbs_id)
-              ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700"
+              ? "bg-info-soft border-info "
               : ""
           }`}
           onClick={() => setSelectedWBS(item)}
@@ -816,73 +643,65 @@ const ProjectWBSPage = () => {
                   setSelectedItems(selectedItems.filter(id => id !== item.wbs_id));
                 }
               }}
-              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 mr-3"
+              className="w-4 h-4 text-info border-line rounded focus:ring-info mr-3"
             />
           )}
-
           {/* Level Badge */}
           <div className="mr-3">
-            <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded text-xs font-medium">
+            <span className="px-2 py-1 bg-info-soft text-info rounded text-xs font-medium">
               L{item.level}
             </span>
           </div>
-
           {/* WBS Code */}
           <div className="w-20 flex-shrink-0">
-            <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
+            <span className="text-xs font-mono text-muted">
               {item.wbs_code}
             </span>
           </div>
-
           {/* Name and Description */}
           <div className="flex-1 min-w-0 mx-4">
-            <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+            <h4 className="text-sm font-medium text-ink truncate">
               {item.name}
             </h4>
             {item.description && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+              <p className="text-xs text-muted truncate">
                 {item.description}
               </p>
             )}
           </div>
-
           {/* Weight (optional) - right after level and name */}
           <div className="w-16 mr-4">
             {item.progress_weight != null && item.progress_weight !== undefined ? (
-              <span className="text-xs text-gray-600 dark:text-gray-300" title="Progress weight for rollup">
+              <span className="text-xs text-muted" title="Progress weight for rollup">
                 W: {item.progress_weight}%
               </span>
             ) : (
-              <span className="text-xs text-gray-400 dark:text-gray-500">—</span>
+              <span className="text-xs text-faint">—</span>
             )}
           </div>
-
           {/* Budget */}
           <div className="w-32 text-right mr-4">
-            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+            <div className="text-sm font-medium text-ink">
               OMR {(item.budget_amount || 0).toLocaleString()}
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">
+            <div className="text-xs text-muted">
               Spent: OMR {(item.actual_cost || 0).toLocaleString()}
             </div>
           </div>
-
           {/* Progress */}
           <div className="w-24 mr-4">
-            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+            <div className="text-xs text-muted mb-1">
               {item.progress_percentage}%
             </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+            <div className="w-full bg-surface-3 rounded-full h-2">
               <div
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                className="bg-info h-2 rounded-full transition-all duration-300"
                 style={{ width: `${item.progress_percentage}%` }}
               ></div>
             </div>
           </div>
-
           {/* Status */}
           <div className="w-24 mr-4">{getStatusBadge(item.status)}</div>
-
           {/* Actions */}
           <div className="flex items-center space-x-2">
             <button
@@ -891,7 +710,7 @@ const ProjectWBSPage = () => {
                 setSelectedWBS(item);
                 setShowDetails(true);
               }}
-              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+              className="p-2 text-faint hover:text-info hover:bg-info-soft rounded-lg transition-colors"
             >
               <Eye size={14} />
             </button>
@@ -901,7 +720,7 @@ const ProjectWBSPage = () => {
                   e.stopPropagation();
                   setEditingItem(item.wbs_id);
                 }}
-                className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                className="p-2 text-faint hover:text-info hover:bg-info-soft rounded-lg transition-colors"
               >
                 <Edit size={14} />
               </button>
@@ -913,7 +732,7 @@ const ProjectWBSPage = () => {
                   e.stopPropagation();
                   handleDeleteClick(item);
                 }}
-                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                className="p-2 text-faint hover:text-danger hover:bg-danger-soft rounded-lg transition-colors"
               >
                 <Trash2 size={14} />
               </button>
@@ -930,13 +749,11 @@ const ProjectWBSPage = () => {
         .filter((item) => {
           // Check if the item itself matches the filters
           const itemMatches = applyFilters([item]).length > 0;
-
           // Check if any children match (recursive)
           const hasMatchingChildren =
             item.children &&
             item.children.length > 0 &&
             filterTreeItems(item.children).length > 0;
-
           // Include item if either it matches or has matching children
           return itemMatches || hasMatchingChildren;
         })
@@ -945,15 +762,13 @@ const ProjectWBSPage = () => {
           children: item.children ? filterTreeItems(item.children) : [],
         }));
     };
-
     const filteredItems = hasActiveFilters() ? filterTreeItems(items) : items;
-
     return filteredItems.map((item) => (
       <div key={item.wbs_id} className="space-y-2">
         <div
-          className={`flex items-center space-x-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
+          className={`flex items-center space-x-3 p-3 rounded-lg border border-line hover:bg-surface-2  transition-colors ${
             selectedItems.includes(item.wbs_id)
-              ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700"
+              ? "bg-info-soft border-info "
               : ""
           }`}
           style={{ marginLeft: `${depth * 24}px` }}
@@ -962,16 +777,15 @@ const ProjectWBSPage = () => {
           {item.children && item.children.length > 0 && (
             <button
               onClick={() => toggleExpand(item.wbs_id)}
-              className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+              className="p-1 hover:bg-surface-3 rounded"
             >
               {item.isExpanded ? (
-                <ChevronDown className="w-4 h-4 text-gray-500" />
+                <ChevronDown className="w-4 h-4 text-muted" />
               ) : (
-                <ChevronRight className="w-4 h-4 text-gray-500" />
+                <ChevronRight className="w-4 h-4 text-muted" />
               )}
             </button>
           )}
-
           {/* Checkbox for selection (only for non-root items) */}
           {canEditWBS() && item.level > 0 && (
             <input
@@ -985,73 +799,65 @@ const ProjectWBSPage = () => {
                   setSelectedItems(selectedItems.filter(id => id !== item.wbs_id));
                 }
               }}
-              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+              className="w-4 h-4 text-info border-line rounded focus:ring-info"
             />
           )}
-
           {/* Level Indicator */}
           <div
             className={`w-3 h-3 rounded-full ${
               item.level === 0
-                ? "bg-purple-500"
+                ? "bg-accent-violet"
                 : item.level === 1
-                ? "bg-blue-500"
+                ? "bg-info"
                 : item.level === 2
-                ? "bg-green-500"
-                : "bg-gray-500"
+                ? "bg-success"
+                : "bg-muted"
             }`}
           />
-
           {/* WBS Code */}
-          <span className="text-sm font-mono text-gray-500 dark:text-gray-400 min-w-20">
+          <span className="text-sm font-mono text-muted min-w-20">
             {item.wbs_code}
           </span>
-
           {/* WBS Name and Description */}
           <div className="flex-1">
-            <h4 className="font-medium text-gray-900 dark:text-gray-100">
+            <h4 className="font-medium text-ink">
               {item.name}
             </h4>
             {item.description && (
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-muted">
                 {item.description}
               </p>
             )}
           </div>
-
           {/* Weight - right after level and name */}
-          <div className="w-14 text-sm text-gray-600 dark:text-gray-400">
+          <div className="w-14 text-sm text-muted">
             {item.progress_weight != null && item.progress_weight !== undefined ? `W: ${item.progress_weight}%` : "—"}
           </div>
-
           {/* Progress */}
           <div className="flex items-center space-x-2">
-            <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+            <div className="w-24 bg-surface-3 rounded-full h-2">
               <div
-                className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                className="bg-success h-2 rounded-full transition-all duration-300"
                 style={{
                   width: `${item.progress_percentage || 0}%`,
                 }}
               />
             </div>
-            <span className="text-sm text-gray-600 dark:text-gray-400 w-12">
+            <span className="text-sm text-muted w-12">
               {item.progress_percentage || 0}%
             </span>
           </div>
-
           {/* Budget */}
           <div className="text-right">
-            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+            <p className="text-sm font-medium text-ink">
               OMR {(item.budget_amount || 0).toLocaleString()}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <p className="text-xs text-muted">
               Spent: OMR {(item.actual_cost || 0).toLocaleString()}
             </p>
           </div>
-
           {/* Status */}
           {getStatusBadge(item.status)}
-
           {/* Actions */}
           <div className="flex items-center space-x-1">
             <button
@@ -1059,25 +865,25 @@ const ProjectWBSPage = () => {
                 setSelectedWBS(item);
                 setShowDetails(true);
               }}
-              className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+              className="p-2 hover:bg-surface-3 rounded transition-colors"
             >
-              <Eye className="w-4 h-4 text-gray-500" />
+              <Eye className="w-4 h-4 text-muted" />
             </button>
             {canEditWBS() && (
               <button
                 onClick={() => setEditingItem(item.wbs_id)}
-                className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+                className="p-2 hover:bg-surface-3 rounded transition-colors"
               >
-                <Edit className="w-4 h-4 text-gray-500" />
+                <Edit className="w-4 h-4 text-muted" />
               </button>
             )}
             {/* Only show delete button for non-root items (level > 0) and users with edit permissions */}
             {canEditWBS() && item.level > 0 && (
               <button
                 onClick={() => handleDeleteClick(item)}
-                className="p-2 hover:bg-red-100 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 rounded transition-colors"
+                className="p-2 hover:bg-danger-soft hover:text-danger rounded transition-colors"
               >
-                <Trash2 className="w-4 h-4 text-gray-500 hover:text-red-600" />
+                <Trash2 className="w-4 h-4 text-muted hover:text-danger" />
               </button>
             )}
           </div>
@@ -1091,14 +897,12 @@ const ProjectWBSPage = () => {
       </div>
     ));
   };
-
   const renderDetailsPanel = () => {
     if (!selectedWBS) return null;
-
     return (
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6">
+      <div className="bg-surface border border-line rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          <h3 className="text-lg font-semibold text-ink">
             WBS Details
           </h3>
           <button
@@ -1106,75 +910,71 @@ const ProjectWBSPage = () => {
               setShowDetails(false);
               setSelectedWBS(null);
             }}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+            className="text-faint hover:text-muted p-1"
             aria-label="Close"
           >
             ×
           </button>
         </div>
-
         <div className="space-y-4">
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-ink-3 mb-1">
                 WBS Code
               </label>
-              <p className="text-sm text-gray-900 dark:text-gray-100 font-mono">
+              <p className="text-sm text-ink font-mono">
                 {selectedWBS.wbs_code}
               </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-ink-3 mb-1">
                 Name
               </label>
-              <p className="text-sm text-gray-900 dark:text-gray-100">
+              <p className="text-sm text-ink">
                 {selectedWBS.name}
               </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-ink-3 mb-1">
                 Level
               </label>
-              <p className="text-sm text-gray-900 dark:text-gray-100">
+              <p className="text-sm text-ink">
                 Level {selectedWBS.level}
               </p>
             </div>
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-ink-3 mb-1">
               Description
             </label>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-muted">
               {selectedWBS.description || "No description provided"}
             </p>
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-ink-3 mb-1">
                 Budget
               </label>
-              <p className="text-sm text-gray-900 dark:text-gray-100">
+              <p className="text-sm text-ink">
                 OMR {(selectedWBS.budget_amount || 0).toLocaleString()}
               </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-ink-3 mb-1">
                 Actual Cost
               </label>
-              <p className="text-sm text-gray-900 dark:text-gray-100">
+              <p className="text-sm text-ink">
                 OMR {(selectedWBS.actual_cost || 0).toLocaleString()}
               </p>
             </div>
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-ink-3 mb-1">
                 Start Date
               </label>
-              <p className="text-sm text-gray-900 dark:text-gray-100">
+              <p className="text-sm text-ink">
                 {selectedWBS.start_date
                   ? formatDateSafely(selectedWBS.start_date)
                   : "Not set"
@@ -1182,10 +982,10 @@ const ProjectWBSPage = () => {
               </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-ink-3 mb-1">
                 End Date
               </label>
-              <p className="text-sm text-gray-900 dark:text-gray-100">
+              <p className="text-sm text-ink">
                 {selectedWBS.end_date
                   ? formatDateSafely(selectedWBS.end_date)
                   : "Will be calculated from tasks"
@@ -1193,41 +993,38 @@ const ProjectWBSPage = () => {
               </p>
             </div>
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-ink-3 mb-1">
               Progress
             </label>
             <div className="space-y-2">
               <div className="flex items-center space-x-3">
-                <div className="flex-1 bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                <div className="flex-1 bg-surface-3 rounded-full h-2">
                   <div
-                    className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                    className="bg-success h-2 rounded-full transition-all duration-300"
                     style={{
                       width: `${selectedWBS.progress_percentage}%`,
                     }}
                   />
                 </div>
-                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <span className="text-sm font-medium text-ink">
                   {selectedWBS.progress_percentage}%
                 </span>
               </div>
             </div>
           </div>
-
           {(selectedWBS.progress_weight != null && selectedWBS.progress_weight !== undefined) && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-ink-3 mb-1">
                 Progress weight (%)
               </label>
-              <p className="text-sm text-gray-900 dark:text-gray-100">
+              <p className="text-sm text-ink">
                 {selectedWBS.progress_weight}% — used when rolling up to project progress
               </p>
             </div>
           )}
-
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-ink-3 mb-1">
               Status
             </label>
             <div>{getStatusBadge(selectedWBS.status)}</div>
@@ -1236,7 +1033,6 @@ const ProjectWBSPage = () => {
       </div>
     );
   };
-
   if (!mounted || loading) {
     return (
       <DashboardLayout
@@ -1245,12 +1041,11 @@ const ProjectWBSPage = () => {
         activeView={activeView}
       >
         <div className="flex items-center justify-center min-h-96">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <Spinner size={32} className="text-bright-primary" />
         </div>
       </DashboardLayout>
     );
   }
-
   // Add at the top of the component, after hooks
   const handleBackButton = () => {
     if (typeof window !== "undefined") {
@@ -1263,7 +1058,6 @@ const ProjectWBSPage = () => {
       }
     }
   };
-
   // Add/Update the Next button handler
   const handleNext = async () => {
     try {
@@ -1283,7 +1077,6 @@ const ProjectWBSPage = () => {
       console.error("Failed to update setup status:", error);
     }
   };
-
   return (
     <>
       <DashboardLayout
@@ -1296,16 +1089,16 @@ const ProjectWBSPage = () => {
           <div className="flex items-center space-x-4">
             <button
               onClick={handleBackButton}
-              className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+              className="p-2 rounded-lg text-faint hover:text-muted hover:bg-surface-2 transition-colors"
             >
               <ArrowLeft size={20} />
             </button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              <h1 className="text-2xl font-bold text-ink">
                 Work Breakdown Structure
               </h1>
               {project && (
-                <p className="text-gray-600 dark:text-gray-400">
+                <p className="text-muted">
                   {project.name} ({project.project_code})
                 </p>
               )}
@@ -1315,40 +1108,21 @@ const ProjectWBSPage = () => {
             {canEditWBS() && (
               <button
                 onClick={() => setShowTemplateModal(true)}
-                className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                className="flex items-center space-x-2 px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors"
               >
                 <Upload size={16} />
                 <span>Bulk Upload</span>
               </button>
             )}
-
-            <button
-              onClick={exportToCSV}
-              disabled={exporting}
-              className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {exporting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
-                  <span>Exporting...</span>
-                </>
-              ) : (
-                <>
-                  <Download size={16} />
-                  <span>Export</span>
-                </>
-              )}
-            </button>
-
             {canEditWBS() && (
               <button
                 onClick={() => setShowCreateForm(true)}
                 disabled={creating}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center space-x-2 px-4 py-2 bg-info text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {creating ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <Spinner size={16} />
                     <span>Creating...</span>
                   </>
                 ) : (
@@ -1361,115 +1135,83 @@ const ProjectWBSPage = () => {
             )}
           </div>
         </div>
-
         {/* Read-only notification for users without edit permissions */}
         {!canEditWBS() && (
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-6">
+          <div className="bg-info-soft border border-info rounded-lg p-4 mb-6">
             <div className="flex items-center">
-              <Shield className="h-5 w-5 text-blue-500 mr-2" />
-              <span className="text-blue-800 dark:text-blue-200">
+              <Shield className="h-5 w-5 text-info mr-2" />
+              <span className="text-info">
                 You are viewing this WBS in read-only mode. Only Project
                 Managers (PJM), PMO, and Administrators can edit WBS items.
               </span>
             </div>
           </div>
         )}
-
         {/* Project Statistics */}
         {project && statistics && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <Target className="w-6 h-6 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Overall Progress
-                  </p>
-                  <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                    {statistics.overall_progress.toFixed(1)}%
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <DollarSign className="w-6 h-6 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Total Budget
-                  </p>
-                  <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                    OMR {project.budget_amount.toLocaleString()}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                  <TrendingUp className="w-6 h-6 text-red-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Total Spent
-                  </p>
-                  <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                    OMR {statistics.total_spent.toLocaleString()}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                  <BarChart3 className="w-6 h-6 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Budget Utilization
-                  </p>
-                  <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                    {statistics.budget_utilization.toFixed(1)}%
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                  <Layers className="w-6 h-6 text-orange-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    WBS Items
-                  </p>
-                  <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                    {statistics.wbs_count}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <StatGrid className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+            <StatTile
+              label="Overall Progress"
+              value={`${statistics.overall_progress.toFixed(1)}%`}
+              icon={<Target className="h-5 w-5" />}
+              tone="brand"
+            />
+            <StatTile
+              label="Total Budget"
+              value={`OMR ${project.budget_amount.toLocaleString()}`}
+              icon={<DollarSign className="h-5 w-5" />}
+              tone="success"
+            />
+            <StatTile
+              label="Total Spent"
+              value={`OMR ${statistics.total_spent.toLocaleString()}`}
+              icon={<TrendingUp className="h-5 w-5" />}
+              tone={
+                statistics.budget_utilization > 100
+                  ? "danger"
+                  : statistics.budget_utilization >= 80
+                  ? "warning"
+                  : "neutral"
+              }
+            />
+            <StatTile
+              label="Budget Utilization"
+              value={`${statistics.budget_utilization.toFixed(1)}%`}
+              icon={<BarChart3 className="h-5 w-5" />}
+              tone={
+                statistics.budget_utilization > 100
+                  ? "danger"
+                  : statistics.budget_utilization >= 80
+                  ? "warning"
+                  : "success"
+              }
+            />
+            <StatTile
+              label="WBS Items"
+              value={statistics.wbs_count}
+              icon={<Layers className="h-5 w-5" />}
+              tone="brand"
+            />
+          </StatGrid>
         )}
-
         {/* WBS Content */}
         <div className="grid grid-cols-1 gap-6">
           {/* WBS Tree */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+          <div className="bg-surface rounded-xl shadow-lg p-6">
             {wbsData.length === 0 ? (
               <div className="text-center py-12">
-                <FolderTree className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                <FolderTree className="w-16 h-16 text-faint mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-ink mb-2">
                   No WBS Structure Found
                 </h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                <p className="text-muted mb-6">
                   The WBS structure will be created when the project is set up.
                   If you're not seeing any WBS items, try refreshing the page.
                 </p>
                 <button
                   onClick={fetchWBSData}
                   disabled={creating}
-                  className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors mx-auto disabled:opacity-50"
+                  className="flex items-center space-x-2 px-6 py-3 bg-info text-white rounded-lg hover:opacity-90 transition-colors mx-auto disabled:opacity-50"
                 >
                   <RefreshCw size={16} />
                   <span>Refresh WBS Data</span>
@@ -1480,34 +1222,32 @@ const ProjectWBSPage = () => {
                 <div className="flex items-center justify-between mb-4">
                   {" "}
                   <div className="flex items-center space-x-4">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    <h3 className="text-lg font-semibold text-ink">
                       WBS {viewMode === "tree" ? "Hierarchy" : "List"}
                     </h3>
-                    
                     {/* Selection info and bulk actions */}
                     {selectedItems.length > 0 && canEditWBS() && (
                       <div className="flex items-center space-x-3">
-                        <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                        <span className="text-sm font-medium text-info">
                           {selectedItems.length} selected
                         </span>
                         <button
                           onClick={() => setSelectedItems([])}
-                          className="text-sm text-gray-600 dark:text-gray-400 hover:underline"
+                          className="text-sm text-muted hover:underline"
                         >
                           Clear
                         </button>
                         <button
                           onClick={() => setShowBulkDeleteConfirm(true)}
-                          className="flex items-center space-x-1 px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+                          className="flex items-center space-x-1 px-3 py-1 bg-danger text-white rounded-lg hover:opacity-90 transition-colors text-sm font-medium"
                         >
                           <Trash2 size={14} />
                           <span>Delete Selected</span>
                         </button>
                       </div>
                     )}
-                    
                     {hasActiveFilters() && (
-                      <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full text-xs font-medium">
+                      <span className="px-2 py-1 bg-info-soft text-info rounded-full text-xs font-medium">
                         Filtered
                       </span>
                     )}
@@ -1517,7 +1257,7 @@ const ProjectWBSPage = () => {
                       onClick={() =>
                         setViewMode(viewMode === "tree" ? "list" : "tree")
                       }
-                      className="px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      className="px-3 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors"
                     >
                       {viewMode === "tree"
                         ? "Switch to List View"
@@ -1525,9 +1265,9 @@ const ProjectWBSPage = () => {
                     </button>{" "}
                     <button
                       onClick={() => setShowFilters(!showFilters)}
-                      className={`px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
+                      className={`px-3 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2  transition-colors ${
                         hasActiveFilters()
-                          ? "bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-600"
+                          ? "bg-info-soft border-info "
                           : ""
                       }`}
                     >
@@ -1535,28 +1275,26 @@ const ProjectWBSPage = () => {
                     </button>
                   </div>{" "}
                 </div>
-
                 {/* Filter Panel */}
                 {showFilters && (
-                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-4">
+                  <div className="bg-surface-2 rounded-lg p-4 mb-4">
                     <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      <h4 className="text-sm font-medium text-ink">
                         Filter WBS Items
                       </h4>
                       {hasActiveFilters() && (
                         <button
                           onClick={resetFilters}
-                          className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                          className="text-xs text-info hover:text-info"
                         >
                           Clear All
                         </button>
                       )}
                     </div>
-
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {/* Search */}
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label className="block text-xs font-medium text-ink-3 mb-1">
                           Search
                         </label>
                         <input
@@ -1564,55 +1302,50 @@ const ProjectWBSPage = () => {
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
                           placeholder="Search name, description, or code..."
-                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-3 py-2 text-sm border border-line rounded-md bg-surface text-ink focus:ring-2 focus:ring-info focus:border-transparent"
                         />
                       </div>
-
                       {/* Status Filter */}
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label className="block text-xs font-medium text-ink-3 mb-1">
                           Status
                         </label>
-                        <select
-                          value={filters.status}
-                          onChange={(e) =>
-                            setFilters({ ...filters, status: e.target.value })
-                          }
-                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                          <option value="">All Statuses</option>
-                          <option value="not_started">Not Started</option>
-                          <option value="in_progress">In Progress</option>
-                          <option value="completed">Completed</option>
-                          <option value="on_hold">On Hold</option>
-                          <option value="delayed">Delayed</option>
-                        </select>
+                        <Dropdown
+                          value={String(filters.status ?? '')}
+                          onChange={(__v: string) =>
+                            setFilters({ ...filters, status: __v })}
+                          options={[
+                          { value: String(""), label: "All Statuses" },
+                          { value: String("not_started"), label: "Not Started" },
+                          { value: String("in_progress"), label: "In Progress" },
+                          { value: String("completed"), label: "Completed" },
+                          { value: String("on_hold"), label: "On Hold" },
+                          { value: String("delayed"), label: "Delayed" },
+                        ]}
+                        />
                       </div>
-
                       {/* Level Filter */}
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label className="block text-xs font-medium text-ink-3 mb-1">
                           Level
                         </label>
-                        <select
-                          value={filters.level}
-                          onChange={(e) =>
-                            setFilters({ ...filters, level: e.target.value })
-                          }
-                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                          <option value="">All Levels</option>
-                          <option value="0">Level 0</option>
-                          <option value="1">Level 1</option>
-                          <option value="2">Level 2</option>
-                          <option value="3">Level 3</option>
-                          <option value="4">Level 4</option>
-                        </select>
+                        <Dropdown
+                          value={String(filters.level ?? '')}
+                          onChange={(__v: string) =>
+                            setFilters({ ...filters, level: __v })}
+                          options={[
+                          { value: String(""), label: "All Levels" },
+                          { value: String("0"), label: "Level 0" },
+                          { value: String("1"), label: "Level 1" },
+                          { value: String("2"), label: "Level 2" },
+                          { value: String("3"), label: "Level 3" },
+                          { value: String("4"), label: "Level 4" },
+                        ]}
+                        />
                       </div>
-
                       {/* Progress Range */}
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label className="block text-xs font-medium text-ink-3 mb-1">
                           Progress Min %
                         </label>
                         <input
@@ -1627,12 +1360,11 @@ const ProjectWBSPage = () => {
                             })
                           }
                           placeholder="0"
-                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-3 py-2 text-sm border border-line rounded-md bg-surface text-ink focus:ring-2 focus:ring-info focus:border-transparent"
                         />
                       </div>
-
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label className="block text-xs font-medium text-ink-3 mb-1">
                           Progress Max %
                         </label>
                         <input
@@ -1647,13 +1379,12 @@ const ProjectWBSPage = () => {
                             })
                           }
                           placeholder="100"
-                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-3 py-2 text-sm border border-line rounded-md bg-surface text-ink focus:ring-2 focus:ring-info focus:border-transparent"
                         />
                       </div>
-
                       {/* Budget Range */}
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label className="block text-xs font-medium text-ink-3 mb-1">
                           Budget Min (OMR)
                         </label>
                         <input
@@ -1667,12 +1398,11 @@ const ProjectWBSPage = () => {
                             })
                           }
                           placeholder="0"
-                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-3 py-2 text-sm border border-line rounded-md bg-surface text-ink focus:ring-2 focus:ring-info focus:border-transparent"
                         />
                       </div>
-
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label className="block text-xs font-medium text-ink-3 mb-1">
                           Budget Max (OMR)
                         </label>
                         <input
@@ -1686,13 +1416,12 @@ const ProjectWBSPage = () => {
                             })
                           }
                           placeholder="100000"
-                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-3 py-2 text-sm border border-line rounded-md bg-surface text-ink focus:ring-2 focus:ring-info focus:border-transparent"
                         />
                       </div>
                     </div>
                   </div>
                 )}
-
                 <div className="space-y-2">
                   {viewMode === "tree"
                     ? renderWBSTree(wbsData)
@@ -1702,7 +1431,6 @@ const ProjectWBSPage = () => {
             )}
           </div>
         </div>
-
         {/* WBS Details Modal */}
         {mounted &&
           showDetails &&
@@ -1716,7 +1444,7 @@ const ProjectWBSPage = () => {
               }}
             >
               <div
-                className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+                className="bg-surface rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
               >
                 {renderDetailsPanel()}
@@ -1724,7 +1452,6 @@ const ProjectWBSPage = () => {
             </div>,
             document.body
           )}
-
         {/* Next Step Button */}
         {wbsData.length > 0 && showNavButtons && (
           <div className="mt-6 flex justify-between">
@@ -1732,15 +1459,14 @@ const ProjectWBSPage = () => {
               onClick={() =>
                 router.push(`/projects/${projectId}/setup?from=previous`)
               }
-              className="flex items-center space-x-2 px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              className="flex items-center space-x-2 px-6 py-3 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors"
             >
               <ArrowLeft size={16} />
               <span>Back to Setup</span>
             </button>
-
             <button
               onClick={handleNext}
-              className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex items-center space-x-2 px-6 py-3 bg-info text-white rounded-lg hover:opacity-90 transition-colors"
             >
               <span>Next: Create Schedule</span>
               <Calendar size={16} />
@@ -1768,7 +1494,7 @@ const ProjectWBSPage = () => {
               setMouseDownOnBackdrop(false);
             }}
           >
-            <div className="bg-white dark:bg-gray-800 rounded-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="bg-surface rounded-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
               <EditWBSForm
                 wbsItem={findWBSItemById(wbsData, editingItem)}
                 onClose={() => setEditingItem(null)}
@@ -1778,7 +1504,6 @@ const ProjectWBSPage = () => {
           </div>,
           document.body
         )}
-
       {/* Create Single WBS Modal */}
       {mounted &&
         showCreateForm &&
@@ -1799,7 +1524,7 @@ const ProjectWBSPage = () => {
               setMouseDownOnBackdrop(false);
             }}
           >
-            <div className="bg-white dark:bg-gray-800 rounded-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="bg-surface rounded-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
               <CreateWBSForm
                 onClose={() => setShowCreateForm(false)}
                 onSave={createSingleWBS}
@@ -1811,7 +1536,6 @@ const ProjectWBSPage = () => {
           </div>,
           document.body
         )}
-
       {/* Delete Confirmation Modal */}
       {mounted &&
         showDeleteConfirmation &&
@@ -1846,33 +1570,33 @@ const ProjectWBSPage = () => {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center mr-4">
-                  <AlertTriangle className="w-6 h-6 text-red-600" />
+                <div className="w-12 h-12 bg-danger-soft rounded-full flex items-center justify-center mr-4">
+                  <AlertTriangle className="w-6 h-6 text-danger" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  <h3 className="text-lg font-semibold text-ink">
                     Delete WBS Item
                   </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-muted">
                     This action cannot be undone
                   </p>
                 </div>
               </div>
-              <div className="text-gray-700 dark:text-gray-300 mb-6">
+              <div className="text-ink-3 mb-6">
                 <p className="mb-3">
                   Are you sure you want to delete{" "}
                   <strong>"{itemToDelete.name}"</strong> (
                   {itemToDelete.wbs_code})?
                 </p>
                 {itemToDelete.children && itemToDelete.children.length > 0 && (
-                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-3 mt-3">
+                  <div className="bg-danger-soft border border-danger rounded-lg p-3 mt-3">
                     <div className="flex items-start space-x-2">
-                      <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                      <AlertTriangle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-red-800 dark:text-red-200 font-medium text-sm">
+                        <p className="text-danger font-medium text-sm">
                           Cascading Delete Warning
                         </p>
-                        <p className="text-red-700 dark:text-red-300 text-sm mt-1">
+                        <p className="text-danger text-sm mt-1">
                           This WBS item has{" "}
                           <strong>
                             {itemToDelete.children.length} child item(s)
@@ -1880,7 +1604,7 @@ const ProjectWBSPage = () => {
                           . Deleting this item will also permanently delete all
                           of its children and their associated data.
                         </p>
-                        <p className="text-red-600 dark:text-red-400 text-xs mt-2 font-medium">
+                        <p className="text-danger text-xs mt-2 font-medium">
                           This action cannot be undone!
                         </p>
                       </div>
@@ -1892,17 +1616,17 @@ const ProjectWBSPage = () => {
                 <button
                   onClick={handleDeleteCancel}
                   disabled={isDeleting}
-                  className="px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                  className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDeleteConfirm}
                   disabled={isDeleting}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center space-x-2"
+                  className="px-4 py-2 bg-danger text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 flex items-center space-x-2"
                 >
                   {isDeleting && (
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    <Spinner size={16} />
                   )}
                   <span>
                     {isDeleting
@@ -1918,7 +1642,6 @@ const ProjectWBSPage = () => {
           </div>,
           document.body
         )}
-
       {/* Bulk Delete Confirmation Modal */}
       {mounted &&
         showBulkDeleteConfirm &&
@@ -1952,35 +1675,35 @@ const ProjectWBSPage = () => {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center mr-4">
-                  <AlertTriangle className="w-6 h-6 text-red-600" />
+                <div className="w-12 h-12 bg-danger-soft rounded-full flex items-center justify-center mr-4">
+                  <AlertTriangle className="w-6 h-6 text-danger" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  <h3 className="text-lg font-semibold text-ink">
                     Delete Multiple WBS Items
                   </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-muted">
                     This action cannot be undone
                   </p>
                 </div>
               </div>
-              <div className="text-gray-700 dark:text-gray-300 mb-6">
+              <div className="text-ink-3 mb-6">
                 <p className="mb-3">
                   Are you sure you want to delete{" "}
                   <strong>{selectedItems.length} WBS item(s)</strong>?
                 </p>
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-3 mt-3">
+                <div className="bg-danger-soft border border-danger rounded-lg p-3 mt-3">
                   <div className="flex items-start space-x-2">
-                    <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                    <AlertTriangle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-red-800 dark:text-red-200 font-medium text-sm">
+                      <p className="text-danger font-medium text-sm">
                         Cascading Delete Warning
                       </p>
-                      <p className="text-red-700 dark:text-red-300 text-sm mt-1">
+                      <p className="text-danger text-sm mt-1">
                         Deleting these WBS items will also permanently delete all
                         of their children and associated data (tasks, budgets, procurements, etc.).
                       </p>
-                      <p className="text-red-600 dark:text-red-400 text-xs mt-2 font-medium">
+                      <p className="text-danger text-xs mt-2 font-medium">
                         This action cannot be undone!
                       </p>
                     </div>
@@ -1991,17 +1714,17 @@ const ProjectWBSPage = () => {
                 <button
                   onClick={handleBulkDeleteCancel}
                   disabled={isDeletingBulk}
-                  className="px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                  className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleBulkDelete}
                   disabled={isDeletingBulk}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center space-x-2"
+                  className="px-4 py-2 bg-danger text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 flex items-center space-x-2"
                 >
                   {isDeletingBulk && (
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    <Spinner size={16} />
                   )}
                   <span>
                     {isDeletingBulk
@@ -2014,25 +1737,24 @@ const ProjectWBSPage = () => {
           </div>,
           document.body
         )}
-
       {/* Error Notification */}
       {error.show && (
         <div className="fixed top-4 right-4 z-[10000] max-w-md">
-          <div className="bg-red-50 border border-red-200 rounded-lg shadow-lg p-4">
+          <div className="bg-danger-soft border border-danger rounded-lg shadow-lg p-4">
             <div className="flex items-start">
               <div className="flex-shrink-0">
-                <AlertTriangle className="h-5 w-5 text-red-400" />
+                <AlertTriangle className="h-5 w-5 text-danger" />
               </div>
               <div className="ml-3 flex-1">
-                <h3 className="text-sm font-medium text-red-800">
+                <h3 className="text-sm font-medium text-danger">
                   {error.title}
                 </h3>
-                <p className="mt-1 text-sm text-red-700">{error.message}</p>
+                <p className="mt-1 text-sm text-danger">{error.message}</p>
               </div>
               <div className="ml-4 flex-shrink-0">
                 <button
                   onClick={() => setError((prev) => ({ ...prev, show: false }))}
-                  className="inline-flex text-red-400 hover:text-red-600 focus:outline-none"
+                  className="inline-flex text-danger hover:text-danger focus:outline-none"
                 >
                   <span className="sr-only">Close</span>
                   <ArrowLeft className="h-4 w-4 rotate-45" />
@@ -2042,21 +1764,20 @@ const ProjectWBSPage = () => {
           </div>
         </div>
       )}
-
       {/* WBS Template Manager Modal */}
       {mounted &&
         showTemplateModal &&
         createPortal(
           <div className="fixed inset-0 bg-white/20 dark:bg-black/20 backdrop-blur-sm flex items-center justify-center z-[9999]">
-            <div className="bg-white dark:bg-gray-800 rounded-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="bg-surface rounded-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  <h3 className="text-xl font-bold text-ink">
                     WBS Template Manager
                   </h3>
                   <button
                     onClick={() => setShowTemplateModal(false)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                    className="p-2 hover:bg-surface-2 rounded-lg transition-colors"
                   >
                     <ArrowLeft size={20} />
                   </button>
@@ -2076,7 +1797,6 @@ const ProjectWBSPage = () => {
     </>
   );
 };
-
 // Edit WBS Form Component
 const EditWBSForm = ({
   wbsItem,
@@ -2102,7 +1822,6 @@ const EditWBSForm = ({
     status: wbsItem?.status || "not_started",
   });
   const [saving, setSaving] = useState(false);
-
   // Error popup state
   const [errorPopup, setErrorPopup] = useState<{
     show: boolean;
@@ -2113,7 +1832,6 @@ const EditWBSForm = ({
     title: "",
     message: "",
   });
-
   // Function to show error popup
   const showErrorPopup = (title: string, message: string) => {
     setErrorPopup({
@@ -2121,42 +1839,36 @@ const EditWBSForm = ({
       title,
       message,
     });
-
     // Auto-hide after 5 seconds
     setTimeout(() => {
       setErrorPopup((prev) => ({ ...prev, show: false }));
     }, 5000);
   };
-
   // Check if this WBS item has children (is a parent)
   const hasChildren = wbsItem?.children && wbsItem.children.length > 0;
   const isRoot = wbsItem?.level === 0;
-
   if (!wbsItem) {
     return (
       <div className="p-6">
-        <p className="text-red-600">WBS item not found</p>
+        <p className="text-danger">WBS item not found</p>
         <button
           onClick={onClose}
-          className="mt-4 px-4 py-2 bg-gray-500 text-white rounded"
+          className="mt-4 px-4 py-2 bg-muted text-white rounded"
         >
           Close
         </button>
       </div>
     );
   }
-
   const handleSave = async () => {
     try {
       setSaving(true);
-
       // Validate dates: start date cannot be later than end date
       if (formData.start_date && formData.end_date) {
         const start = new Date(formData.start_date);
         const end = new Date(formData.end_date);
         start.setHours(0, 0, 0, 0);
         end.setHours(0, 0, 0, 0);
-
         if (start > end) {
           showErrorPopup(
             "Invalid Dates",
@@ -2166,7 +1878,6 @@ const EditWBSForm = ({
           return;
         }
       }
-
       const payload: any = {
         name: formData.name,
         description: formData.description,
@@ -2175,7 +1886,6 @@ const EditWBSForm = ({
         end_date: formData.end_date,
         budget_amount: parseFloat(formData.budget_amount.toString()),
       };
-
       if (!hasChildren) {
         payload.progress_percentage = parseFloat(
           formData.progress_percentage.toString()
@@ -2186,14 +1896,12 @@ const EditWBSForm = ({
       } else {
         payload.progress_weight = null;
       }
-
       const response = await axios.put(`/api/wbs/${wbsItem.wbs_id}`, payload, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
-
       onSave(); // Refresh the WBS data
       onClose(); // Close the modal
     } catch (error: any) {
@@ -2205,7 +1913,6 @@ const EditWBSForm = ({
           error.response.data?.message || 
           error.response.statusText || 
           'Unknown error';
-        
         // Show a clear, user-friendly error message
         showErrorPopup(
           "Update Failed",
@@ -2223,30 +1930,28 @@ const EditWBSForm = ({
       setSaving(false);
     }
   };
-
   return (
     <div className="p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+          <h3 className="text-xl font-bold text-ink">
             Edit WBS Item
           </h3>
-          <p className="text-gray-600 dark:text-gray-400">{wbsItem.wbs_code}</p>
+          <p className="text-muted">{wbsItem.wbs_code}</p>
         </div>
         <button
           onClick={onClose}
-          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          className="p-2 hover:bg-surface-2 rounded-lg transition-colors"
         >
           <ArrowLeft size={20} />
         </button>
       </div>
-
       {/* Form */}
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-ink-3 mb-2">
               Name *
             </label>
             <input
@@ -2258,19 +1963,18 @@ const EditWBSForm = ({
                   name: e.target.value,
                 })
               }
-              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-info focus:border-transparent"
               required
             />
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-ink-3 mb-2">
               Status
             </label>
-            <select
-  value={formData.status}
-  onChange={(e) => {
-    const newStatus = e.target.value;
+            <Dropdown
+              value={String(formData.status ?? '')}
+              onChange={(__v: string) => {
+    const newStatus = __v;
     setFormData((prev) => ({
       ...prev,
       status: newStatus,
@@ -2281,19 +1985,18 @@ const EditWBSForm = ({
           : prev.progress_percentage,
     }));
   }}
-  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
->
-  <option value="not_started">Not Started</option>
-  <option value="in_progress">In Progress</option>
-  <option value="completed">Completed</option>
-  <option value="on_hold">On Hold</option>
-  <option value="delayed">Delayed</option>
-</select>
+              options={[
+              { value: String("not_started"), label: "Not Started" },
+              { value: String("in_progress"), label: "In Progress" },
+              { value: String("completed"), label: "Completed" },
+              { value: String("on_hold"), label: "On Hold" },
+              { value: String("delayed"), label: "Delayed" },
+            ]}
+            />
           </div>
         </div>
-
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-ink-3 mb-2">
             Description
           </label>
           <textarea
@@ -2305,13 +2008,12 @@ const EditWBSForm = ({
               })
             }
             rows={3}
-            className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full p-3 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-info focus:border-transparent"
           />
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-ink-3 mb-2">
               Start Date *
             </label>
             <input
@@ -2323,29 +2025,26 @@ const EditWBSForm = ({
                   start_date: e.target.value,
                 })
               }
-              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-info focus:border-transparent"
               required
             />
           </div>
-
           {/* Show that end date will be calculated */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-ink-3 mb-2">
               End Date
             </label>
-            <div className="px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+            <div className="px-3 py-3 border border-line rounded-lg bg-surface-2 text-muted">
               Will be calculated from tasks
             </div>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p className="mt-1 text-xs text-muted">
               End date will be automatically calculated when tasks are added to this WBS
             </p>
           </div>
-
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-ink-3 mb-2">
               Budget Amount (OMR)
             </label>
             <input
@@ -2357,29 +2056,28 @@ const EditWBSForm = ({
                   budget_amount: parseFloat(e.target.value) || 0,
                 })
               }
-              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-info focus:border-transparent"
               min="0"
               step="0.01"
             />
             {isRoot && (
-              <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+              <p className="text-xs text-bright mt-1">
                 ⚠️ Warning: This is a root level WBS. Changing the budget will
                 affect the entire project structure.
               </p>
             )}
             {hasChildren && (
-              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+              <p className="text-xs text-info mt-1">
                 💡 Note: This WBS has children. Ensure the budget accommodates
                 all child WBS items.
               </p>
             )}
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-ink-3 mb-2">
               Progress (%)
               {hasChildren && (
-                <span className="text-xs text-blue-600 dark:text-blue-400 ml-2">
+                <span className="text-xs text-info ml-2">
                   (Auto-calculated from children)
                 </span>
               )}
@@ -2394,28 +2092,27 @@ const EditWBSForm = ({
                 })
               }
               disabled={hasChildren}
-              className={`w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              className={`w-full p-3 border border-line rounded-lg text-ink focus:ring-2 focus:ring-info focus:border-transparent ${
                 hasChildren
-                  ? "bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
-                  : "bg-white dark:bg-gray-700"
+                  ? "bg-surface-2  text-muted cursor-not-allowed"
+                  : "bg-surface "
               }`}
               min="0"
               max="100"
               step="0.1"
             />
             {hasChildren && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-xs text-muted mt-1">
                 Progress is automatically calculated as the average of all child
                 WBS items
               </p>
             )}
           </div>
         </div>
-
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-ink-3 mb-2">
             Progress weight (%)
-            <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">Optional</span>
+            <span className="text-xs text-muted ml-2">Optional</span>
           </label>
           <input
             type="number"
@@ -2428,22 +2125,21 @@ const EditWBSForm = ({
               });
             }}
             placeholder="Leave empty for equal weight"
-            className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full p-3 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-info focus:border-transparent"
             min="0"
             max="100"
             step="0.1"
           />
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-xs text-muted mt-1">
             Weight (0–100) used when rolling up this WBS to project progress. Empty = equal share with siblings.
           </p>
         </div>
       </div>
-
       {/* Footer */}
-      <div className="flex justify-end space-x-3 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+      <div className="flex justify-end space-x-3 mt-6 pt-6 border-t border-line">
         <button
           onClick={onClose}
-          className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors"
         >
           Cancel
         </button>
@@ -2455,11 +2151,11 @@ const EditWBSForm = ({
             !formData.start_date ||
             !formData.end_date
           }
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center space-x-2 px-4 py-2 bg-info text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {saving ? (
             <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              <Spinner size={16} />
               <span>Saving...</span>
             </>
           ) : (
@@ -2470,7 +2166,6 @@ const EditWBSForm = ({
           )}
         </button>
       </div>
-
       {/* Error Popup */}
       {errorPopup.show && (
         <div
@@ -2482,7 +2177,7 @@ const EditWBSForm = ({
           }}
         >
           <div
-            className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl"
+            className="bg-surface rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl"
             style={{
               animation: "fadeIn 0.3s ease-out",
               border: "1px solid rgba(255, 255, 255, 0.1)",
@@ -2490,14 +2185,14 @@ const EditWBSForm = ({
             }}
           >
             <div className="flex items-center mb-4">
-              <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mr-4">
-                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+              <div className="w-10 h-10 bg-danger-soft rounded-full flex items-center justify-center mr-4">
+                <AlertTriangle className="w-5 h-5 text-danger" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <h3 className="text-lg font-semibold text-ink">
                   {errorPopup.title}
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-muted">
                   Please correct and try again
                 </p>
               </div>
@@ -2505,19 +2200,19 @@ const EditWBSForm = ({
                 onClick={() =>
                   setErrorPopup((prev) => ({ ...prev, show: false }))
                 }
-                className="ml-auto p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="ml-auto p-2 text-faint hover:text-muted rounded-full hover:bg-surface-2"
               >
                 <ArrowLeft className="h-4 w-4 rotate-45" />
               </button>
             </div>
-            <p className="text-gray-700 dark:text-gray-300 mb-4">
+            <p className="text-ink-3 mb-4">
               {errorPopup.message}
             </p>
             <button
               onClick={() =>
                 setErrorPopup((prev) => ({ ...prev, show: false }))
               }
-              className="w-full py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+              className="w-full py-2 bg-danger hover:opacity-90 text-white rounded-lg transition-colors"
             >
               Dismiss
             </button>
@@ -2527,6 +2222,4 @@ const EditWBSForm = ({
     </div>
   );
 };
-
-
 export default ProjectWBSPage;

@@ -1,12 +1,11 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { FilterBar, FilterSelect } from "@/components/ui/filter-bar";
-import { AddEntityModal } from "@/components/AddEntityModal";
 import {
   Plus,
   Edit,
@@ -27,7 +26,6 @@ import {
   Eye,
   Filter,
   Search,
-  Save,
   Settings,
   X,
   Star,
@@ -38,22 +36,71 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { LoadingState, Spinner } from "@/components/ui/spinner";
+import { TabRow } from "@/components/ui/tab-row";
+import RoleGuard from "@/components/auth/RoleGuard";
+import { ListPagination } from "@/components/ui/list-pagination";
+import { ViewToggle, type ListViewMode } from "@/components/ui/view-toggle";
+import { PersonCell } from "@/components/ui/person-cell";
+import {
+  EmptyState,
+  EntityCard,
+  EntityCardFooter,
+  EntityCardHeader,
+  EntityProgress,
+  EntityStat,
+  EntityStats,
+} from "@/components/ui/entity-card";
+import {
+  ListCard,
+  ListHead,
+  ListMessage,
+  ListRow,
+  NewButton,
+  RowAction,
+  RowActions,
+  StatusBadge,
+} from "@/components/ui/form-shell";
+import {
+  humanize,
+  procurementStatusTone,
+  ratingTone,
+  rfqResponseStatusTone,
+  scoreTone,
+} from "@/lib/status-tone";
+
+const PAGE_SIZE = 12;
+const PROCUREMENT_COLUMNS = [
+  "Description",
+  "Project",
+  "Type",
+  "Status",
+  "Estimated",
+  "Actual",
+  "Created",
+];
+const VENDOR_COLUMNS = [
+  "Vendor",
+  "Contact",
+  "Contact info",
+  "Category",
+  "Address",
+  "Rating",
+];
+const RESPONSE_COLUMNS = [
+  "Procurement",
+  "Vendor",
+  "Quote",
+  "Delivery",
+  "Score",
+  "Status",
+  "Submitted",
+];
 
 interface Procurement {
   procurement_id: number;
@@ -162,19 +209,30 @@ const TruncatedNumber = ({
 
 const RFQManagementPage = () => {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState("overview");
+  const searchParams = useSearchParams();
+  // The vendor/procurement create pages link back with a tab query param
+  // (e.g. ?tab=vendors) so creating one returns to the right list.
+  const initialTab = searchParams?.get("tab") ?? "overview";
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [procurements, setProcurements] = useState<Procurement[]>([]);
   const [rfqResponses, setRfqResponses] = useState<RFQResponse[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [generatingRFQ, setGeneratingRFQ] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [vendorSearch, setVendorSearch] = useState("");
+  const [vendorCategoryFilter, setVendorCategoryFilter] = useState("all");
+  const [view, setView] = useState<ListViewMode>("grid");
+  const [page, setPage] = useState(0);
+  const [vendorPage, setVendorPage] = useState(0);
+  const [responseSearch, setResponseSearch] = useState("");
+  const [responseStatusFilter, setResponseStatusFilter] = useState("all");
+  const [responsePage, setResponsePage] = useState(0);
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [showRFQResponsesModal, setShowRFQResponsesModal] = useState(false);
   const [selectedRFQProcurement, setSelectedRFQProcurement] =
     useState<Procurement | null>(null);
-  const [showAddVendorModal, setShowAddVendorModal] = useState(false);
   const [showProcurementDetailsModal, setShowProcurementDetailsModal] =
     useState(false);
   const [selectedProcurement, setSelectedProcurement] =
@@ -185,25 +243,6 @@ const RFQManagementPage = () => {
     useState(false);
   const [selectedRFQResponse, setSelectedRFQResponse] =
     useState<RFQResponse | null>(null);
-  const [showAddProcurementModal, setShowAddProcurementModal] = useState(false);
-  const [procurementForm, setProcurementForm] = useState({
-    type: "",
-    description: "",
-    estimated_cost: "",
-    actual_cost: "",
-    status: "Planning",
-  });
-  const [isSubmittingProcurement, setIsSubmittingProcurement] = useState(false);
-  const [projects, setProjects] = useState<any[]>([]);
-  const [vendorForm, setVendorForm] = useState({
-    name: "",
-    contact_person: "",
-    contact_info: "",
-    address: "",
-    category: "",
-    performance_rating: "0",
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -224,26 +263,11 @@ const RFQManagementPage = () => {
       axios.get(`/api/vendors`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       }),
-      axios
-        .get(`/api/projects`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        })
-        .catch((error) => {
-          console.warn("No projects found yet:", error);
-          console.error(
-            "Projects API error details:",
-            error.response?.data || error.message
-          );
-          return { data: [] };
-        }),
     ])
-      .then(([procRes, rfqRes, vendorRes, projectRes]) => {
-        console.log("Projects response:", projectRes);
-        console.log("Projects data:", projectRes.data);
+      .then(([procRes, rfqRes, vendorRes]) => {
         setProcurements(procRes.data);
         setRfqResponses(rfqRes.data || []);
         setVendors(vendorRes.data);
-        setProjects(projectRes.data || []);
         setLoading(false);
       })
       .catch((error) => {
@@ -252,11 +276,6 @@ const RFQManagementPage = () => {
         setLoading(false);
       });
   }, []);
-
-  // Debug useEffect to log projects
-  useEffect(() => {
-    console.log("Projects state updated:", projects);
-  }, [projects]);
 
   const generateRFQ = async (procurementId: number) => {
     try {
@@ -420,128 +439,6 @@ const RFQManagementPage = () => {
     }
   };
 
-  const handleAddVendor = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validate all required fields are not empty or whitespace-only
-    if (!vendorForm.name || !vendorForm.name.trim()) {
-      toast.error("Vendor name is required and cannot be empty.");
-      return;
-    }
-    
-    if (!vendorForm.contact_person || !vendorForm.contact_person.trim()) {
-      toast.error("Contact person is required and cannot be empty.");
-      return;
-    }
-    
-    if (!vendorForm.contact_info || !vendorForm.contact_info.trim()) {
-      toast.error("Contact information is required and cannot be empty.");
-      return;
-    }
-    
-    if (!vendorForm.address || !vendorForm.address.trim()) {
-      toast.error("Address is required and cannot be empty.");
-      return;
-    }
-    
-    if (!vendorForm.category || !vendorForm.category.trim()) {
-      toast.error("Category is required and cannot be empty.");
-      return;
-    }
-    
-    setIsSubmitting(true);
-    try {
-      const res = await axios.post(
-        `/api/vendors`,
-        {
-          name: vendorForm.name.trim(),
-          contact_person: vendorForm.contact_person.trim(),
-          contact_info: vendorForm.contact_info.trim(),
-          address: vendorForm.address.trim(),
-          category: vendorForm.category.trim(),
-          performance_rating: parseFloat(vendorForm.performance_rating),
-        },
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        }
-      );
-
-      if (res.status === 201) {
-        setVendors((prev) => [...prev, res.data]);
-        setShowAddVendorModal(false);
-        setVendorForm({
-          name: "",
-          contact_person: "",
-          contact_info: "",
-          address: "",
-          category: "",
-          performance_rating: "0",
-        });
-        toast.success("Vendor added successfully");
-      }
-    } catch (error) {
-      console.error("Error adding vendor:", error);
-      toast.error("Failed to add vendor");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleAddProcurement = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validate description is not empty or whitespace-only
-    if (!procurementForm.description || !procurementForm.description.trim()) {
-      toast.error("Procurement description is required and cannot be empty.");
-      return;
-    }
-    
-    setIsSubmittingProcurement(true);
-    try {
-      // Use the first available project or create a default one
-      let projectId =
-        projects && projects.length > 0 ? projects[0].project_id : 1;
-
-      const res = await axios.post(
-        `/api/procurements`,
-        {
-          project_id: projectId,
-          type: procurementForm.type,
-          description: procurementForm.description.trim(),
-          estimated_cost: parseFloat(procurementForm.estimated_cost),
-          actual_cost: procurementForm.actual_cost
-            ? parseFloat(procurementForm.actual_cost)
-            : 0,
-          status: procurementForm.status,
-        },
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        }
-      );
-
-      console.log("Procurement response:", res);
-
-      if (res.status === 201) {
-        setProcurements((prev) => [...prev, res.data]);
-        setShowAddProcurementModal(false);
-        setProcurementForm({
-          type: "",
-          description: "",
-          estimated_cost: "",
-          actual_cost: "",
-          status: "Planning",
-        });
-        toast.success("Procurement added successfully");
-      }
-    } catch (error: any) {
-      console.error("Error adding procurement:", error);
-      console.error("Error response:", error.response);
-      toast.error("Failed to add procurement");
-    } finally {
-      setIsSubmittingProcurement(false);
-    }
-  };
-
   const openProcurementDetails = (procurement: Procurement) => {
     setSelectedProcurement(procurement);
     setShowProcurementDetailsModal(true);
@@ -560,17 +457,17 @@ const RFQManagementPage = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Completed":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
+        return "bg-success-soft text-success  ";
       case "Awarded":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
+        return "bg-info-soft text-info  ";
       case "Planning":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
+        return "bg-warning-soft text-warning  ";
       case "Tendering":
-        return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300";
+        return "bg-bright-soft text-bright  ";
       case "Evaluation":
-        return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300";
+        return "bg-accent-violet-soft text-accent-violet  ";
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300";
+        return "bg-surface-2 text-ink-2  ";
     }
   };
 
@@ -590,15 +487,15 @@ const RFQManagementPage = () => {
   const getResponseStatusColor = (status: string) => {
     switch (status) {
       case "Awarded":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
+        return "bg-success-soft text-success  ";
       case "Evaluated":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
+        return "bg-info-soft text-info  ";
       case "Submitted":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
+        return "bg-warning-soft text-warning  ";
       case "Rejected":
-        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
+        return "bg-danger-soft text-danger  ";
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300";
+        return "bg-surface-2 text-ink-2  ";
     }
   };
 
@@ -617,6 +514,87 @@ const RFQManagementPage = () => {
 
     return matchesSearch && matchesStatus && matchesType;
   });
+
+  /**
+   * The vendors tab previously rendered the full list with no search, filter or
+   * pagination at all, so it kept its own filter state — a category chosen on
+   * the procurements tab means nothing here.
+   */
+  const vendorCategories = Array.from(
+    new Set(vendors.map((v) => v.category).filter(Boolean))
+  ).sort();
+
+  const filteredVendors = vendors.filter((vendor) => {
+    const term = vendorSearch.trim().toLowerCase();
+    const matchesSearch =
+      !term ||
+      vendor.name.toLowerCase().includes(term) ||
+      (vendor.contact_person ?? "").toLowerCase().includes(term) ||
+      (vendor.contact_info ?? "").toLowerCase().includes(term) ||
+      (vendor.category ?? "").toLowerCase().includes(term);
+    const matchesCategory =
+      vendorCategoryFilter === "all" || vendor.category === vendorCategoryFilter;
+    return matchesSearch && matchesCategory;
+  });
+
+  const procurementPageCount = Math.max(
+    1,
+    Math.ceil(filteredProcurements.length / PAGE_SIZE)
+  );
+  const pagedProcurements = filteredProcurements.slice(
+    page * PAGE_SIZE,
+    (page + 1) * PAGE_SIZE
+  );
+  const vendorPageCount = Math.max(
+    1,
+    Math.ceil(filteredVendors.length / PAGE_SIZE)
+  );
+  const pagedVendors = filteredVendors.slice(
+    vendorPage * PAGE_SIZE,
+    (vendorPage + 1) * PAGE_SIZE
+  );
+
+  /*
+   * The responses tab, like vendors before it, rendered every row with no
+   * search, filter or pagination. It keeps its own filter state for the same
+   * reason: a status chosen on the procurements tab describes a procurement,
+   * not a bid, so sharing the control would silently mean something different.
+   */
+  const filteredResponses = rfqResponses.filter((response) => {
+    const term = responseSearch.trim().toLowerCase();
+    const matchesSearch =
+      !term ||
+      (response.procurement?.description ?? "").toLowerCase().includes(term) ||
+      (response.vendor?.name ?? "").toLowerCase().includes(term) ||
+      (response.notes ?? "").toLowerCase().includes(term);
+    const matchesStatus =
+      responseStatusFilter === "all" || response.status === responseStatusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const responsePageCount = Math.max(
+    1,
+    Math.ceil(filteredResponses.length / PAGE_SIZE)
+  );
+  const pagedResponses = filteredResponses.slice(
+    responsePage * PAGE_SIZE,
+    (responsePage + 1) * PAGE_SIZE
+  );
+
+  // Filtering changes what "page 1" means, so reset rather than stranding the
+  // user on a page index that no longer has rows.
+  useEffect(
+    () => setPage(0),
+    [searchTerm, statusFilter, typeFilter, view]
+  );
+  useEffect(
+    () => setVendorPage(0),
+    [vendorSearch, vendorCategoryFilter, view]
+  );
+  useEffect(
+    () => setResponsePage(0),
+    [responseSearch, responseStatusFilter, view]
+  );
 
   // Calculate statistics
   const totalProcurements = procurements.length;
@@ -648,43 +626,41 @@ const RFQManagementPage = () => {
   ];
 
   return (
-    <DashboardLayout title="RFQ Management">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <p className="text-gray-600 dark:text-gray-400">
-            Manage Request for Quotations across all projects
-          </p>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl overflow-hidden mb-6">
-        <div className="border-b border-gray-200 dark:border-gray-700">
-          <nav className="flex space-x-8 px-6">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === tab.id
-                    ? "border-orange-500 text-orange-600 dark:text-orange-400"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-                }`}
-              >
-                {tab.icon}
-                <span>{tab.label}</span>
-              </button>
-            ))}
-          </nav>
-        </div>
-      </div>
+    <RoleGuard route="/rfq-management" title="RFQ Management">
+    <DashboardLayout
+      title="RFQ Management"
+      subtitle="Manage Request for Quotations across all projects."
+      actions={
+        <>
+          {/* Responses now paginate too, so the toggle applies to all three
+              list tabs; only the overview has nothing to switch. */}
+          {activeTab !== "overview" && (
+            <ViewToggle value={view} onChange={setView} />
+          )}
+          {activeTab === "vendors" ? (
+            <NewButton
+              label="Add vendor"
+              onClick={() => router.push("/rfq-management/vendors/new")}
+            />
+          ) : activeTab === "responses" ? (
+            <NewButton
+              label="Add RFQ response"
+              onClick={() => router.push("/rfq-management/responses/new")}
+            />
+          ) : (
+            <NewButton
+              label="Add procurement"
+              onClick={() => router.push("/rfq-management/procurements/new")}
+            />
+          )}
+        </>
+      }
+    >
+      <TabRow tabs={tabs} value={activeTab} onChange={setActiveTab} />
 
       {/* Tab Content */}
       {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
-        </div>
+        <LoadingState />
       ) : (
         <>
           {/* Overview Tab */}
@@ -692,52 +668,52 @@ const RFQManagementPage = () => {
             <div className="space-y-6">
               {/* Summary Cards */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 flex items-center space-x-3">
-                  <ShoppingCart className="w-8 h-8 text-blue-600" />
+                <div className="bg-surface rounded-xl shadow p-4 flex items-center space-x-3">
+                  <ShoppingCart className="w-8 h-8 text-info" />
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-sm text-muted">
                       Total Procurements
                     </p>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    <p className="text-lg font-semibold text-ink">
                       {totalProcurements}
                     </p>
                   </div>
                 </div>
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 flex items-center space-x-3">
-                  <Award className="w-8 h-8 text-purple-600" />
+                <div className="bg-surface rounded-xl shadow p-4 flex items-center space-x-3">
+                  <Award className="w-8 h-8 text-accent-violet" />
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-sm text-muted">
                       Total Responses
                     </p>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    <p className="text-lg font-semibold text-ink">
                       {totalResponses}
                     </p>
                   </div>
                 </div>
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 flex items-center space-x-3 min-w-0">
-                  <DollarSign className="w-8 h-8 text-green-600 flex-shrink-0" />
+                <div className="bg-surface rounded-xl shadow p-4 flex items-center space-x-3 min-w-0">
+                  <DollarSign className="w-8 h-8 text-success flex-shrink-0" />
                   <div className="min-w-0 overflow-hidden flex-1">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-sm text-muted">
                       Total Actual Cost
                     </p>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 break-words overflow-hidden">
+                    <p className="text-lg font-semibold text-ink break-words overflow-hidden">
                       <TruncatedNumber 
                         value={totalActualCost}
-                        className="text-gray-900 dark:text-gray-100"
+                        className="text-ink"
                       />
                     </p>
                   </div>
                 </div>
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 flex items-center space-x-3 min-w-0">
-                  <DollarSign className="w-8 h-8 text-orange-600 flex-shrink-0" />
+                <div className="bg-surface rounded-xl shadow p-4 flex items-center space-x-3 min-w-0">
+                  <DollarSign className="w-8 h-8 text-bright flex-shrink-0" />
                   <div className="min-w-0 overflow-hidden flex-1">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-sm text-muted">
                       Total Estimated Value
                     </p>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 break-words overflow-hidden">
+                    <p className="text-lg font-semibold text-ink break-words overflow-hidden">
                       <TruncatedNumber 
                         value={totalValue}
-                        className="text-gray-900 dark:text-gray-100"
+                        className="text-ink"
                       />
                     </p>
                   </div>
@@ -745,46 +721,46 @@ const RFQManagementPage = () => {
               </div>
 
               {/* RFQ Status Chart */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              <div className="bg-surface rounded-xl shadow p-6">
+                <h3 className="text-lg font-semibold text-ink mb-4">
                   RFQ Status Overview
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-yellow-600">
+                    <div className="text-2xl font-bold text-warning">
                       {
                         procurements.filter((p) => p.status === "Planning")
                           .length
                       }
                     </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                    <div className="text-sm text-muted">
                       Planning
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-orange-600">
+                    <div className="text-2xl font-bold text-bright">
                       {activeRFQs}
                     </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                    <div className="text-sm text-muted">
                       Tendering
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">
+                    <div className="text-2xl font-bold text-info">
                       {
                         procurements.filter((p) => p.status === "Awarded")
                           .length
                       }
                     </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                    <div className="text-sm text-muted">
                       Awarded
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">
+                    <div className="text-2xl font-bold text-success">
                       {awardedContracts}
                     </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                    <div className="text-sm text-muted">
                       Contracts
                     </div>
                   </div>
@@ -792,8 +768,8 @@ const RFQManagementPage = () => {
               </div>
 
               {/* Recent RFQ Activity */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              <div className="bg-surface rounded-xl shadow p-6">
+                <h3 className="text-lg font-semibold text-ink mb-4">
                   Recent RFQ Activity
                 </h3>
                 <div className="space-y-3">
@@ -807,19 +783,19 @@ const RFQManagementPage = () => {
                     .map((procurement) => (
                       <div
                         key={procurement.procurement_id}
-                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                        className="flex items-center justify-between p-3 bg-surface-2 rounded-lg"
                       >
                         <div className="flex items-center space-x-3">
                           {getTypeIcon(procurement.type)}
                           <div>
-                            <p className="font-medium text-gray-900 dark:text-gray-100">
+                            <p className="font-medium text-ink">
                               {procurement.description}
                             </p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                            <p className="text-sm text-muted">
                               {procurement.project?.name} •{" "}
                               <TruncatedNumber 
                                 value={procurement.estimated_cost}
-                                className="text-gray-600 dark:text-gray-400"
+                                className="text-muted"
                               />
                             </p>
                           </div>
@@ -842,546 +818,698 @@ const RFQManagementPage = () => {
 
           {/* Procurements Tab */}
           {activeTab === "procurements" && (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                    All Procurements
-                  </h2>
-                  <button
-                    onClick={() => setShowAddProcurementModal(true)}
-                    className="flex items-center space-x-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
-                  >
-                    <Plus size={16} />
-                    <span>Add Procurement</span>
-                  </button>
-                </div>
-
-                <div className="mt-4">
-                  <FilterBar
-                    search={searchTerm}
-                    onSearch={setSearchTerm}
-                    searchPlaceholder="Search procurements by description or project…"
-                    resultLabel={`${filteredProcurements.length} ${filteredProcurements.length === 1 ? "procurement" : "procurements"}`}
-                    activeCount={
-                      (statusFilter !== "all" ? 1 : 0) + (typeFilter !== "all" ? 1 : 0)
-                    }
-                    onClear={() => {
-                      setStatusFilter("all");
-                      setTypeFilter("all");
-                    }}
-                  >
-                    <FilterSelect
-                      label="Type"
-                      value={typeFilter}
-                      onChange={setTypeFilter}
-                      options={[
-                        { value: "all", label: "All types" },
-                        { value: "material", label: "Material" },
-                        { value: "service", label: "Service" },
-                        { value: "equipment", label: "Equipment" },
-                      ]}
-                    />
-                    <FilterSelect
-                      label="Status"
-                      value={statusFilter}
-                      onChange={setStatusFilter}
-                      options={[
-                        { value: "all", label: "All statuses" },
-                        { value: "pending", label: "Pending" },
-                        { value: "approved", label: "Approved" },
-                        { value: "ordered", label: "Ordered" },
-                        { value: "delivered", label: "Delivered" },
-                        { value: "cancelled", label: "Cancelled" },
-                      ]}
-                    />
-                  </FilterBar>
-                </div>
-              </div>
+            <div className="space-y-6">
+              <FilterBar
+                search={searchTerm}
+                onSearch={setSearchTerm}
+                searchPlaceholder="Search procurements by description or project…"
+                resultLabel={`${filteredProcurements.length} ${filteredProcurements.length === 1 ? "procurement" : "procurements"}`}
+                activeCount={
+                  (statusFilter !== "all" ? 1 : 0) + (typeFilter !== "all" ? 1 : 0)
+                }
+                onClear={() => {
+                  setStatusFilter("all");
+                  setTypeFilter("all");
+                }}
+              >
+                <FilterSelect
+                  label="Type"
+                  value={typeFilter}
+                  onChange={setTypeFilter}
+                  options={[
+                    { value: "all", label: "All types" },
+                    { value: "material", label: "Material" },
+                    { value: "service", label: "Service" },
+                    { value: "equipment", label: "Equipment" },
+                  ]}
+                />
+                <FilterSelect
+                  label="Status"
+                  value={statusFilter}
+                  onChange={setStatusFilter}
+                  options={[
+                    { value: "all", label: "All statuses" },
+                    { value: "pending", label: "Pending" },
+                    { value: "approved", label: "Approved" },
+                    { value: "ordered", label: "Ordered" },
+                    { value: "delivered", label: "Delivered" },
+                    { value: "cancelled", label: "Cancelled" },
+                  ]}
+                />
+              </FilterBar>
 
               {filteredProcurements.length === 0 ? (
-                <div className="p-8 text-center">
-                  <ShoppingCart className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500 dark:text-gray-400 mb-4">
-                    No procurements found.
-                  </p>
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {filteredProcurements.map((procurement) => (
-                    <div
+                <EmptyState
+                  icon={<ShoppingCart className="h-10 w-10" />}
+                  title="No procurements found"
+                  message={
+                    procurements.length === 0
+                      ? "No procurements have been raised yet."
+                      : "Try adjusting your filters to see more results."
+                  }
+                  action={
+                    procurements.length === 0 ? (
+                      <NewButton
+                        label="Add procurement"
+                        onClick={() => router.push("/rfq-management/procurements/new")}
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchTerm("");
+                          setStatusFilter("all");
+                          setTypeFilter("all");
+                        }}
+                        className="text-[13px] font-semibold text-bright hover:text-bright-deep"
+                      >
+                        Clear all filters
+                      </button>
+                    )
+                  }
+                />
+              ) : view === "grid" ? (
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+                  {pagedProcurements.map((procurement) => (
+                    <EntityCard
                       key={procurement.procurement_id}
-                      className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
                       onClick={() => openProcurementDetails(procurement)}
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-3">
-                            {getTypeIcon(procurement.type)}
-                            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                              {procurement.description}
-                            </h3>
-                            <span className="px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                              {procurement.type.toUpperCase()}
-                            </span>
-                            <span
-                              className={`px-2 py-1 rounded-md text-xs font-medium ${getStatusColor(
-                                procurement.status
-                              )}`}
-                            >
-                              {procurement.status.toUpperCase()}
-                            </span>
-                          </div>
+                      <EntityCardHeader
+                        title={procurement.description}
+                        subtitle={procurement.project?.name}
+                        badges={
+                          <>
+                            <StatusBadge
+                              label={humanize(procurement.status)}
+                              tone={procurementStatusTone(procurement.status)}
+                            />
+                            <StatusBadge
+                              label={humanize(procurement.type)}
+                              tone="info"
+                            />
+                          </>
+                        }
+                      />
 
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
-                            <div className="min-w-0 overflow-hidden">
-                              <span className="text-gray-500 dark:text-gray-400">
-                                Project:
-                              </span>
-                              <p className="font-medium text-gray-900 dark:text-gray-100 break-words">
-                                {procurement.project?.name || "N/A"}
-                              </p>
-                            </div>
-                            <div className="min-w-0 overflow-hidden">
-                              <span className="text-gray-500 dark:text-gray-400">
-                                Estimated Cost:
-                              </span>
-                              <p className="font-medium text-gray-900 dark:text-gray-100 break-words overflow-hidden">
-                                <TruncatedNumber 
-                                  value={procurement.estimated_cost}
-                                  className="text-gray-900 dark:text-gray-100"
-                                />
-                              </p>
-                            </div>
-                            <div className="min-w-0 overflow-hidden">
-                              <span className="text-gray-500 dark:text-gray-400">
-                                Actual Cost:
-                              </span>
-                              <p className="font-medium text-gray-900 dark:text-gray-100 break-words overflow-hidden">
-                                <TruncatedNumber 
-                                  value={procurement.actual_cost}
-                                  className="text-gray-900 dark:text-gray-100"
-                                />
-                              </p>
-                            </div>
-                            <div className="min-w-0 overflow-hidden">
-                              <span className="text-gray-500 dark:text-gray-400">
-                                Created:
-                              </span>
-                              <p className="font-medium text-gray-900 dark:text-gray-100 break-words">
-                                {new Date(
-                                  procurement.created_at
-                                ).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
+                      <EntityStats>
+                        <EntityStat
+                          icon={<DollarSign className="h-3.5 w-3.5" />}
+                        >
+                          Est. {formatNumber(procurement.estimated_cost).display}
+                        </EntityStat>
+                        <EntityStat
+                          icon={<CheckCircle className="h-3.5 w-3.5" />}
+                        >
+                          Act. {formatNumber(procurement.actual_cost).display}
+                        </EntityStat>
+                      </EntityStats>
 
-                        <div className="flex items-center space-x-2 ml-4">
-                          {procurement.status === "Planning" && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                generateRFQ(procurement.procurement_id);
-                              }}
-                              disabled={generatingRFQ === procurement.procurement_id}
-                              className="px-3 py-1 bg-orange-600 text-white text-xs rounded hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
-                            >
-                              {generatingRFQ === procurement.procurement_id ? (
-                                <>
-                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-                                  <span>Generating...</span>
-                                </>
-                              ) : (
-                                <span>Generate RFQ</span>
-                              )}
-                            </button>
-                          )}
-                          {procurement.status === "Tendering" && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                viewRFQResponses(procurement);
-                              }}
-                              className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 flex items-center space-x-1"
-                            >
-                              <Eye className="w-3 h-3" />
-                              <span>View Responses</span>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                      <EntityCardFooter
+                        actions={
+                          <div
+                            className="flex items-center gap-2"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {procurement.status === "Planning" && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  generateRFQ(procurement.procurement_id)
+                                }
+                                disabled={
+                                  generatingRFQ === procurement.procurement_id
+                                }
+                                className="inline-flex items-center gap-1.5 rounded-[8px] bg-bright px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-bright-deep disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {generatingRFQ ===
+                                procurement.procurement_id ? (
+                                  <>
+                                    <Spinner size={12} />
+                                    <span>Generating…</span>
+                                  </>
+                                ) : (
+                                  <span>Generate RFQ</span>
+                                )}
+                              </button>
+                            )}
+                            {procurement.status === "Tendering" && (
+                              <button
+                                type="button"
+                                onClick={() => viewRFQResponses(procurement)}
+                                className="inline-flex items-center gap-1.5 rounded-[8px] border border-line px-3 py-1.5 text-[12px] font-semibold text-ink-2 transition-colors hover:bg-surface-2"
+                              >
+                                <Eye className="h-3 w-3" />
+                                <span>Responses</span>
+                              </button>
+                            )}
+                          </div>
+                        }
+                      >
+                        <span className="text-[12px] text-faint">
+                          {new Date(
+                            procurement.created_at
+                          ).toLocaleDateString()}
+                        </span>
+                      </EntityCardFooter>
+                    </EntityCard>
                   ))}
                 </div>
+              ) : (
+                <ListCard>
+                  <table className="w-full border-collapse">
+                    <ListHead columns={PROCUREMENT_COLUMNS} />
+                    <tbody>
+                      {pagedProcurements.length === 0 ? (
+                        <ListMessage colSpan={PROCUREMENT_COLUMNS.length + 1}>
+                          No procurements on this page.
+                        </ListMessage>
+                      ) : (
+                        pagedProcurements.map((procurement) => (
+                          <ListRow
+                            key={procurement.procurement_id}
+                            onClick={() => openProcurementDetails(procurement)}
+                          >
+                            <td className="max-w-[200px] px-4 py-3">
+                              <div className="flex min-w-0 items-center gap-2">
+                                <span
+                                  className="shrink-0 text-muted"
+                                  aria-hidden="true"
+                                >
+                                  {getTypeIcon(procurement.type)}
+                                </span>
+                                <span className="truncate text-[13.5px] font-medium text-ink">
+                                  {procurement.description}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-[13.5px] text-ink-2">
+                              {procurement.project?.name || (
+                                <span className="text-faint">—</span>
+                              )}
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3">
+                              <StatusBadge
+                                label={humanize(procurement.type)}
+                                tone="info"
+                              />
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3">
+                              <StatusBadge
+                                label={humanize(procurement.status)}
+                                tone={procurementStatusTone(
+                                  procurement.status
+                                )}
+                              />
+                            </td>
+                            <td className="px-4 py-3 text-[13.5px] tabular-nums text-ink-2">
+                              <TruncatedNumber
+                                value={procurement.estimated_cost}
+                                className="text-ink-2"
+                              />
+                            </td>
+                            <td className="px-4 py-3 text-[13.5px] tabular-nums text-ink-2">
+                              <TruncatedNumber
+                                value={procurement.actual_cost}
+                                className="text-ink-2"
+                              />
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3 text-[13.5px] text-ink-2">
+                              {new Date(
+                                procurement.created_at
+                              ).toLocaleDateString()}
+                            </td>
+                            <td
+                              className="px-4 py-3"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="flex items-center justify-end gap-2">
+                                {procurement.status === "Planning" && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      generateRFQ(procurement.procurement_id)
+                                    }
+                                    disabled={
+                                      generatingRFQ ===
+                                      procurement.procurement_id
+                                    }
+                                    className="inline-flex items-center gap-1.5 rounded-[8px] bg-bright px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-bright-deep disabled:cursor-not-allowed disabled:opacity-50"
+                                  >
+                                    {generatingRFQ ===
+                                    procurement.procurement_id ? (
+                                      <>
+                                        <Spinner size={12} />
+                                        <span>Generating…</span>
+                                      </>
+                                    ) : (
+                                      <span>Generate RFQ</span>
+                                    )}
+                                  </button>
+                                )}
+                                {procurement.status === "Tendering" && (
+                                  <RowActions>
+                                    <RowAction
+                                      icon={Eye}
+                                      label={`View responses for ${procurement.description}`}
+                                      onClick={() =>
+                                        viewRFQResponses(procurement)
+                                      }
+                                    />
+                                  </RowActions>
+                                )}
+                              </div>
+                            </td>
+                          </ListRow>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </ListCard>
+              )}
+
+              {filteredProcurements.length > 0 && (
+                <ListPagination
+                  page={page}
+                  pageCount={procurementPageCount}
+                  total={filteredProcurements.length}
+                  pageSize={PAGE_SIZE}
+                  onPageChange={setPage}
+                  noun="procurement"
+                />
               )}
             </div>
           )}
 
           {/* RFQ Responses Tab */}
           {activeTab === "responses" && (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  RFQ Responses
-                </h2>
-                <AddEntityModal
-                  entityName="RFQ Response"
-                  fields={[
-                    {
-                      name: "procurement_id",
-                      label: "Procurement",
-                      type: "select" as const,
-                      required: true,
-                      defaultValue: "",
-                      options: procurements
-                        .filter((p) =>
-                          p.status === "Tendering" ||
-                          p.status === "Planning" ||
-                          p.status === "Approved"
-                        )
-                        .map((p) => ({
-                          value: p.procurement_id.toString(),
-                          label: `${p.description} (${
-                            p.project?.name || "N/A"
-                          }) - ${p.status}`,
-                        })),
-                    },
-                    {
-                      name: "vendor_id",
-                      label: "Vendor",
-                      type: "select" as const,
-                      required: true,
-                      defaultValue: "",
-                      options: vendors.map((v) => ({
-                        value: v.vendor_id.toString(),
-                        label: v.name,
-                      })),
-                    },
-                    {
-                      name: "quote_amount",
-                      label: "Quote Amount (OMR)",
-                      type: "number" as const,
-                      required: true,
-                      defaultValue: "",
-                      min: 0,
-                    },
-                    {
-                      name: "delivery_time",
-                      label: "Delivery Time (days)",
-                      type: "number" as const,
-                      required: true,
-                      defaultValue: "",
-                      min: 1,
-                    },
-                    {
-                      name: "technical_score",
-                      label: "Technical Score (0-100)",
-                      type: "number" as const,
-                      required: true,
-                      defaultValue: "0",
-                      min: 0,
-                      max: 100,
-                    },
-                    {
-                      name: "commercial_score",
-                      label: "Commercial Score (0-100)",
-                      type: "number" as const,
-                      required: true,
-                      defaultValue: "0",
-                      min: 0,
-                      max: 100,
-                    },
-                    {
-                      name: "total_score",
-                      label: "Total Score (0-100)",
-                      type: "number" as const,
-                      required: true,
-                      defaultValue: "0",
-                      min: 0,
-                      max: 100,
-                    },
-                    {
-                      name: "notes",
-                      label: "Notes",
-                      type: "textarea" as const,
-                      required: false,
-                      defaultValue: "",
-                    },
+            <div className="space-y-6">
+              <FilterBar
+                search={responseSearch}
+                onSearch={setResponseSearch}
+                searchPlaceholder="Search responses by procurement, vendor or notes…"
+                resultLabel={`${filteredResponses.length} ${
+                  filteredResponses.length === 1 ? "response" : "responses"
+                }`}
+                activeCount={responseStatusFilter !== "all" ? 1 : 0}
+                onClear={() => setResponseStatusFilter("all")}
+              >
+                <FilterSelect
+                  label="Status"
+                  value={responseStatusFilter}
+                  onChange={setResponseStatusFilter}
+                  options={[
+                    { value: "all", label: "All statuses" },
+                    { value: "Submitted", label: "Submitted" },
+                    { value: "Evaluated", label: "Evaluated" },
+                    { value: "Awarded", label: "Awarded" },
+                    { value: "Rejected", label: "Rejected" },
                   ]}
-                  onSubmit={async (data: Record<string, any>) => {
-                    try {
-                      console.log("Form data received:", data);
+                />
+              </FilterBar>
 
-                      const requestData = {
-                        procurement_id: parseInt(data.procurement_id),
-                        vendor_id: parseInt(data.vendor_id),
-                        quote_amount: parseFloat(data.quote_amount),
-                        delivery_time: `${data.delivery_time} days`,
-                        technical_score: parseFloat(data.technical_score) || 0,
-                        commercial_score:
-                          parseFloat(data.commercial_score) || 0,
-                        total_score: parseFloat(data.total_score) || 0,
-                        notes: data.notes || "",
-                      };
-
-                      console.log("Sending request data:", requestData);
-
-                      const response = await axios.post(
-                        `/api/rfq-responses`,
-                        requestData,
-                        {
-                          headers: {
-                            Authorization: `Bearer ${localStorage.getItem(
-                              "token"
-                            )}`,
-                          },
-                        }
-                      );
-
-                      if (response.status === 201) {
-                        // Update the procurement status to "Awarded" and set actual cost
-                        const procurement = procurements.find(
-                          (p) =>
-                            p.procurement_id === parseInt(data.procurement_id)
-                        );
-                        if (procurement) {
-                          try {
-                            await axios.put(
-                              `/api/procurements/${procurement.procurement_id}`,
-                              {
-                                ...procurement,
-                                status: "Awarded",
-                                actual_cost: parseFloat(data.quote_amount),
-                              },
-                              {
-                                headers: {
-                                  Authorization: `Bearer ${localStorage.getItem(
-                                    "token"
-                                  )}`,
-                                },
-                              }
-                            );
-                          } catch (error) {
-                            console.error(
-                              "Error updating procurement status:",
-                              error
-                            );
-                          }
-                        }
-
-                        toast.success(
-                          "RFQ Response added successfully and procurement awarded!"
-                        );
-
-                        // Refresh both RFQ responses and procurements data
-                        const [rfqResponsesResponse, procurementsResponse] =
-                          await Promise.all([
-                            axios.get(`/api/rfq-responses`, {
-                              headers: {
-                                Authorization: `Bearer ${localStorage.getItem(
-                                  "token"
-                                )}`,
-                              },
-                            }),
-                            axios.get(`/api/procurements`, {
-                              headers: {
-                                Authorization: `Bearer ${localStorage.getItem(
-                                  "token"
-                                )}`,
-                              },
-                            }),
-                          ]);
-
-                        setRfqResponses(rfqResponsesResponse.data || []);
-                        setProcurements(procurementsResponse.data || []);
-                      }
-                    } catch (error: any) {
-                      console.error("Error adding RFQ response:", error);
-                      toast.error(
-                        error.response?.data?.error ||
-                          error.response?.data?.message ||
-                          "Failed to add RFQ response"
-                      );
-                    }
-                  }}
-                  triggerButton={
-                    <button className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
-                      <Plus size={16} />
-                      <span>Add RFQ Response</span>
-                    </button>
+              {filteredResponses.length === 0 ? (
+                <EmptyState
+                  icon={<Award className="h-10 w-10" />}
+                  title="No RFQ responses found"
+                  message={
+                    rfqResponses.length === 0
+                      ? "No vendor has submitted a bid yet."
+                      : "Try adjusting your search or filter to see more results."
+                  }
+                  action={
+                    rfqResponses.length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setResponseSearch("");
+                          setResponseStatusFilter("all");
+                        }}
+                        className="text-[13px] font-semibold text-bright hover:text-bright-deep"
+                      >
+                        Clear all filters
+                      </button>
+                    ) : undefined
                   }
                 />
-              </div>
-
-              {rfqResponses.length === 0 ? (
-                <div className="p-8 text-center">
-                  <Award className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500 dark:text-gray-400 mb-4">
-                    No RFQ responses found.
-                  </p>
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {rfqResponses.map((response) => (
-                    <div
+              ) : view === "grid" ? (
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+                  {pagedResponses.map((response) => (
+                    <EntityCard
                       key={response.rfq_response_id}
-                      className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
                       onClick={() => openRFQResponseDetails(response)}
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-3">
-                            <Award className="w-5 h-5 text-purple-600" />
-                            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                              {response.procurement?.description ||
-                                "Procurement Response"}
-                            </h3>
-                            <span
-                              className={`px-2 py-1 rounded-md text-xs font-medium ${getResponseStatusColor(
-                                response.status
-                              )}`}
-                            >
-                              {response.status.toUpperCase()}
-                            </span>
-                          </div>
+                      <EntityCardHeader
+                        title={
+                          response.procurement?.description ||
+                          "Procurement Response"
+                        }
+                        subtitle={response.vendor?.name || "Unknown vendor"}
+                        badges={
+                          <StatusBadge
+                            label={response.status}
+                            tone={rfqResponseStatusTone(response.status)}
+                          />
+                        }
+                      />
 
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
-                            <div>
-                              <span className="text-gray-500 dark:text-gray-400">
-                                Vendor:
-                              </span>
-                              <p className="font-medium text-gray-900 dark:text-gray-100">
-                                {response.vendor?.name || "N/A"}
-                              </p>
-                            </div>
-                            <div>
-                              <span className="text-gray-500 dark:text-gray-400">
-                                Quote Amount:
-                              </span>
-                              <p className="font-medium text-gray-900 dark:text-gray-100">
-                                <TruncatedNumber 
-                                  value={response.quote_amount}
-                                  className="text-gray-900 dark:text-gray-100"
-                                />
-                              </p>
-                            </div>
-                            <div>
-                              <span className="text-gray-500 dark:text-gray-400">
-                                Total Score:
-                              </span>
-                              <p className="font-medium text-gray-900 dark:text-gray-100">
-                                {response.total_score}/100
-                              </p>
-                            </div>
-                            <div>
-                              <span className="text-gray-500 dark:text-gray-400">
-                                Submitted:
-                              </span>
-                              <p className="font-medium text-gray-900 dark:text-gray-100">
-                                {new Date(
-                                  response.submitted_date
-                                ).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
+                      <EntityStats>
+                        <EntityStat
+                          icon={<DollarSign className="h-3.5 w-3.5" />}
+                        >
+                          <TruncatedNumber value={response.quote_amount} />
+                        </EntityStat>
+                        <EntityStat icon={<Clock className="h-3.5 w-3.5" />}>
+                          {response.delivery_time || "—"}
+                        </EntityStat>
+                      </EntityStats>
 
-                        <div className="flex items-center space-x-2 ml-4">
-                          {response.status === "Evaluated" && (
-                            <button
-                              onClick={() => awardContract(response)}
-                              className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
-                            >
-                              Award Contract
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                      {/*
+                        * Total score is already a 0–100 figure, so it maps
+                        * straight onto the bar with no rescaling.
+                        */}
+                      <EntityProgress
+                        label="Evaluation score"
+                        value={response.total_score}
+                        display={`${response.total_score}/100`}
+                        tone={
+                          scoreTone(response.total_score) === "success"
+                            ? "success"
+                            : scoreTone(response.total_score) === "warning"
+                              ? "warning"
+                              : "danger"
+                        }
+                      />
+
+                      <EntityCardFooter>
+                        <PersonCell
+                          name={response.vendor?.name || "Unknown vendor"}
+                          subtitle={`Submitted ${new Date(
+                            response.submitted_date
+                          ).toLocaleDateString()}`}
+                        />
+                        {response.status === "Evaluated" && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              awardContract(response);
+                            }}
+                            className="text-[13px] font-semibold text-success hover:opacity-80"
+                          >
+                            Award
+                          </button>
+                        )}
+                      </EntityCardFooter>
+                    </EntityCard>
                   ))}
                 </div>
+              ) : (
+                <ListCard>
+                  <table className="w-full border-collapse">
+                    <ListHead columns={RESPONSE_COLUMNS} />
+                    <tbody>
+                      {pagedResponses.length === 0 ? (
+                        <ListMessage colSpan={RESPONSE_COLUMNS.length + 1}>
+                          No responses on this page.
+                        </ListMessage>
+                      ) : (
+                        pagedResponses.map((response) => (
+                          <ListRow
+                            key={response.rfq_response_id}
+                            onClick={() => openRFQResponseDetails(response)}
+                          >
+                            <td className="max-w-[280px] px-4 py-3">
+                              <div className="min-w-0 truncate text-[13.5px] font-medium text-ink">
+                                {response.procurement?.description || "—"}
+                              </div>
+                            </td>
+                            <td className="max-w-[180px] px-4 py-3">
+                              {response.vendor?.name ? (
+                                <PersonCell name={response.vendor.name} />
+                              ) : (
+                                <span className="text-faint">—</span>
+                              )}
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3 text-[13.5px] text-ink-2">
+                              <TruncatedNumber value={response.quote_amount} />
+                            </td>
+                            <td className="px-4 py-3 text-[13.5px] text-ink-2">
+                              {response.delivery_time || (
+                                <span className="text-faint">—</span>
+                              )}
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3">
+                              <StatusBadge
+                                label={`${response.total_score}/100`}
+                                tone={scoreTone(response.total_score)}
+                              />
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3">
+                              <StatusBadge
+                                label={response.status}
+                                tone={rfqResponseStatusTone(response.status)}
+                              />
+                            </td>
+                            <td className="px-4 py-3 text-[13.5px] text-ink-2">
+                              {new Date(
+                                response.submitted_date
+                              ).toLocaleDateString()}
+                            </td>
+                            <td
+                              className="px-4 py-3"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <RowActions>
+                                <RowAction
+                                  icon={Eye}
+                                  label="View response"
+                                  onClick={() =>
+                                    openRFQResponseDetails(response)
+                                  }
+                                />
+                                {response.status === "Evaluated" && (
+                                  <RowAction
+                                    icon={Award}
+                                    label="Award contract"
+                                    onClick={() => awardContract(response)}
+                                  />
+                                )}
+                              </RowActions>
+                            </td>
+                          </ListRow>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </ListCard>
+              )}
+
+              {filteredResponses.length > 0 && (
+                <ListPagination
+                  page={responsePage}
+                  pageCount={responsePageCount}
+                  total={filteredResponses.length}
+                  pageSize={PAGE_SIZE}
+                  onPageChange={setResponsePage}
+                  noun="response"
+                />
               )}
             </div>
           )}
 
           {/* Vendors Tab */}
           {activeTab === "vendors" && (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  Vendors
-                </h2>
-                <button
-                  onClick={() => setShowAddVendorModal(true)}
-                  className="flex items-center space-x-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
-                >
-                  <Plus size={16} />
-                  <span>Add Vendor</span>
-                </button>
-              </div>
+            <div className="space-y-6">
+              <FilterBar
+                search={vendorSearch}
+                onSearch={setVendorSearch}
+                searchPlaceholder="Search vendors by name, contact or category…"
+                resultLabel={`${filteredVendors.length} ${filteredVendors.length === 1 ? "vendor" : "vendors"}`}
+                activeCount={vendorCategoryFilter !== "all" ? 1 : 0}
+                onClear={() => setVendorCategoryFilter("all")}
+              >
+                <FilterSelect
+                  label="Category"
+                  value={vendorCategoryFilter}
+                  onChange={setVendorCategoryFilter}
+                  searchable={vendorCategories.length > 10}
+                  options={[
+                    { value: "all", label: "All categories" },
+                    ...vendorCategories.map((c) => ({ value: c, label: c })),
+                  ]}
+                />
+              </FilterBar>
 
-              {vendors.length === 0 ? (
-                <div className="p-8 text-center">
-                  <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500 dark:text-gray-400 mb-4">
-                    No vendors found.
-                  </p>
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {vendors.map((vendor) => (
-                    <div
+              {filteredVendors.length === 0 ? (
+                <EmptyState
+                  icon={<Users className="h-10 w-10" />}
+                  title="No vendors found"
+                  message={
+                    vendors.length === 0
+                      ? "No vendors have been registered yet."
+                      : "Try adjusting your search or filter to see more results."
+                  }
+                  action={
+                    vendors.length === 0 ? (
+                      <NewButton
+                        label="Add vendor"
+                        onClick={() => router.push("/rfq-management/vendors/new")}
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setVendorSearch("");
+                          setVendorCategoryFilter("all");
+                        }}
+                        className="text-[13px] font-semibold text-bright hover:text-bright-deep"
+                      >
+                        Clear all filters
+                      </button>
+                    )
+                  }
+                />
+              ) : view === "grid" ? (
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+                  {pagedVendors.map((vendor) => (
+                    <EntityCard
                       key={vendor.vendor_id}
-                      className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
                       onClick={() => openVendorDetails(vendor)}
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-3">
-                            <Users className="w-5 h-5 text-blue-600" />
-                            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                              {vendor.name}
-                            </h3>
-                            <span className="px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                              {vendor.category}
-                            </span>
-                            <span className="px-2 py-1 rounded-md text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-                              Rating: {vendor.performance_rating}/5
-                            </span>
-                          </div>
+                      <EntityCardHeader
+                        title={vendor.name}
+                        subtitle={vendor.address}
+                        badges={
+                          <>
+                            {vendor.category && (
+                              <StatusBadge label={vendor.category} tone="info" />
+                            )}
+                            <StatusBadge
+                              label={`${vendor.performance_rating}/5`}
+                              tone={ratingTone(vendor.performance_rating)}
+                            />
+                          </>
+                        }
+                      />
 
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-3">
-                            <div>
-                              <span className="text-gray-500 dark:text-gray-400">
-                                Contact Person:
-                              </span>
-                              <p className="font-medium text-gray-900 dark:text-gray-100">
-                                {vendor.contact_person}
-                              </p>
-                            </div>
-                            <div>
-                              <span className="text-gray-500 dark:text-gray-400">
-                                Contact Info:
-                              </span>
-                              <p className="font-medium text-gray-900 dark:text-gray-100">
-                                {vendor.contact_info}
-                              </p>
-                            </div>
-                            <div>
-                              <span className="text-gray-500 dark:text-gray-400">
-                                Address:
-                              </span>
-                              <p className="font-medium text-gray-900 dark:text-gray-100">
-                                {vendor.address}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                      <EntityStats>
+                        <EntityStat icon={<Users className="h-3.5 w-3.5" />}>
+                          {vendor.contact_person || "No contact"}
+                        </EntityStat>
+                        <EntityStat icon={<FileText className="h-3.5 w-3.5" />}>
+                          {vendor.contact_info || "—"}
+                        </EntityStat>
+                      </EntityStats>
+
+                      {/*
+                        * Rating is 0–5, so it is scaled to fill the bar while the
+                        * printed figure stays on the familiar 5-point scale.
+                        */}
+                      <EntityProgress
+                        label="Performance"
+                        value={(vendor.performance_rating / 5) * 100}
+                        display={`${vendor.performance_rating}/5`}
+                        tone={
+                          ratingTone(vendor.performance_rating) === "success"
+                            ? "success"
+                            : ratingTone(vendor.performance_rating) === "warning"
+                              ? "warning"
+                              : "danger"
+                        }
+                      />
+
+                      <EntityCardFooter>
+                        <PersonCell
+                          name={vendor.contact_person || vendor.name}
+                          subtitle={vendor.category || "Vendor"}
+                        />
+                      </EntityCardFooter>
+                    </EntityCard>
                   ))}
                 </div>
+              ) : (
+                <ListCard>
+                  <table className="w-full border-collapse">
+                    <ListHead columns={VENDOR_COLUMNS} />
+                    <tbody>
+                      {pagedVendors.length === 0 ? (
+                        <ListMessage colSpan={VENDOR_COLUMNS.length + 1}>
+                          No vendors on this page.
+                        </ListMessage>
+                      ) : (
+                        pagedVendors.map((vendor) => (
+                          <ListRow
+                            key={vendor.vendor_id}
+                            onClick={() => openVendorDetails(vendor)}
+                          >
+                            <td className="max-w-[200px] px-4 py-3">
+                              <div className="min-w-0 truncate text-[13.5px] font-medium text-ink">
+                                {vendor.name}
+                              </div>
+                            </td>
+                            <td className="max-w-[180px] px-4 py-3">
+                              {vendor.contact_person ? (
+                                <PersonCell name={vendor.contact_person} />
+                              ) : (
+                                <span className="text-faint">—</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-[13.5px] text-ink-2">
+                              {vendor.contact_info || (
+                                <span className="text-faint">—</span>
+                              )}
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3">
+                              {vendor.category ? (
+                                <StatusBadge
+                                  label={vendor.category}
+                                  tone="info"
+                                />
+                              ) : (
+                                <span className="text-faint">—</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-[13.5px] text-ink-2">
+                              {vendor.address || (
+                                <span className="text-faint">—</span>
+                              )}
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3">
+                              <StatusBadge
+                                label={`${vendor.performance_rating}/5`}
+                                tone={ratingTone(vendor.performance_rating)}
+                              />
+                            </td>
+                            <td
+                              className="px-4 py-3"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <RowActions>
+                                <RowAction
+                                  icon={Eye}
+                                  label={`View ${vendor.name}`}
+                                  onClick={() => openVendorDetails(vendor)}
+                                />
+                              </RowActions>
+                            </td>
+                          </ListRow>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </ListCard>
+              )}
+
+              {filteredVendors.length > 0 && (
+                <ListPagination
+                  page={vendorPage}
+                  pageCount={vendorPageCount}
+                  total={filteredVendors.length}
+                  pageSize={PAGE_SIZE}
+                  onPageChange={setVendorPage}
+                  noun="vendor"
+                />
               )}
             </div>
           )}
@@ -1403,62 +1531,62 @@ const RFQManagementPage = () => {
           {selectedRFQProcurement && (
             <div className="space-y-4 sm:space-y-6">
               {/* Procurement Details Card */}
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 sm:p-6 border border-blue-200 dark:border-blue-800">
-                <h4 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4 flex items-center">
-                  <FileText className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-blue-600 flex-shrink-0" />
+              <div className="bg-gradient-to-r from-info-soft to-accent-indigo-soft rounded-xl p-4 sm:p-6 border border-info">
+                <h4 className="text-base sm:text-lg font-semibold text-ink mb-3 sm:mb-4 flex items-center">
+                  <FileText className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-info flex-shrink-0" />
                   Procurement Details
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                  <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg p-3 min-w-0 overflow-hidden">
-                    <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">
+                  <div className="bg-white/80 rounded-lg p-3 min-w-0 overflow-hidden">
+                    <div className="text-xs sm:text-sm text-muted mb-1">
                       Estimated Cost
                     </div>
                     <div className="text-base sm:text-lg font-bold break-words overflow-hidden">
                       <TruncatedNumber 
                         value={selectedRFQProcurement.estimated_cost}
-                        className="text-blue-600 dark:text-blue-400"
+                        className="text-info"
                       />
                     </div>
                   </div>
-                  <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg p-3 min-w-0 overflow-hidden">
-                    <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">
+                  <div className="bg-white/80 rounded-lg p-3 min-w-0 overflow-hidden">
+                    <div className="text-xs sm:text-sm text-muted mb-1">
                       Actual Cost
                     </div>
                     <div className="text-base sm:text-lg font-bold break-words overflow-hidden">
                       <TruncatedNumber 
                         value={selectedRFQProcurement.actual_cost}
-                        className="text-green-600 dark:text-green-400"
+                        className="text-success"
                       />
                     </div>
                   </div>
-                  <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg p-3 min-w-0">
-                    <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">
+                  <div className="bg-white/80 rounded-lg p-3 min-w-0">
+                    <div className="text-xs sm:text-sm text-muted mb-1">
                       Type
                     </div>
-                    <div className="text-base sm:text-lg font-bold text-gray-900 dark:text-white capitalize break-words">
+                    <div className="text-base sm:text-lg font-bold text-ink capitalize break-words">
                       {selectedRFQProcurement.type}
                     </div>
                   </div>
-                  <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg p-3 min-w-0">
-                    <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">
+                  <div className="bg-white/80 rounded-lg p-3 min-w-0">
+                    <div className="text-xs sm:text-sm text-muted mb-1">
                       Status
                     </div>
-                    <div className="text-base sm:text-lg font-bold text-gray-900 dark:text-white break-words">
+                    <div className="text-base sm:text-lg font-bold text-ink break-words">
                       {selectedRFQProcurement.status}
                     </div>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-3 sm:mt-4">
-                  <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg p-3 min-w-0">
-                    <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">
+                  <div className="bg-white/80 rounded-lg p-3 min-w-0">
+                    <div className="text-xs sm:text-sm text-muted mb-1">
                       Project
                     </div>
-                    <div className="text-base sm:text-lg font-bold text-gray-900 dark:text-white break-words">
+                    <div className="text-base sm:text-lg font-bold text-ink break-words">
                       {selectedRFQProcurement.project?.name || "N/A"}
                     </div>
                   </div>
-                  <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg p-3 min-w-0 overflow-hidden">
-                    <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">
+                  <div className="bg-white/80 rounded-lg p-3 min-w-0 overflow-hidden">
+                    <div className="text-xs sm:text-sm text-muted mb-1">
                       Variance
                     </div>
                     <div className="text-base sm:text-lg font-bold break-words overflow-hidden">
@@ -1471,8 +1599,8 @@ const RFQManagementPage = () => {
                           selectedRFQProcurement.actual_cost -
                             selectedRFQProcurement.estimated_cost >=
                           0
-                            ? "text-red-600 dark:text-red-400"
-                            : "text-green-600 dark:text-green-400"
+                            ? "text-danger"
+                            : "text-success"
                         }
                       />
                     </div>
@@ -1482,7 +1610,7 @@ const RFQManagementPage = () => {
 
               {/* Responses List */}
               <div className="space-y-3 sm:space-y-4">
-                <h4 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
+                <h4 className="text-base sm:text-lg font-semibold text-ink">
                   Vendor Responses
                 </h4>
                 {rfqResponses
@@ -1494,14 +1622,14 @@ const RFQManagementPage = () => {
                   .map((response) => (
                     <div
                       key={response.rfq_response_id}
-                      className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      className="border border-line rounded-lg p-3 sm:p-4 cursor-pointer hover:bg-surface-2 transition-colors"
                       onClick={() => openRFQResponseDetails(response)}
                     >
                       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3">
-                            <Users className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
-                            <h5 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white break-words min-w-0 flex-1">
+                            <Users className="w-4 h-4 sm:w-5 sm:h-5 text-info flex-shrink-0" />
+                            <h5 className="text-base sm:text-lg font-medium text-ink break-words min-w-0 flex-1">
                               {response.vendor?.name}
                             </h5>
                             <span
@@ -1515,48 +1643,48 @@ const RFQManagementPage = () => {
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                             <div className="min-w-0 overflow-hidden">
-                              <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 block mb-1">
+                              <span className="text-xs sm:text-sm text-muted block mb-1">
                                 Quote Amount:
                               </span>
-                              <p className="font-medium text-gray-900 dark:text-white text-sm sm:text-base break-words overflow-hidden">
+                              <p className="font-medium text-ink text-sm sm:text-base break-words overflow-hidden">
                                 <TruncatedNumber 
                                   value={response.quote_amount}
-                                  className="text-gray-900 dark:text-white"
+                                  className="text-ink"
                                 />
                               </p>
                             </div>
                             <div className="min-w-0">
-                              <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 block mb-1">
+                              <span className="text-xs sm:text-sm text-muted block mb-1">
                                 Delivery Time:
                               </span>
-                              <p className="font-medium text-gray-900 dark:text-white text-sm sm:text-base break-words">
+                              <p className="font-medium text-ink text-sm sm:text-base break-words">
                                 {response.delivery_time}
                               </p>
                             </div>
                             <div className="min-w-0">
-                              <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 block mb-1">
+                              <span className="text-xs sm:text-sm text-muted block mb-1">
                                 Technical Score:
                               </span>
-                              <p className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">
+                              <p className="font-medium text-ink text-sm sm:text-base">
                                 {response.technical_score}/100
                               </p>
                             </div>
                             <div className="min-w-0">
-                              <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 block mb-1">
+                              <span className="text-xs sm:text-sm text-muted block mb-1">
                                 Commercial Score:
                               </span>
-                              <p className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">
+                              <p className="font-medium text-ink text-sm sm:text-base">
                                 {response.commercial_score}/100
                               </p>
                             </div>
                           </div>
 
                           {response.notes && (
-                            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                              <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 block mb-1">
+                            <div className="mt-3 pt-3 border-t border-line">
+                              <span className="text-xs sm:text-sm text-muted block mb-1">
                                 Notes:
                               </span>
-                              <p className="text-xs sm:text-sm text-gray-900 dark:text-white break-words">
+                              <p className="text-xs sm:text-sm text-ink break-words">
                                 {response.notes}
                               </p>
                             </div>
@@ -1570,7 +1698,7 @@ const RFQManagementPage = () => {
                                 e.stopPropagation();
                                 awardContract(response);
                               }}
-                              className="px-3 py-1.5 bg-green-600 text-white text-xs sm:text-sm rounded-md hover:bg-green-700 transition-colors whitespace-nowrap"
+                              className="px-3 py-1.5 bg-success text-white text-xs sm:text-sm rounded-md hover:opacity-90 transition-colors whitespace-nowrap"
                             >
                               Award Contract
                             </button>
@@ -1585,360 +1713,17 @@ const RFQManagementPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Add Vendor Modal */}
-      <Dialog open={showAddVendorModal} onOpenChange={setShowAddVendorModal}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Add New Vendor</DialogTitle>
-          </DialogHeader>
-
-          <form onSubmit={handleAddVendor} className="space-y-6">
-            <div className="grid grid-cols-2 gap-6">
-              <div className="group">
-                <Label
-                  htmlFor="vendor-name"
-                  className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2"
-                >
-                  Vendor Name <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="vendor-name"
-                  type="text"
-                  value={vendorForm.name}
-                  onChange={(e) =>
-                    setVendorForm({ ...vendorForm, name: e.target.value })
-                  }
-                  className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300 group-hover:border-orange-300"
-                  placeholder="Enter vendor name"
-                  required
-                />
-              </div>
-
-              <div className="group">
-                <Label
-                  htmlFor="vendor-category"
-                  className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2"
-                >
-                  Category <span className="text-red-500">*</span>
-                </Label>
-                <Select
-                  value={vendorForm.category}
-                  onValueChange={(value: string) =>
-                    setVendorForm({ ...vendorForm, category: value })
-                  }
-                >
-                  <SelectTrigger className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300 group-hover:border-orange-300">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Construction">Construction</SelectItem>
-                    <SelectItem value="IT Services">IT Services</SelectItem>
-                    <SelectItem value="Consulting">Consulting</SelectItem>
-                    <SelectItem value="Equipment">Equipment</SelectItem>
-                    <SelectItem value="Materials">Materials</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-6">
-              <div className="group">
-                <Label
-                  htmlFor="vendor-contact-person"
-                  className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2"
-                >
-                  Contact Person <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="vendor-contact-person"
-                  type="text"
-                  value={vendorForm.contact_person}
-                  onChange={(e) =>
-                    setVendorForm({
-                      ...vendorForm,
-                      contact_person: e.target.value,
-                    })
-                  }
-                  className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300 group-hover:border-orange-300"
-                  placeholder="Enter contact person name"
-                  required
-                />
-              </div>
-
-              <div className="group">
-                <Label
-                  htmlFor="vendor-contact-info"
-                  className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2"
-                >
-                  Contact Info <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="vendor-contact-info"
-                  type="text"
-                  value={vendorForm.contact_info}
-                  onChange={(e) =>
-                    setVendorForm({
-                      ...vendorForm,
-                      contact_info: e.target.value,
-                    })
-                  }
-                  className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300 group-hover:border-orange-300"
-                  placeholder="Enter email or phone"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="group">
-              <Label
-                htmlFor="vendor-address"
-                className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2"
-              >
-                Address <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="vendor-address"
-                value={vendorForm.address}
-                onChange={(e) =>
-                  setVendorForm({ ...vendorForm, address: e.target.value })
-                }
-                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300 group-hover:border-orange-300"
-                placeholder="Enter vendor address"
-                rows={3}
-                required
-              />
-            </div>
-
-            <div className="group">
-              <Label
-                htmlFor="vendor-rating"
-                className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2"
-              >
-                Performance Rating
-              </Label>
-              <Select
-                value={vendorForm.performance_rating}
-                onValueChange={(value: string) =>
-                  setVendorForm({ ...vendorForm, performance_rating: value })
-                }
-              >
-                <SelectTrigger className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300 group-hover:border-orange-300">
-                  <SelectValue placeholder="Select rating" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">Not Rated</SelectItem>
-                  <SelectItem value="1">1 - Poor</SelectItem>
-                  <SelectItem value="2">2 - Below Average</SelectItem>
-                  <SelectItem value="3">3 - Average</SelectItem>
-                  <SelectItem value="4">4 - Good</SelectItem>
-                  <SelectItem value="5">5 - Excellent</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-center justify-end space-x-3 pt-4">
-              <button
-                type="button"
-                onClick={() => setShowAddVendorModal(false)}
-                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex items-center space-x-2 px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>Adding...</span>
-                  </>
-                ) : (
-                  <>
-                    <Save size={16} />
-                    <span>Add Vendor</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Procurement Modal */}
-      <Dialog
-        open={showAddProcurementModal}
-        onOpenChange={setShowAddProcurementModal}
-      >
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Add New Procurement Request</DialogTitle>
-          </DialogHeader>
-
-          <form onSubmit={handleAddProcurement} className="space-y-6">
-            <div className="group">
-              <Label
-                htmlFor="procurement-description"
-                className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2"
-              >
-                Procurement Description <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="procurement-description"
-                type="text"
-                value={procurementForm.description}
-                onChange={(e) =>
-                  setProcurementForm({
-                    ...procurementForm,
-                    description: e.target.value,
-                  })
-                }
-                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300 group-hover:border-orange-300"
-                placeholder="Enter procurement description"
-                required
-              />
-            </div>
-
-            <div className="group">
-              <Label
-                htmlFor="procurement-type"
-                className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2"
-              >
-                Type <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                value={procurementForm.type}
-                onValueChange={(value: string) =>
-                  setProcurementForm({ ...procurementForm, type: value })
-                }
-              >
-                <SelectTrigger className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300 group-hover:border-orange-300">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="material">Material</SelectItem>
-                  <SelectItem value="service">Service</SelectItem>
-                  <SelectItem value="equipment">Equipment</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-6">
-              <div className="group">
-                <Label
-                  htmlFor="procurement-estimated-cost"
-                  className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2"
-                >
-                  Estimated Cost (OMR) <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="procurement-estimated-cost"
-                  type="text"
-                  value={procurementForm.estimated_cost}
-                  onChange={(e) =>
-                    setProcurementForm({
-                      ...procurementForm,
-                      estimated_cost: e.target.value,
-                    })
-                  }
-                  className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300 group-hover:border-orange-300"
-                  placeholder="Enter estimated cost"
-                  required
-                />
-              </div>
-
-              <div className="group">
-                <Label
-                  htmlFor="procurement-actual-cost"
-                  className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2"
-                >
-                  Actual Cost (OMR)
-                </Label>
-                <Input
-                  id="procurement-actual-cost"
-                  type="text"
-                  value={procurementForm.actual_cost}
-                  onChange={(e) =>
-                    setProcurementForm({
-                      ...procurementForm,
-                      actual_cost: e.target.value,
-                    })
-                  }
-                  className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300 group-hover:border-orange-300"
-                  placeholder="Enter actual cost (optional)"
-                />
-              </div>
-            </div>
-
-            <div className="group">
-              <Label
-                htmlFor="procurement-status"
-                className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2"
-              >
-                Status
-              </Label>
-              <Select
-                value={procurementForm.status}
-                onValueChange={(value: string) =>
-                  setProcurementForm({ ...procurementForm, status: value })
-                }
-              >
-                <SelectTrigger className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300 group-hover:border-orange-300">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Planning">Planning</SelectItem>
-                  <SelectItem value="Tendering">Tendering</SelectItem>
-                  <SelectItem value="Evaluation">Evaluation</SelectItem>
-                  <SelectItem value="Awarded">Awarded</SelectItem>
-                  <SelectItem value="Completed">Completed</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-center justify-end space-x-3 pt-4">
-              <button
-                type="button"
-                onClick={() => setShowAddProcurementModal(false)}
-                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmittingProcurement}
-                className="flex items-center space-x-2 px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {isSubmittingProcurement ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>Adding...</span>
-                  </>
-                ) : (
-                  <>
-                    <Save size={16} />
-                    <span>Add Procurement</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
       {/* Procurement Details Modal */}
       {showProcurementDetailsModal && selectedProcurement && (
         <div className="fixed inset-0 backdrop-blur-sm bg-white/30 dark:bg-black/30 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden shadow-2xl">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <div className="bg-surface rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden shadow-2xl">
+            <div className="flex items-center justify-between p-6 border-b border-line">
+              <h3 className="text-lg font-semibold text-ink">
                 Procurement Details
               </h3>
               <button
                 onClick={() => setShowProcurementDetailsModal(false)}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                className="text-muted hover:text-ink-3"
               >
                 <X size={24} />
               </button>
@@ -1947,13 +1732,13 @@ const RFQManagementPage = () => {
             <div className="p-6 overflow-y-auto max-h-[calc(80vh-120px)]">
               <div className="space-y-6">
                 {/* Header Section */}
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-800">
+                <div className="bg-gradient-to-r from-info-soft to-accent-indigo-soft rounded-xl p-6 border border-info">
                   <div className="flex items-center space-x-3 mb-4">
                     {getTypeIcon(selectedProcurement.type)}
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                    <h3 className="text-xl font-bold text-ink">
                       {selectedProcurement.description}
                     </h3>
-                    <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                    <span className="px-3 py-1 rounded-full text-sm font-medium bg-info-soft text-info">
                       {selectedProcurement.type.toUpperCase()}
                     </span>
                     <span
@@ -1966,38 +1751,38 @@ const RFQManagementPage = () => {
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg p-3 min-w-0">
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                    <div className="bg-white/80 rounded-lg p-3 min-w-0">
+                      <div className="text-sm text-muted">
                         Project
                       </div>
-                      <div className="text-lg font-bold text-gray-900 dark:text-white">
+                      <div className="text-lg font-bold text-ink">
                         {selectedProcurement.project?.name || "N/A"}
                       </div>
                     </div>
-                    <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg p-3 min-w-0 overflow-hidden">
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                    <div className="bg-white/80 rounded-lg p-3 min-w-0 overflow-hidden">
+                      <div className="text-sm text-muted">
                         Estimated Cost
                       </div>
                       <div className="text-lg font-bold break-words overflow-hidden">
                         <TruncatedNumber 
                           value={selectedProcurement.estimated_cost}
-                          className="text-blue-600 dark:text-blue-400"
+                          className="text-info"
                         />
                       </div>
                     </div>
-                    <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg p-3 min-w-0 overflow-hidden">
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                    <div className="bg-white/80 rounded-lg p-3 min-w-0 overflow-hidden">
+                      <div className="text-sm text-muted">
                         Actual Cost
                       </div>
                       <div className="text-lg font-bold break-words overflow-hidden">
                         <TruncatedNumber 
                           value={selectedProcurement.actual_cost}
-                          className="text-green-600 dark:text-green-400"
+                          className="text-success"
                         />
                       </div>
                     </div>
-                    <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg p-3 min-w-0 overflow-hidden">
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                    <div className="bg-white/80 rounded-lg p-3 min-w-0 overflow-hidden">
+                      <div className="text-sm text-muted">
                         Variance
                       </div>
                       <div className="text-lg font-bold break-words overflow-hidden">
@@ -2010,8 +1795,8 @@ const RFQManagementPage = () => {
                             selectedProcurement.actual_cost -
                               selectedProcurement.estimated_cost >=
                             0
-                              ? "text-red-600 dark:text-red-400"
-                              : "text-green-600 dark:text-green-400"
+                              ? "text-danger"
+                              : "text-success"
                           }
                         />
                       </div>
@@ -2020,19 +1805,19 @@ const RFQManagementPage = () => {
                 </div>
 
                 {/* Timeline Section */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
-                  <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                    <Calendar className="w-5 h-5 mr-2 text-blue-600" />
+                <div className="bg-surface rounded-xl shadow p-6">
+                  <h4 className="text-lg font-semibold text-ink mb-4 flex items-center">
+                    <Calendar className="w-5 h-5 mr-2 text-info" />
                     Timeline
                   </h4>
                   <div className="space-y-4">
                     <div className="flex items-center space-x-4">
-                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                      <div className="w-3 h-3 bg-info rounded-full"></div>
                       <div className="flex-1">
-                        <div className="font-medium text-gray-900 dark:text-white">
+                        <div className="font-medium text-ink">
                           Created
                         </div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                        <div className="text-sm text-muted">
                           {new Date(
                             selectedProcurement.created_at
                           ).toLocaleDateString()}{" "}
@@ -2046,12 +1831,12 @@ const RFQManagementPage = () => {
                     {selectedProcurement.updated_at !==
                       selectedProcurement.created_at && (
                       <div className="flex items-center space-x-4">
-                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                        <div className="w-3 h-3 bg-success rounded-full"></div>
                         <div className="flex-1">
-                          <div className="font-medium text-gray-900 dark:text-white">
+                          <div className="font-medium text-ink">
                             Last Updated
                           </div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                          <div className="text-sm text-muted">
                             {new Date(
                               selectedProcurement.updated_at
                             ).toLocaleDateString()}{" "}
@@ -2074,14 +1859,14 @@ const RFQManagementPage = () => {
       {/* Vendor Details Modal */}
       {showVendorDetailsModal && selectedVendor && (
         <div className="fixed inset-0 backdrop-blur-sm bg-white/30 dark:bg-black/30 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden shadow-2xl">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <div className="bg-surface rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden shadow-2xl">
+            <div className="flex items-center justify-between p-6 border-b border-line">
+              <h3 className="text-lg font-semibold text-ink">
                 Vendor Details
               </h3>
               <button
                 onClick={() => setShowVendorDetailsModal(false)}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                className="text-muted hover:text-ink-3"
               >
                 <X size={24} />
               </button>
@@ -2090,16 +1875,16 @@ const RFQManagementPage = () => {
             <div className="p-6 overflow-y-auto max-h-[calc(80vh-120px)]">
               <div className="space-y-6">
                 {/* Header Section */}
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-6 border border-green-200 dark:border-green-800">
+                <div className="bg-gradient-to-r from-success-soft to-success-soft rounded-xl p-6 border border-success">
                   <div className="flex items-center space-x-3 mb-4">
-                    <Users className="w-6 h-6 text-green-600" />
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                    <Users className="w-6 h-6 text-success" />
+                    <h3 className="text-xl font-bold text-ink">
                       {selectedVendor.name}
                     </h3>
-                    <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                    <span className="px-3 py-1 rounded-full text-sm font-medium bg-success-soft text-success">
                       {selectedVendor.category.toUpperCase()}
                     </span>
-                    <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                    <span className="px-3 py-1 rounded-full text-sm font-medium bg-info-soft text-info">
                       Rating: {selectedVendor.performance_rating}/5
                     </span>
                   </div>
@@ -2107,33 +1892,33 @@ const RFQManagementPage = () => {
 
                 {/* Contact Information */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
-                    <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                      <Users className="w-5 h-5 mr-2 text-blue-600" />
+                  <div className="bg-surface rounded-xl shadow p-6">
+                    <h4 className="text-lg font-semibold text-ink mb-4 flex items-center">
+                      <Users className="w-5 h-5 mr-2 text-info" />
                       Contact Information
                     </h4>
                     <div className="space-y-4">
                       <div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                        <div className="text-sm text-muted">
                           Contact Person
                         </div>
-                        <div className="text-lg font-medium text-gray-900 dark:text-white">
+                        <div className="text-lg font-medium text-ink">
                           {selectedVendor.contact_person}
                         </div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                        <div className="text-sm text-muted">
                           Contact Info
                         </div>
-                        <div className="text-lg font-medium text-gray-900 dark:text-white">
+                        <div className="text-lg font-medium text-ink">
                           {selectedVendor.contact_info}
                         </div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                        <div className="text-sm text-muted">
                           Address
                         </div>
-                        <div className="text-lg font-medium text-gray-900 dark:text-white">
+                        <div className="text-lg font-medium text-ink">
                           {selectedVendor.address}
                         </div>
                       </div>
@@ -2141,18 +1926,18 @@ const RFQManagementPage = () => {
                   </div>
 
                   {/* Performance & Timeline */}
-                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
-                    <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                      <TrendingUp className="w-5 h-5 mr-2 text-green-600" />
+                  <div className="bg-surface rounded-xl shadow p-6">
+                    <h4 className="text-lg font-semibold text-ink mb-4 flex items-center">
+                      <TrendingUp className="w-5 h-5 mr-2 text-success" />
                       Performance & Timeline
                     </h4>
                     <div className="space-y-4">
                       <div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                        <div className="text-sm text-muted">
                           Performance Rating
                         </div>
                         <div className="flex items-center space-x-2">
-                          <div className="text-lg font-medium text-gray-900 dark:text-white">
+                          <div className="text-lg font-medium text-ink">
                             {selectedVendor.performance_rating}/5
                           </div>
                           <div className="flex space-x-1">
@@ -2162,8 +1947,8 @@ const RFQManagementPage = () => {
                                 size={16}
                                 className={`${
                                   star <= selectedVendor.performance_rating
-                                    ? "text-yellow-500 fill-current"
-                                    : "text-gray-300 dark:text-gray-600"
+                                    ? "text-warning fill-current"
+                                    : "text-faint "
                                 }`}
                               />
                             ))}
@@ -2171,10 +1956,10 @@ const RFQManagementPage = () => {
                         </div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                        <div className="text-sm text-muted">
                           Created
                         </div>
-                        <div className="text-lg font-medium text-gray-900 dark:text-white">
+                        <div className="text-lg font-medium text-ink">
                           {new Date(
                             selectedVendor.created_at
                           ).toLocaleDateString()}{" "}
@@ -2187,10 +1972,10 @@ const RFQManagementPage = () => {
                       {selectedVendor.updated_at !==
                         selectedVendor.created_at && (
                         <div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                          <div className="text-sm text-muted">
                             Last Updated
                           </div>
-                          <div className="text-lg font-medium text-gray-900 dark:text-white">
+                          <div className="text-lg font-medium text-ink">
                             {new Date(
                               selectedVendor.updated_at
                             ).toLocaleDateString()}{" "}
@@ -2213,14 +1998,14 @@ const RFQManagementPage = () => {
       {/* RFQ Response Details Modal */}
       {showRFQResponseDetailsModal && selectedRFQResponse && (
         <div className="fixed inset-0 backdrop-blur-sm bg-white/30 dark:bg-black/30 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden shadow-2xl">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <div className="bg-surface rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden shadow-2xl">
+            <div className="flex items-center justify-between p-6 border-b border-line">
+              <h3 className="text-lg font-semibold text-ink">
                 RFQ Response Details
               </h3>
               <button
                 onClick={() => setShowRFQResponseDetailsModal(false)}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                className="text-muted hover:text-ink-3"
               >
                 <X size={24} />
               </button>
@@ -2229,10 +2014,10 @@ const RFQManagementPage = () => {
             <div className="p-6 overflow-y-auto max-h-[calc(80vh-120px)]">
               <div className="space-y-6">
                 {/* Header Section */}
-                <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-xl p-6 border border-purple-200 dark:border-purple-800">
+                <div className="bg-gradient-to-r from-accent-violet-soft to-accent-indigo-soft rounded-xl p-6 border border-accent-violet">
                   <div className="flex items-center space-x-3 mb-4">
-                    <Users className="w-6 h-6 text-purple-600" />
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                    <Users className="w-6 h-6 text-accent-violet" />
+                    <h3 className="text-xl font-bold text-ink">
                       {selectedRFQResponse.vendor?.name}
                     </h3>
                     <span
@@ -2242,10 +2027,10 @@ const RFQManagementPage = () => {
                     >
                       {selectedRFQResponse.status.toUpperCase()}
                     </span>
-                    <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 break-words overflow-hidden max-w-full">
+                    <span className="px-3 py-1 rounded-full text-sm font-medium bg-info-soft text-info break-words overflow-hidden max-w-full">
                       <TruncatedNumber 
                         value={selectedRFQResponse.quote_amount}
-                        className="text-blue-800 dark:text-blue-300"
+                        className="text-info"
                       />
                     </span>
                   </div>
@@ -2253,36 +2038,36 @@ const RFQManagementPage = () => {
 
                 {/* Response Details */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
-                    <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                      <FileText className="w-5 h-5 mr-2 text-blue-600" />
+                  <div className="bg-surface rounded-xl shadow p-6">
+                    <h4 className="text-lg font-semibold text-ink mb-4 flex items-center">
+                      <FileText className="w-5 h-5 mr-2 text-info" />
                       Response Information
                     </h4>
                     <div className="space-y-4">
                       <div className="min-w-0 overflow-hidden">
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                        <div className="text-sm text-muted">
                           Quote Amount
                         </div>
                         <div className="text-lg font-bold break-words overflow-hidden">
                           <TruncatedNumber 
                             value={selectedRFQResponse.quote_amount}
-                            className="text-blue-600 dark:text-blue-400"
+                            className="text-info"
                           />
                         </div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                        <div className="text-sm text-muted">
                           Delivery Time
                         </div>
-                        <div className="text-lg font-medium text-gray-900 dark:text-white">
+                        <div className="text-lg font-medium text-ink">
                           {selectedRFQResponse.delivery_time}
                         </div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                        <div className="text-sm text-muted">
                           Submitted Date
                         </div>
-                        <div className="text-lg font-medium text-gray-900 dark:text-white">
+                        <div className="text-lg font-medium text-ink">
                           {new Date(
                             selectedRFQResponse.submitted_date
                           ).toLocaleDateString()}{" "}
@@ -2294,10 +2079,10 @@ const RFQManagementPage = () => {
                       </div>
                       {selectedRFQResponse.notes && (
                         <div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                          <div className="text-sm text-muted">
                             Notes
                           </div>
-                          <div className="text-lg font-medium text-gray-900 dark:text-white">
+                          <div className="text-lg font-medium text-ink">
                             {selectedRFQResponse.notes}
                           </div>
                         </div>
@@ -2306,41 +2091,41 @@ const RFQManagementPage = () => {
                   </div>
 
                   {/* Scoring & Timeline */}
-                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
-                    <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                      <TrendingUp className="w-5 h-5 mr-2 text-green-600" />
+                  <div className="bg-surface rounded-xl shadow p-6">
+                    <h4 className="text-lg font-semibold text-ink mb-4 flex items-center">
+                      <TrendingUp className="w-5 h-5 mr-2 text-success" />
                       Scoring & Timeline
                     </h4>
                     <div className="space-y-4">
                       <div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                        <div className="text-sm text-muted">
                           Technical Score
                         </div>
-                        <div className="text-lg font-medium text-gray-900 dark:text-white">
+                        <div className="text-lg font-medium text-ink">
                           {selectedRFQResponse.technical_score}/100
                         </div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                        <div className="text-sm text-muted">
                           Commercial Score
                         </div>
-                        <div className="text-lg font-medium text-gray-900 dark:text-white">
+                        <div className="text-lg font-medium text-ink">
                           {selectedRFQResponse.commercial_score}/100
                         </div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                        <div className="text-sm text-muted">
                           Total Score
                         </div>
-                        <div className="text-lg font-bold text-green-600 dark:text-green-400">
+                        <div className="text-lg font-bold text-success">
                           {selectedRFQResponse.total_score}/100
                         </div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                        <div className="text-sm text-muted">
                           Created
                         </div>
-                        <div className="text-lg font-medium text-gray-900 dark:text-white">
+                        <div className="text-lg font-medium text-ink">
                           {new Date(
                             selectedRFQResponse.created_at
                           ).toLocaleDateString()}{" "}
@@ -2353,10 +2138,10 @@ const RFQManagementPage = () => {
                       {selectedRFQResponse.updated_at !==
                         selectedRFQResponse.created_at && (
                         <div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                          <div className="text-sm text-muted">
                             Last Updated
                           </div>
-                          <div className="text-lg font-medium text-gray-900 dark:text-white">
+                          <div className="text-lg font-medium text-ink">
                             {new Date(
                               selectedRFQResponse.updated_at
                             ).toLocaleDateString()}{" "}
@@ -2373,33 +2158,33 @@ const RFQManagementPage = () => {
 
                 {/* Procurement Context */}
                 {selectedRFQResponse.procurement && (
-                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
-                    <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                      <FileText className="w-5 h-5 mr-2 text-orange-600" />
+                  <div className="bg-surface rounded-xl shadow p-6">
+                    <h4 className="text-lg font-semibold text-ink mb-4 flex items-center">
+                      <FileText className="w-5 h-5 mr-2 text-bright" />
                       Procurement Context
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                        <div className="text-sm text-muted">
                           Procurement
                         </div>
-                        <div className="text-lg font-medium text-gray-900 dark:text-white">
+                        <div className="text-lg font-medium text-ink">
                           {selectedRFQResponse.procurement.description}
                         </div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                        <div className="text-sm text-muted">
                           Type
                         </div>
-                        <div className="text-lg font-medium text-gray-900 dark:text-white capitalize">
+                        <div className="text-lg font-medium text-ink capitalize">
                           {selectedRFQResponse.procurement.type}
                         </div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                        <div className="text-sm text-muted">
                           Status
                         </div>
-                        <div className="text-lg font-medium text-gray-900 dark:text-white">
+                        <div className="text-lg font-medium text-ink">
                           {selectedRFQResponse.procurement.status}
                         </div>
                       </div>
@@ -2412,6 +2197,7 @@ const RFQManagementPage = () => {
         </div>
       )}
     </DashboardLayout>
+    </RoleGuard>
   );
 };
 

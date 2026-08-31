@@ -29,14 +29,14 @@ export default function MyTasksSection({
     handleOpenProgressModal,
 }: MyTasksSectionProps) {
     return (
-        <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6">
+        <div className="bg-surface border border-line rounded-xl p-6">
             <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <h3 className="text-lg font-semibold text-ink">
                     My Tasks
                 </h3>
                 <button
                     onClick={() => router.push(`/projects/${projectId}/tasks`)}
-                    className="flex items-center space-x-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                    className="flex items-center space-x-2 px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors"
                 >
                     <ExternalLink size={16} />
                     <span>View All Tasks</span>
@@ -44,25 +44,25 @@ export default function MyTasksSection({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                <div className="bg-info-soft rounded-lg p-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">My Total Tasks</p>
-                            <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                            <p className="text-sm text-info font-medium">My Total Tasks</p>
+                            <p className="text-2xl font-bold text-info">
                                 {project.tasks?.filter((task) =>
                                     task.assigned_users?.some((assignment) => assignment.user.user_id === currentUserId)
                                 ).length || 0}
                             </p>
                         </div>
-                        <Target className="w-8 h-8 text-blue-500" />
+                        <Target className="w-8 h-8 text-info" />
                     </div>
                 </div>
 
-                <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
+                <div className="bg-success-soft rounded-lg p-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-green-600 dark:text-green-400 font-medium">Completed</p>
-                            <p className="text-2xl font-bold text-green-900 dark:text-green-100">
+                            <p className="text-sm text-success font-medium">Completed</p>
+                            <p className="text-2xl font-bold text-success">
                                 {project.tasks?.filter(
                                     (task) =>
                                         task.status === "completed" &&
@@ -70,15 +70,15 @@ export default function MyTasksSection({
                                 ).length || 0}
                             </p>
                         </div>
-                        <CheckCircle className="w-8 h-8 text-green-500" />
+                        <CheckCircle className="w-8 h-8 text-success" />
                     </div>
                 </div>
 
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4">
+                <div className="bg-warning-soft rounded-lg p-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-yellow-600 dark:text-yellow-400 font-medium">In Progress</p>
-                            <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">
+                            <p className="text-sm text-warning font-medium">In Progress</p>
+                            <p className="text-2xl font-bold text-warning">
                                 {project.tasks?.filter(
                                     (task) =>
                                         task.status === "in_progress" &&
@@ -86,15 +86,15 @@ export default function MyTasksSection({
                                 ).length || 0}
                             </p>
                         </div>
-                        <Clock className="w-8 h-8 text-yellow-500" />
+                        <Clock className="w-8 h-8 text-warning" />
                     </div>
                 </div>
 
-                <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
+                <div className="bg-danger-soft rounded-lg p-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-red-600 dark:text-red-400 font-medium">Overdue</p>
-                            <p className="text-2xl font-bold text-red-900 dark:text-red-100">
+                            <p className="text-sm text-danger font-medium">Overdue</p>
+                            <p className="text-2xl font-bold text-danger">
                                 {project.tasks?.filter(
                                     (task) =>
                                         new Date(task.end_date) < new Date() &&
@@ -103,13 +103,13 @@ export default function MyTasksSection({
                                 ).length || 0}
                             </p>
                         </div>
-                        <AlertTriangle className="w-8 h-8 text-red-500" />
+                        <AlertTriangle className="w-8 h-8 text-danger" />
                     </div>
                 </div>
             </div>
 
             <div className="space-y-4">
-                <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-4">My Assigned Tasks</h4>
+                <h4 className="font-medium text-ink mb-4">My Assigned Tasks</h4>
 
                 {project.tasks &&
                 project.tasks.filter((task) =>
@@ -138,64 +138,64 @@ export default function MyTasksSection({
                                         key={task.task_id}
                                         className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${
                                             isOverdue
-                                                ? "border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-800"
-                                                : "border-gray-200 dark:border-slate-700"
+                                                ? "border-danger bg-danger-soft "
+                                                : "border-line"
                                         }`}
                                     >
                                         <div className="flex items-start justify-between">
                                             <div className="flex-1">
                                                 <div className="flex items-center space-x-3 mb-2">
-                                                    <h5 className="font-medium text-gray-900 dark:text-gray-100">{task.name}</h5>
+                                                    <h5 className="font-medium text-ink">{task.name}</h5>
                                                     {task.is_milestone && (
-                                                        <span className="px-2 py-1 bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 text-xs rounded-full">
+                                                        <span className="px-2 py-1 bg-accent-violet-soft text-accent-violet text-xs rounded-full">
                                                             Milestone
                                                         </span>
                                                     )}
                                                     <span
                                                         className={`px-2 py-1 rounded-md text-xs font-medium ${
                                                             task.priority === "high"
-                                                                ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
+                                                                ? "bg-danger-soft text-danger  "
                                                                 : task.priority === "medium"
-                                                                ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
-                                                                : "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                                                                ? "bg-warning-soft text-warning  "
+                                                                : "bg-success-soft text-success  "
                                                         }`}
                                                     >
                                                         {task.priority.toUpperCase()}
                                                     </span>
                                                     {isOverdue && (
-                                                        <span className="px-2 py-1 bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 text-xs rounded-full">
+                                                        <span className="px-2 py-1 bg-danger-soft text-danger text-xs rounded-full">
                                                             OVERDUE
                                                         </span>
                                                     )}
                                                 </div>
 
-                                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+                                                <p className="text-sm text-muted mb-3 line-clamp-2">
                                                     {task.description}
                                                 </p>
 
                                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                                                     <div>
-                                                        <span className="text-gray-500">Due Date:</span>
-                                                        <p className={`font-medium ${isOverdue ? "text-red-600" : "text-gray-900 dark:text-gray-100"}`}>
+                                                        <span className="text-muted">Due Date:</span>
+                                                        <p className={`font-medium ${isOverdue ? "text-danger" : "text-ink"}`}>
                                                             {new Date(task.end_date).toLocaleDateString()}
                                                             {isOverdue && <span className="ml-1">(Overdue)</span>}
                                                             {!isOverdue && daysUntilDue <= 3 && daysUntilDue > 0 && (
-                                                                <span className="ml-1 text-orange-600">({daysUntilDue} days left)</span>
+                                                                <span className="ml-1 text-bright">({daysUntilDue} days left)</span>
                                                             )}
                                                         </p>
                                                     </div>
 
                                                     <div>
-                                                        <span className="text-gray-500">Status:</span>
+                                                        <span className="text-muted">Status:</span>
                                                         <p
                                                             className={`font-medium ${
                                                                 task.status === "completed"
-                                                                    ? "text-green-600"
+                                                                    ? "text-success"
                                                                     : task.status === "in_progress"
-                                                                    ? "text-blue-600"
+                                                                    ? "text-info"
                                                                     : task.status === "on_hold"
-                                                                    ? "text-red-600"
-                                                                    : "text-gray-600"
+                                                                    ? "text-danger"
+                                                                    : "text-muted"
                                                             }`}
                                                         >
                                                             {task.status.replace("_", " ").toUpperCase()}
@@ -203,21 +203,21 @@ export default function MyTasksSection({
                                                     </div>
 
                                                     <div>
-                                                        <span className="text-gray-500">Progress:</span>
+                                                        <span className="text-muted">Progress:</span>
                                                         <div className="flex items-center space-x-2 mt-1">
-                                                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                                            <span className="text-sm font-medium text-ink">
                                                                 {task.progress_percentage}%
                                                             </span>
-                                                            <div className="flex-1 bg-gray-200 dark:bg-slate-700 rounded-full h-2 min-w-[40px]">
+                                                            <div className="flex-1 bg-surface-3 rounded-full h-2 min-w-[40px]">
                                                                 <div
                                                                     className={`h-2 rounded-full transition-all duration-300 ${
                                                                         task.status === "completed"
-                                                                            ? "bg-green-500"
+                                                                            ? "bg-success"
                                                                             : task.status === "in_progress"
-                                                                            ? "bg-blue-500"
+                                                                            ? "bg-info"
                                                                             : isOverdue
-                                                                            ? "bg-red-500"
-                                                                            : "bg-gray-400"
+                                                                            ? "bg-danger"
+                                                                            : "bg-faint"
                                                                     }`}
                                                                     style={{ width: `${task.progress_percentage}%` }}
                                                                 ></div>
@@ -226,8 +226,8 @@ export default function MyTasksSection({
                                                     </div>
 
                                                     <div>
-                                                        <span className="text-gray-500">Hours:</span>
-                                                        <p className="font-medium text-gray-900 dark:text-gray-100">
+                                                        <span className="text-muted">Hours:</span>
+                                                        <p className="font-medium text-ink">
                                                             {task.actual_hours || 0} / {task.estimated_hours || 0}h
                                                         </p>
                                                     </div>
@@ -237,14 +237,14 @@ export default function MyTasksSection({
                                             <div className="flex items-center space-x-2 ml-4">
                                                 <button
                                                     onClick={() => handleOpenProgressModal("task", task.task_id, task.name)}
-                                                    className="flex items-center space-x-1 px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm"
+                                                    className="flex items-center space-x-1 px-3 py-1 bg-info text-white rounded-md hover:opacity-90 transition-colors text-sm"
                                                 >
                                                     <RefreshCw size={14} />
                                                     <span>Update</span>
                                                 </button>
                                                 <button
                                                     onClick={() => router.push(`/projects/${projectId}/tasks/${task.task_id}`)}
-                                                    className="flex items-center space-x-1 px-3 py-1 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-sm"
+                                                    className="flex items-center space-x-1 px-3 py-1 border border-line text-ink-3 rounded-md hover:bg-surface-2 transition-colors text-sm"
                                                 >
                                                     <Eye size={14} />
                                                     <span>View</span>
@@ -256,15 +256,15 @@ export default function MyTasksSection({
                             })}
                     </div>
                 ) : (
-                    <div className="text-center py-8 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg">
-                        <Target className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                        <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No Tasks Assigned</h4>
-                        <p className="text-gray-600 dark:text-gray-400 mb-4">
+                    <div className="text-center py-8 border-2 border-dashed border-line rounded-lg">
+                        <Target className="w-12 h-12 text-faint mx-auto mb-3" />
+                        <h4 className="text-lg font-medium text-ink mb-2">No Tasks Assigned</h4>
+                        <p className="text-muted mb-4">
                             You don't have any tasks assigned to you in this project yet.
                         </p>
                         <button
                             onClick={() => router.push(`/projects/${projectId}/tasks`)}
-                            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                            className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors"
                         >
                             View All Project Tasks
                         </button>

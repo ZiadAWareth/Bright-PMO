@@ -5,14 +5,13 @@ import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
     ArrowLeft,
-    Search,
-    Filter,
     Calendar,
     Clock,
     Target,
     AlertTriangle,
     CheckCircle,
     RefreshCw,
+    PauseCircle,
     Download,
     Upload,
     MoreHorizontal,
@@ -30,6 +29,11 @@ import { ProjectWithRelations } from "@/types/project";
 import axios from "axios";
 import { toast } from "sonner";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import { Spinner } from "@/components/ui/spinner";
+import { Dropdown } from "@/components/ui/dropdown";
+import { FilterBar, FilterSelect } from "@/components/ui/filter-bar";
+import { StatGrid, StatTile } from "@/components/ui/entity-card";
+import { ListPagination } from "@/components/ui/list-pagination";
 
 interface Task {
     task_id: number;
@@ -73,6 +77,8 @@ interface Task {
     }>;
 }
 
+const PAGE_SIZE = 10;
+
 const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
     const router = useRouter();
     const [activeView, setActiveView] = useState("technical");
@@ -92,17 +98,13 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
         "due_date" | "priority" | "progress" | "name"
     >("due_date");
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-    const [showFilters, setShowFilters] = useState(false);
+    const [page, setPage] = useState(0);
 
     // Progress modal states
     const [showProgressModal, setShowProgressModal] = useState(false);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [isUpdatingProgress, setIsUpdatingProgress] = useState(false);
 
-    // Check if we're in dark mode
-    const isDarkMode =
-        typeof window !== "undefined" &&
-        document.documentElement.classList.contains("dark");
 
     // Helper function to check if user is a technical team member
     const isTechnicalTeamMember = (role: string | null) => {
@@ -466,19 +468,20 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
         });
 
         setFilteredTasks(filtered);
+        setPage(0);
     }, [tasks, searchQuery, statusFilter, priorityFilter, sortBy, sortOrder]);
 
     const getStatusBadge = (status: string) => {
         const baseClasses = "px-3 py-1 rounded-full text-sm font-medium";
         switch (status) {
             case "todo":
-                return `${baseClasses} bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300`;
+                return `${baseClasses} bg-surface-2 text-ink-2  `;
             case "in_progress":
-                return `${baseClasses} bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300`;
+                return `${baseClasses} bg-info-soft text-info  `;
             case "completed":
-                return `${baseClasses} bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300`;
+                return `${baseClasses} bg-success-soft text-success  `;
             case "on_hold":
-                return `${baseClasses} bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300`;
+                return `${baseClasses} bg-warning-soft text-warning  `;
             default:
                 return baseClasses;
         }
@@ -488,11 +491,11 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
         const baseClasses = "px-2 py-1 rounded-md text-xs font-medium";
         switch (priority) {
             case "high":
-                return `${baseClasses} bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300`;
+                return `${baseClasses} bg-danger-soft text-danger  `;
             case "medium":
-                return `${baseClasses} bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300`;
+                return `${baseClasses} bg-warning-soft text-warning  `;
             case "low":
-                return `${baseClasses} bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300`;
+                return `${baseClasses} bg-success-soft text-success  `;
             default:
                 return baseClasses;
         }
@@ -595,7 +598,7 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                     activeView={activeView}
                 >
                     <div className="flex items-center justify-center min-h-96">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
+                        <Spinner size={48} className="text-bright-primary" />
                     </div>
                 </DashboardLayout>
             </ProtectedRoute>
@@ -611,16 +614,16 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                     activeView={activeView}
                 >
                     <div className="text-center py-12">
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                        <h3 className="text-lg font-medium text-ink mb-2">
                             Project not found
                         </h3>
-                        <p className="text-gray-600 dark:text-gray-400 mb-4">
+                        <p className="text-muted mb-4">
                             The project you're looking for doesn't exist or you
                             don't have permission to view it.
                         </p>
                         <button
                             onClick={() => router.back()}
-                            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                            className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors"
                         >
                             Go Back
                         </button>
@@ -638,28 +641,28 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                 activeView={activeView}
             >
                 {/* Breadcrumb Navigation */}
-                <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400 mb-6">
+                <div className="flex items-center space-x-2 text-sm text-muted mb-6">
                     <button
                         onClick={() => router.push("/projects")}
-                        className="hover:text-orange-600 transition-colors"
+                        className="hover:text-bright transition-colors"
                     >
                         Projects
                     </button>
                     <span>/</span>
                     <button
                         onClick={() => router.push(`/projects/${projectId}`)}
-                        className="hover:text-orange-600 transition-colors"
+                        className="hover:text-bright transition-colors"
                     >
                         {project.name}
                     </button>
                     <span>/</span>
-                    <span className="text-gray-900 dark:text-gray-100">
+                    <span className="text-ink">
                         {getPageTitle()}
                     </span>
                 </div>
 
                 {/* Page Header */}
-                <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6 mb-6">
+                <div className="bg-surface border border-line rounded-xl p-6 mb-6">
                     <div className="flex items-start justify-between mb-4">
                         <div className="flex-1">
                             <div className="flex items-center space-x-3 mb-2">
@@ -667,255 +670,152 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                                     onClick={() =>
                                         router.push(`/projects/${projectId}`)
                                     }
-                                    className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                                    className="p-2 rounded-lg text-faint hover:text-muted hover:bg-surface-2 transition-colors"
                                 >
                                     <ArrowLeft size={20} />
                                 </button>
-                                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                                <h1 className="text-2xl font-bold text-ink">
                                     {getPageTitle()}
                                 </h1>
-                                <span className="px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded-full text-sm font-medium">
+                                <span className="px-3 py-1 bg-info-soft text-info rounded-full text-sm font-medium">
                                     {filteredTasks.length} tasks
                                 </span>
                             </div>
-                            <p className="text-gray-600 dark:text-gray-400 mb-3">
+                            <p className="text-muted mb-3">
                                 {getPageDescription()}
                             </p>
                         </div>
                     </div>
 
                     {/* Task Statistics */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">
-                                        Total Tasks
-                                    </p>
-                                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-                                        {tasks.length}
-                                    </p>
-                                </div>
-                                <Target className="w-8 h-8 text-blue-500" />
-                            </div>
-                        </div>
-
-                        <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-green-600 dark:text-green-400 font-medium">
-                                        Completed
-                                    </p>
-                                    <p className="text-2xl font-bold text-green-900 dark:text-green-100">
-                                        {
-                                            tasks.filter(
-                                                (task) =>
-                                                    task.status === "completed"
-                                            ).length
-                                        }
-                                    </p>
-                                </div>
-                                <CheckCircle className="w-8 h-8 text-green-500" />
-                            </div>
-                        </div>
-
-                        <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-yellow-600 dark:text-yellow-400 font-medium">
-                                        In Progress
-                                    </p>
-                                    <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">
-                                        {
-                                            tasks.filter(
-                                                (task) =>
-                                                    task.status ===
-                                                    "in_progress"
-                                            ).length
-                                        }
-                                    </p>
-                                </div>
-                                <RefreshCw className="w-8 h-8 text-yellow-500" />
-                            </div>
-                        </div>
-
-                        <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-red-600 dark:text-red-400 font-medium">
-                                        Overdue
-                                    </p>
-                                    <p className="text-2xl font-bold text-red-900 dark:text-red-100">
-                                        {
-                                            tasks.filter(
-                                                (task) =>
-                                                    new Date(task.end_date) <
-                                                        new Date() &&
-                                                    task.status !== "completed"
-                                            ).length
-                                        }
-                                    </p>
-                                </div>
-                                <AlertTriangle className="w-8 h-8 text-red-500" />
-                            </div>
-                        </div>
-                    </div>
+                    <StatGrid className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
+                        <StatTile
+                            label="Total Tasks"
+                            value={tasks.length}
+                            icon={<Target className="h-5 w-5" />}
+                            tone="brand"
+                        />
+                        <StatTile
+                            label="Completed"
+                            value={
+                                tasks.filter((task) => task.status === "completed")
+                                    .length
+                            }
+                            icon={<CheckCircle className="h-5 w-5" />}
+                            tone="success"
+                        />
+                        <StatTile
+                            label="In Progress"
+                            value={
+                                tasks.filter(
+                                    (task) => task.status === "in_progress",
+                                ).length
+                            }
+                            icon={<RefreshCw className="h-5 w-5" />}
+                            tone="warning"
+                        />
+                        <StatTile
+                            label="Overdue"
+                            value={
+                                tasks.filter(
+                                    (task) =>
+                                        new Date(task.end_date) < new Date() &&
+                                        task.status !== "completed",
+                                ).length
+                            }
+                            icon={<AlertTriangle className="h-5 w-5" />}
+                            tone="danger"
+                        />
+                        <StatTile
+                            label="On Hold"
+                            value={
+                                tasks.filter((task) => task.status === "on_hold")
+                                    .length
+                            }
+                            icon={<PauseCircle className="h-5 w-5" />}
+                            tone="neutral"
+                        />
+                    </StatGrid>
                 </div>
 
                 {/* Filters and Search */}
-                <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6 mb-6">
-                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-                        {/* Search */}
-                        <div className="flex-1 max-w-md">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                                <input
-                                    type="text"
-                                    placeholder={
-                                        isTechnicalTeamMember(currentUserRole)
-                                            ? "Search my tasks..."
-                                            : "Search tasks..."
-                                    }
-                                    value={searchQuery}
-                                    onChange={(e) =>
-                                        setSearchQuery(e.target.value)
-                                    }
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Filters and Sort */}
-                        <div className="flex items-center space-x-3">
-                            <button
-                                onClick={() => setShowFilters(!showFilters)}
-                                className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
-                                    showFilters
-                                        ? "bg-blue-600 text-white"
-                                        : "border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700"
-                                }`}
-                            >
-                                <Filter size={16} />
-                                <span>Filters</span>
-                            </button>
-
-                            <select
-                                value={`${sortBy}-${sortOrder}`}
-                                onChange={(e) => {
-                                    const [field, order] =
-                                        e.target.value.split("-");
-                                    setSortBy(field as any);
-                                    setSortOrder(order as any);
-                                }}
-                                className="px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            >
-                                <option value="due_date-asc">
-                                    Due Date (Earliest)
-                                </option>
-                                <option value="due_date-desc">
-                                    Due Date (Latest)
-                                </option>
-                                <option value="priority-desc">
-                                    Priority (High to Low)
-                                </option>
-                                <option value="priority-asc">
-                                    Priority (Low to High)
-                                </option>
-                                <option value="progress-asc">
-                                    Progress (Low to High)
-                                </option>
-                                <option value="progress-desc">
-                                    Progress (High to Low)
-                                </option>
-                                <option value="name-asc">Name (A to Z)</option>
-                                <option value="name-desc">Name (Z to A)</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    {/* Filter Options */}
-                    {showFilters && (
-                        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-slate-700">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Status
-                                    </label>
-                                    <select
-                                        value={statusFilter}
-                                        onChange={(e) =>
-                                            setStatusFilter(e.target.value)
-                                        }
-                                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    >
-                                        <option value="all">All Status</option>
-                                        <option value="todo">To Do</option>
-                                        <option value="in_progress">
-                                            In Progress
-                                        </option>
-                                        <option value="completed">
-                                            Completed
-                                        </option>
-                                        <option value="on_hold">On Hold</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Priority
-                                    </label>
-                                    <select
-                                        value={priorityFilter}
-                                        onChange={(e) =>
-                                            setPriorityFilter(e.target.value)
-                                        }
-                                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    >
-                                        <option value="all">
-                                            All Priorities
-                                        </option>
-                                        <option value="high">
-                                            High Priority
-                                        </option>
-                                        <option value="medium">
-                                            Medium Priority
-                                        </option>
-                                        <option value="low">
-                                            Low Priority
-                                        </option>
-                                    </select>
-                                </div>
-
-                                <div className="flex items-end">
-                                    <button
-                                        onClick={() => {
-                                            setSearchQuery("");
-                                            setStatusFilter("all");
-                                            setPriorityFilter("all");
-                                            setSortBy("due_date");
-                                            setSortOrder("asc");
-                                        }}
-                                        className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
-                                    >
-                                        Clear Filters
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                <div className="mb-6">
+                    <FilterBar
+                        search={searchQuery}
+                        onSearch={setSearchQuery}
+                        searchPlaceholder={
+                            isTechnicalTeamMember(currentUserRole)
+                                ? "Search my tasks…"
+                                : "Search tasks…"
+                        }
+                        resultLabel={`${filteredTasks.length} ${filteredTasks.length === 1 ? "task" : "tasks"}`}
+                        activeCount={
+                            (statusFilter !== "all" ? 1 : 0) +
+                            (priorityFilter !== "all" ? 1 : 0)
+                        }
+                        onClear={() => {
+                            setStatusFilter("all");
+                            setPriorityFilter("all");
+                            setSortBy("due_date");
+                            setSortOrder("asc");
+                        }}
+                    >
+                        <FilterSelect
+                            label="Status"
+                            value={statusFilter}
+                            onChange={setStatusFilter}
+                            options={[
+                                { value: "all", label: "All Status" },
+                                { value: "todo", label: "To Do" },
+                                { value: "in_progress", label: "In Progress" },
+                                { value: "completed", label: "Completed" },
+                                { value: "on_hold", label: "On Hold" },
+                            ]}
+                        />
+                        <FilterSelect
+                            label="Priority"
+                            value={priorityFilter}
+                            onChange={setPriorityFilter}
+                            options={[
+                                { value: "all", label: "All Priorities" },
+                                { value: "high", label: "High Priority" },
+                                { value: "medium", label: "Medium Priority" },
+                                { value: "low", label: "Low Priority" },
+                            ]}
+                        />
+                        <FilterSelect
+                            label="Sort by"
+                            value={`${sortBy}-${sortOrder}`}
+                            onChange={(v: string) => {
+                                const [field, order] = v.split("-");
+                                setSortBy(field as any);
+                                setSortOrder(order as any);
+                            }}
+                            options={[
+                                { value: "due_date-asc", label: "Due Date (Earliest)" },
+                                { value: "due_date-desc", label: "Due Date (Latest)" },
+                                { value: "priority-desc", label: "Priority (High to Low)" },
+                                { value: "priority-asc", label: "Priority (Low to High)" },
+                                { value: "progress-asc", label: "Progress (Low to High)" },
+                                { value: "progress-desc", label: "Progress (High to Low)" },
+                                { value: "name-asc", label: "Name (A to Z)" },
+                                { value: "name-desc", label: "Name (Z to A)" },
+                            ]}
+                        />
+                    </FilterBar>
                 </div>
 
                 {/* Tasks List */}
                 <div className="space-y-4">
                     {filteredTasks.length === 0 ? (
-                        <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-12 text-center">
-                            <Target className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                        <div className="bg-surface border border-line rounded-xl p-12 text-center">
+                            <Target className="w-16 h-16 text-faint mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-ink mb-2">
                                 {tasks.length === 0
                                     ? "No Tasks Assigned"
                                     : "No Tasks Match Your Filters"}
                             </h3>
-                            <p className="text-gray-600 dark:text-gray-400 mb-6">
+                            <p className="text-muted mb-6">
                                 {tasks.length === 0
                                     ? "You don't have any tasks assigned to you in this project yet."
                                     : "Try adjusting your search or filter criteria to find tasks."}
@@ -927,14 +827,16 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                                         setStatusFilter("all");
                                         setPriorityFilter("all");
                                     }}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                    className="px-4 py-2 bg-info text-white rounded-lg hover:opacity-90 transition-colors"
                                 >
                                     Clear Filters
                                 </button>
                             )}
                         </div>
                     ) : (
-                        filteredTasks.map((task) => {
+                        filteredTasks
+                            .slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+                            .map((task) => {
                             const daysUntilDue = getDaysUntilDue(task.end_date);
                             const overdue =
                                 new Date(task.end_date) < new Date() &&
@@ -973,22 +875,22 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                                     key={task.task_id}
                                     className={`border rounded-xl p-6 transition-all duration-200 ${
                                         isTaskLocked
-                                            ? "bg-gray-50 dark:bg-slate-900/50 border-gray-300 dark:border-slate-700/50 opacity-50 cursor-not-allowed relative overflow-hidden"
-                                            : "bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-600 hover:-translate-y-1 cursor-pointer group"
+                                            ? "bg-surface-2  border-line  opacity-50 cursor-not-allowed relative overflow-hidden"
+                                            : "bg-surface border-line hover:shadow-lg hover:border-info  hover:-translate-y-1 cursor-pointer group"
                                     }`}
                                 >
                                     {/* Lock overlay for visual emphasis */}
                                     {isTaskLocked && (
-                                        <div className="absolute inset-0 bg-gray-100/90 dark:bg-slate-800/90 backdrop-blur-sm flex items-center justify-center z-10 rounded-xl animate-pulse">
+                                        <div className="absolute inset-0 bg-surface-2/90 backdrop-blur-sm flex items-center justify-center z-10 rounded-xl animate-pulse">
                                             <div className="text-center">
-                                                <Lock className="w-10 h-10 text-gray-500 dark:text-gray-400 mx-auto mb-3 animate-bounce" />
-                                                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                                <Lock className="w-10 h-10 text-muted mx-auto mb-3 animate-bounce" />
+                                                <p className="text-sm font-semibold text-ink-3">
                                                     Task Locked
                                                 </p>
-                                                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                                <p className="text-xs text-muted mt-1">
                                                     Dependencies Required
                                                 </p>
-                                                <p className="text-xs text-gray-500 dark:text-gray-500 mt-2 max-w-xs mx-auto">
+                                                <p className="text-xs text-faint mt-2 max-w-xs mx-auto">
                                                     Contact PJM, PMO, or Admin
                                                     for access
                                                 </p>
@@ -998,16 +900,16 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
 
                                     {/* Lock status indicator */}
                                     {lockStatus.isLocked && (
-                                        <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg">
+                                        <div className="mb-4 p-3 bg-warning-soft border border-warning rounded-lg">
                                             <div className="flex items-start space-x-2">
-                                                <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+                                                <AlertTriangle className="w-5 h-5 text-warning mt-0.5 flex-shrink-0" />
                                                 <div>
-                                                    <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                                                    <p className="text-sm font-medium text-warning">
                                                         {canAccess
                                                             ? "Task Dependencies Not Met"
                                                             : "Task Locked - Dependencies Required"}
                                                     </p>
-                                                    <ul className="text-sm text-yellow-700 dark:text-yellow-300 mt-1 space-y-1">
+                                                    <ul className="text-sm text-warning mt-1 space-y-1">
                                                         {lockStatus.reasons.map(
                                                             (reason, index) => (
                                                                 <li key={index}>
@@ -1017,7 +919,7 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                                                         )}
                                                     </ul>
                                                     {!canAccess && (
-                                                        <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
+                                                        <p className="text-xs text-warning mt-2">
                                                             Only PJM, PMO, and
                                                             Admin roles can
                                                             access locked tasks.
@@ -1034,8 +936,8 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                                                 <h3
                                                     className={`text-lg font-semibold transition-colors ${
                                                         isTaskLocked
-                                                            ? "text-gray-400 dark:text-gray-600"
-                                                            : "text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400"
+                                                            ? "text-faint "
+                                                            : "text-ink group-hover:text-info "
                                                     }`}
                                                 >
                                                     {task.name}
@@ -1044,8 +946,8 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                                                     <span
                                                         className={`px-2 py-1 text-xs rounded-full ${
                                                             isTaskLocked
-                                                                ? "bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-600"
-                                                                : "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300"
+                                                                ? "bg-surface-2 text-faint  "
+                                                                : "bg-accent-violet-soft text-accent-violet  "
                                                         }`}
                                                     >
                                                         Milestone
@@ -1054,7 +956,7 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                                                 <span
                                                     className={`${
                                                         isTaskLocked
-                                                            ? "px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-600"
+                                                            ? "px-2 py-1 rounded-md text-xs font-medium bg-surface-2 text-faint  "
                                                             : getPriorityBadge(
                                                                   task.priority
                                                               )
@@ -1065,7 +967,7 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                                                 <div
                                                     className={`flex items-center space-x-1 ${
                                                         isTaskLocked
-                                                            ? "px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-600"
+                                                            ? "px-3 py-1 rounded-full text-sm font-medium bg-surface-2 text-faint  "
                                                             : getStatusBadge(
                                                                   task.status
                                                               )
@@ -1082,8 +984,8 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                                             <p
                                                 className={`mb-3 ${
                                                     isTaskLocked
-                                                        ? "text-gray-400 dark:text-gray-600"
-                                                        : "text-gray-600 dark:text-gray-400"
+                                                        ? "text-faint "
+                                                        : "text-muted"
                                                 }`}
                                             >
                                                 {task.description}
@@ -1101,8 +1003,8 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                                                     <span
                                                         className={`${
                                                             isTaskLocked
-                                                                ? "text-gray-400"
-                                                                : "text-gray-500"
+                                                                ? "text-faint"
+                                                                : "text-muted"
                                                         }`}
                                                     >
                                                         Due Date:
@@ -1110,10 +1012,10 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                                                     <p
                                                         className={`font-medium ${
                                                             overdue
-                                                                ? "text-red-600"
+                                                                ? "text-danger"
                                                                 : isTaskLocked
-                                                                ? "text-gray-400 dark:text-gray-600"
-                                                                : "text-gray-900 dark:text-gray-100"
+                                                                ? "text-faint "
+                                                                : "text-ink"
                                                         }`}
                                                     >
                                                         {new Date(
@@ -1131,8 +1033,8 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                                                                 <span
                                                                     className={`ml-1 ${
                                                                         isTaskLocked
-                                                                            ? "text-gray-400"
-                                                                            : "text-orange-600"
+                                                                            ? "text-faint"
+                                                                            : "text-bright"
                                                                     }`}
                                                                 >
                                                                     (
@@ -1149,8 +1051,8 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                                                     <span
                                                         className={`${
                                                             isTaskLocked
-                                                                ? "text-gray-400"
-                                                                : "text-gray-500"
+                                                                ? "text-faint"
+                                                                : "text-muted"
                                                         }`}
                                                     >
                                                         Progress:
@@ -1159,8 +1061,8 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                                                         <span
                                                             className={`text-sm font-medium ${
                                                                 isTaskLocked
-                                                                    ? "text-gray-400 dark:text-gray-600"
-                                                                    : "text-gray-900 dark:text-gray-100"
+                                                                    ? "text-faint "
+                                                                    : "text-ink"
                                                             }`}
                                                         >
                                                             {
@@ -1168,20 +1070,20 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                                                             }
                                                             %
                                                         </span>
-                                                        <div className="flex-1 bg-gray-200 dark:bg-slate-700 rounded-full h-2 min-w-[60px]">
+                                                        <div className="flex-1 bg-surface-3 rounded-full h-2 min-w-[60px]">
                                                             <div
                                                                 className={`h-2 rounded-full transition-all duration-300 ${
                                                                     isTaskLocked
-                                                                        ? "bg-gray-300 dark:bg-gray-600"
+                                                                        ? "bg-surface-3 "
                                                                         : task.status ===
                                                                           "completed"
-                                                                        ? "bg-green-500"
+                                                                        ? "bg-success"
                                                                         : task.status ===
                                                                           "in_progress"
-                                                                        ? "bg-blue-500"
+                                                                        ? "bg-info"
                                                                         : overdue
-                                                                        ? "bg-red-500"
-                                                                        : "bg-gray-400"
+                                                                        ? "bg-danger"
+                                                                        : "bg-faint"
                                                                 }`}
                                                                 style={{
                                                                     width: `${task.progress_percentage}%`,
@@ -1195,8 +1097,8 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                                                     <span
                                                         className={`${
                                                             isTaskLocked
-                                                                ? "text-gray-400"
-                                                                : "text-gray-500"
+                                                                ? "text-faint"
+                                                                : "text-muted"
                                                         }`}
                                                     >
                                                         Hours:
@@ -1204,8 +1106,8 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                                                     <p
                                                         className={`font-medium ${
                                                             isTaskLocked
-                                                                ? "text-gray-400 dark:text-gray-600"
-                                                                : "text-gray-900 dark:text-gray-100"
+                                                                ? "text-faint "
+                                                                : "text-ink"
                                                         }`}
                                                     >
                                                         {task.actual_hours || 0}{" "}
@@ -1218,8 +1120,8 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                                                     <span
                                                         className={`${
                                                             isTaskLocked
-                                                                ? "text-gray-400"
-                                                                : "text-gray-500"
+                                                                ? "text-faint"
+                                                                : "text-muted"
                                                         }`}
                                                     >
                                                         Work Package:
@@ -1227,8 +1129,8 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                                                     <p
                                                         className={`font-medium ${
                                                             isTaskLocked
-                                                                ? "text-gray-400 dark:text-gray-600"
-                                                                : "text-gray-900 dark:text-gray-100"
+                                                                ? "text-faint "
+                                                                : "text-ink"
                                                         }`}
                                                     >
                                                         {task.work_package}
@@ -1255,8 +1157,8 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                                                 disabled={isTaskLocked}
                                                 className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors ${
                                                     isTaskLocked
-                                                        ? "border border-gray-200 dark:border-slate-600 text-gray-300 dark:text-gray-600 cursor-not-allowed bg-gray-50 dark:bg-slate-800"
-                                                        : "border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700"
+                                                        ? "border border-line text-faint  cursor-not-allowed bg-surface-2"
+                                                        : "border border-line text-ink-3 hover:bg-surface-2"
                                                 }`}
                                             >
                                                 <Eye size={16} />
@@ -1273,15 +1175,15 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                                     <div
                                         className={`mt-4 pt-4 border-t ${
                                             isTaskLocked
-                                                ? "border-gray-200 dark:border-slate-800"
-                                                : "border-gray-200 dark:border-slate-700"
+                                                ? "border-line "
+                                                : "border-line"
                                         }`}
                                     >
                                         <div
                                             className={`flex items-center justify-between text-sm ${
                                                 isTaskLocked
-                                                    ? "text-gray-400 dark:text-gray-600"
-                                                    : "text-gray-500"
+                                                    ? "text-faint "
+                                                    : "text-muted"
                                             }`}
                                         >
                                             <span>
@@ -1311,6 +1213,18 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                     )}
                 </div>
 
+                {filteredTasks.length > 0 && (
+                    <ListPagination
+                        page={page}
+                        pageCount={Math.ceil(filteredTasks.length / PAGE_SIZE)}
+                        total={filteredTasks.length}
+                        pageSize={PAGE_SIZE}
+                        onPageChange={setPage}
+                        noun="task"
+                        className="mt-6"
+                    />
+                )}
+
                 {/* Progress Update Modal */}
                 {showProgressModal && selectedTask && (
                     <div
@@ -1323,30 +1237,18 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                         onClick={() => setShowProgressModal(false)}
                     >
                         <div
-                            className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl"
-                            style={{
-                                backgroundColor: isDarkMode
-                                    ? "rgba(30, 41, 59, 0.95)"
-                                    : "rgba(255, 255, 255, 0.95)",
-                                backdropFilter: "blur(20px)",
-                                WebkitBackdropFilter: "blur(20px)",
-                                border: isDarkMode
-                                    ? "1px solid rgba(148, 163, 184, 0.2)"
-                                    : "1px solid rgba(255, 255, 255, 0.2)",
-                                boxShadow:
-                                    "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-                            }}
+                            className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="flex items-center mb-4">
-                                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mr-4">
-                                    <RefreshCw className="w-6 h-6 text-blue-600" />
+                                <div className="w-12 h-12 bg-info-soft rounded-full flex items-center justify-center mr-4">
+                                    <RefreshCw className="w-6 h-6 text-info" />
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                    <h3 className="text-lg font-semibold text-ink">
                                         Update Task Progress
                                     </h3>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                                    <p className="text-sm text-muted">
                                         {selectedTask.name}
                                     </p>
                                 </div>
@@ -1366,7 +1268,7 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                                 className="space-y-4"
                             >
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label className="block text-sm font-medium text-ink-3 mb-1">
                                         Progress Percentage
                                     </label>
                                     <div className="relative">
@@ -1379,23 +1281,23 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                                                 selectedTask.progress_percentage
                                             }
                                             required
-                                            className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-8"
+                                            className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-info focus:border-transparent pr-8"
                                         />
-                                        <span className="absolute right-3 top-2 text-sm text-gray-500">
+                                        <span className="absolute right-3 top-2 text-sm text-muted">
                                             %
                                         </span>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label className="block text-sm font-medium text-ink-3 mb-1">
                                         Status
                                     </label>
                                     <select
                                         name="status"
                                         required
                                         defaultValue={selectedTask.status}
-                                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-info focus:border-transparent"
                                     >
                                         <option value="todo">To Do</option>
                                         <option value="in_progress">
@@ -1409,7 +1311,7 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label className="block text-sm font-medium text-ink-3 mb-1">
                                         Actual Hours (Optional)
                                     </label>
                                     <input
@@ -1418,11 +1320,11 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                                         step="0.5"
                                         min="0"
                                         defaultValue={selectedTask.actual_hours}
-                                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-info focus:border-transparent"
                                     />
                                 </div>
 
-                                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-slate-700">
+                                <div className="flex justify-end space-x-3 pt-4 border-t border-line">
                                     <button
                                         type="button"
                                         onClick={() => {
@@ -1430,17 +1332,17 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                                             setSelectedTask(null);
                                         }}
                                         disabled={isUpdatingProgress}
-                                        className="px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                                        className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={isUpdatingProgress}
-                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center space-x-2"
+                                        className="px-4 py-2 bg-info text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 flex items-center space-x-2"
                                     >
                                         {isUpdatingProgress && (
-                                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                                            <Spinner size={16} />
                                         )}
                                         <RefreshCw size={16} />
                                         <span>

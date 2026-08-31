@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { FormSection } from "@/components/ui/form-shell";
 import {
   ArrowLeft,
   Plus,
@@ -374,78 +375,63 @@ const BaselinePage = () => {
   };
 
   return (
-    <DashboardLayout title="Baseline Management">
-      {/* Header with back button and Baseline title */}
-      <div className="flex items-center space-x-4 mb-8">
-        <button
-          onClick={handleBackButton}
-          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-        >
-          <ArrowLeft size={20} />
-        </button>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-          Baseline Comparison
-        </h1>
-      </div>
+    <DashboardLayout
+      title="Baseline Comparison"
+      subtitle="How this project's metrics compare against the benchmark"
+      backHref={`/projects/${projectId}/setup`}
+      backLabel="Back to Setup"
+    >
       {/* Summary */}
       {metrics && benchmark && (
-        <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-            <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-              {comparisonSummary.within}/{comparisonSummary.total}
-            </div>
-            <div className="text-sm text-blue-700 dark:text-blue-300">
-              Metrics within benchmark
-            </div>
+        <FormSection title="Comparison Summary" className="mb-6">
+          <div className="grid grid-cols-2 gap-x-8 gap-y-6 md:grid-cols-4">
+            {(
+              [
+                [
+                  "text-info",
+                  `${comparisonSummary.within}/${comparisonSummary.total}`,
+                  "Metrics within benchmark",
+                ],
+                ["text-success", comparisonSummary.better, "Metrics performing better"],
+                ["text-danger", comparisonSummary.worse, "Metrics performing worse"],
+                [
+                  "text-ink",
+                  `${comparisonSummary.avgDifference.toFixed(2)}%`,
+                  "Average difference",
+                ],
+              ] as [string, React.ReactNode, string][]
+            ).map(([tone, value, label]) => (
+              <div key={label} className="min-w-0">
+                <p className={`text-[22px] font-semibold tabular-nums ${tone}`}>
+                  {value}
+                </p>
+                <p className="mt-0.5 text-[12px] text-muted">{label}</p>
+              </div>
+            ))}
           </div>
-
-          <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-            <div className="text-2xl font-bold text-green-900 dark:text-green-100">
-              {comparisonSummary.better}
-            </div>
-            <div className="text-sm text-green-700 dark:text-green-300">
-              Metrics performing better
-            </div>
-          </div>
-
-          <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-            <div className="text-2xl font-bold text-red-900 dark:text-red-100">
-              {comparisonSummary.worse}
-            </div>
-            <div className="text-sm text-red-700 dark:text-red-300">
-              Metrics performing worse
-            </div>
-          </div>
-
-          <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-900/20 border border-gray-200 dark:border-gray-800">
-            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {comparisonSummary.avgDifference.toFixed(2)}%
-            </div>
-            <div className="text-sm text-gray-700 dark:text-gray-300">
-              Average difference
-            </div>
-          </div>
-        </div>
+        </FormSection>
       )}
+
       {/* Metrics Table */}
       {metrics && benchmark && (
-        <div className="overflow-x-auto">
-          <table className="min-w-full border rounded-lg bg-white dark:bg-slate-800">
-            <thead className="bg-gray-50 dark:bg-slate-700">
+        <div className="overflow-hidden rounded-[14px] border border-line bg-surface shadow-card">
+          <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead className="bg-surface-2">
               <tr>
-                <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200">
+                <th className="px-4 py-3 text-left font-semibold text-ink-3">
                   Metric
                 </th>
-                <th className="px-4 py-3 text-center font-semibold text-gray-700 dark:text-gray-200">
+                <th className="px-4 py-3 text-center font-semibold text-ink-3">
                   Your Project
                 </th>
-                <th className="px-4 py-3 text-center font-semibold text-gray-700 dark:text-gray-200">
+                <th className="px-4 py-3 text-center font-semibold text-ink-3">
                   Benchmark
                 </th>
-                <th className="px-4 py-3 text-center font-semibold text-gray-700 dark:text-gray-200">
+                <th className="px-4 py-3 text-center font-semibold text-ink-3">
                   Difference
                 </th>
-                <th className="px-4 py-3 text-center font-semibold text-gray-700 dark:text-gray-200">
+                <th className="px-4 py-3 text-center font-semibold text-ink-3">
                   Status
                 </th>
               </tr>
@@ -501,9 +487,9 @@ const BaselinePage = () => {
                 return (
                   <tr
                     key={def.key}
-                    className="border-t hover:bg-gray-50 dark:hover:bg-slate-700/50"
+                    className="border-t hover:bg-surface-2"
                   >
-                    <td className="px-4 py-3 font-medium text-gray-700 dark:text-gray-200">
+                    <td className="px-4 py-3 font-medium text-ink-3">
                       {def.label}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -516,7 +502,7 @@ const BaselinePage = () => {
                           projectValue
                         )
                       ) : (
-                        <span className="text-gray-400">N/A</span>
+                        <span className="text-faint">N/A</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -529,7 +515,7 @@ const BaselinePage = () => {
                           benchmarkValue
                         )
                       ) : (
-                        <span className="text-gray-400">N/A</span>
+                        <span className="text-faint">N/A</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -538,29 +524,29 @@ const BaselinePage = () => {
                           <span
                             className={`font-medium ${
                               percentDiff.isGood
-                                ? "text-green-600 dark:text-green-400"
-                                : "text-red-600 dark:text-red-400"
+                                ? "text-success"
+                                : "text-danger"
                             }`}
                           >
                             {percentDiff.text}
                           </span>
                           {percentDiff.isGood ? (
-                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                            <div className="w-2 h-2 rounded-full bg-success"></div>
                           ) : (
-                            <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                            <div className="w-2 h-2 rounded-full bg-danger"></div>
                           )}
                         </div>
                       ) : (
-                        <span className="text-gray-400">N/A</span>
+                        <span className="text-faint">N/A</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
                       {ok === null ? (
-                        <MinusCircle className="inline w-5 h-5 text-gray-400" />
+                        <MinusCircle className="inline w-5 h-5 text-faint" />
                       ) : ok ? (
-                        <CheckCircle className="inline w-5 h-5 text-green-600" />
+                        <CheckCircle className="inline w-5 h-5 text-success" />
                       ) : (
-                        <XCircle className="inline w-5 h-5 text-red-600" />
+                        <XCircle className="inline w-5 h-5 text-danger" />
                       )}
                     </td>
                   </tr>
@@ -568,11 +554,12 @@ const BaselinePage = () => {
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
       {/* No data fallback */}
       {(!metrics || !benchmark) && (
-        <div className="text-center text-gray-500 dark:text-gray-400 my-12">
+        <div className="text-center text-muted my-12">
           Loading metrics and benchmark...
         </div>
       )}
@@ -581,7 +568,7 @@ const BaselinePage = () => {
         <div className="mt-8 flex justify-between w-full max-w-2xl mx-auto">
           <button
             onClick={handleBackButton}
-            className="flex items-center space-x-2 px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            className="flex items-center space-x-2 px-6 py-3 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors"
             disabled={loading}
           >
             <ArrowLeft size={16} />
@@ -589,7 +576,7 @@ const BaselinePage = () => {
           </button>
           <button
             onClick={handleNext}
-            className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center space-x-2 px-6 py-3 bg-info text-white rounded-lg hover:opacity-90 transition-colors"
             disabled={loading || done}
           >
             <span>{"Next: Request Approvals"}</span>

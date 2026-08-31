@@ -16,6 +16,9 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
+  --color-chart-8: var(--chart-8);
+  --color-chart-7: var(--chart-7);
+  --color-chart-6: var(--chart-6);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -113,32 +116,281 @@
 }
 
 /* ───────────────────────────────────────────────────────────────────────────
-   WUJHA design tokens.
+   BRIGHT design tokens — the single source of truth for colour.
 
-   A named brand/surface layer on top of the neutral shadcn scale above, so the
-   marketing landing page, auth screens and the floating app shell can all speak
-   the same vocabulary (`bg-wujha-primary`, `bg-bg-surface`, `text-text-primary`)
-   instead of hard-coding orange/slate utilities at every call site.
+   Every colour in the app is a CSS variable declared here and flipped once in
+   `.dark`. Components never hard-code a colour: they use the Tailwind utilities
+   mapped in the `@theme inline` block below (`bg-surface`, `text-muted`,
+   `border-line`) and dark mode then costs nothing, because the variable has
+   already changed by the time the utility resolves. That is the whole point —
+   a `dark:` variant written by hand at a call site is a bug waiting to happen,
+   since the next person to touch the file will forget one.
+
+   The vocabulary is deliberately small. Three text weights (ink / muted /
+   faint), three surfaces (canvas / surface / surface-2) and two rules (line /
+   line-2) are enough to build any screen, and with four choices nobody drifts.
+   Reach for `gray-50 … gray-900` instead and you have ten, which is how forty
+   pages end up disagreeing with each other.
+
+   ── Naming ──
+   Two vocabularies are mapped onto the same variables:
+
+     ink / muted / faint / canvas / surface / line / bright …
+       The primary set. Use these in all new and refactored code.
+
+     text-primary / text-secondary / bg-surface / bright-primary …
+       The original PMO names, kept as aliases so the ~670 existing call sites
+       keep working. They point at the same variables, so both vocabularies
+       stay in sync automatically and screens can be migrated one at a time.
 
    Declared `inline` so the utilities resolve to the custom properties at use
    time — that is what lets `.dark` swap the whole palette in one place.
    ─────────────────────────────────────────────────────────────────────────── */
+:root {
+  /* ── Surfaces ─────────────────────────────────────────────────────────── */
+  --canvas: #f9fafb;        /* page background            (gray-50)  */
+  --surface: #ffffff;       /* cards, panels, table rows             */
+  --surface-2: #f8fafc;     /* table headers, inset wells (slate-50) */
+  --surface-3: #f1f5f9;     /* hover on surface-2         (slate-100)*/
+  --sidebar-surface: #ffffff;
+
+  /* ── Rules ────────────────────────────────────────────────────────────── */
+  --line: #e5e7eb;          /* card + input borders       (gray-200) */
+  --line-2: #f1f5f9;        /* row dividers, hairlines    (slate-100)*/
+
+  /* ── Text ─────────────────────────────────────────────────────────────── */
+  --ink: #111827;           /* headings, primary text     (gray-900) */
+  --ink-2: #1f2937;         /* body                       (gray-800) */
+  --ink-3: #374151;         /* strong secondary           (gray-700) */
+  --muted: #4b5563;         /* labels, secondary text     (gray-600) */
+  --faint: #9ca3af;         /* placeholders, table heads  (gray-400) */
+
+  /* Dark "solid" surface used by bg-ink buttons and panels. Stays dark in both
+     themes — unlike `ink`, which flips light so text stays readable. */
+  --ink-solid: #111827;
+  --ink-solid-2: #1f2937;
+  --ink-solid-3: #374151;
+
+  /* ── Brand — PMO orange, the colour already used across the app ───────── */
+  --bright: #ea580c;        /* orange-600 */
+  --bright-deep: #c2410c;   /* orange-700 — hover/pressed */
+  --bright-soft: #ffedd5;   /* orange-100 — tinted badge/well backgrounds */
+
+  /* Secondary brand — teal, used for accents that must not read as the
+     primary action. */
+  --bright-2: #0d9488;      /* teal-600 */
+  --bright-2-deep: #0f766e; /* teal-700 */
+  --bright-2-soft: #ccfbf1; /* teal-100 */
+
+  /* ── Status ───────────────────────────────────────────────────────────── */
+  --success: #10b981;
+  --success-soft: #d1fae5;
+  --warning: #f59e0b;
+  --warning-soft: #fef3c7;
+  --danger: #ef4444;
+  --danger-soft: #fee2e2;
+  --info: #3b82f6;
+  --info-soft: #dbeafe;
+
+  /* ── Category accents ─────────────────────────────────────────────────────
+     Not status colours — these carry no good/bad meaning. They label
+     categories that need to be told apart at a glance: analytics tiles, EPS
+     depth, chart series. Tokenised rather than left as raw Tailwind so they
+     flip with the theme like everything else. */
+  --accent-violet: #9333ea;      /* purple-600 */
+  --accent-violet-soft: #f3e8ff; /* purple-100 */
+  --accent-indigo: #4f46e5;      /* indigo-600 */
+  --accent-indigo-soft: #e0e7ff; /* indigo-100 */
+  --accent-pink: #db2777;        /* pink-600 */
+  --accent-pink-soft: #fce7f3;   /* pink-100 */
+
+  /* ── Chart series ─────────────────────────────────────────────────────────
+     Charting libraries take colours as JS props and cannot read a Tailwind
+     class, so the series palette has to exist as variables the components can
+     pass through `var()`. Ordered for maximum separation between adjacent
+     series rather than by hue. */
+  --chart-1: #ea580c;
+  --chart-2: #2563eb;
+  --chart-3: #16a34a;
+  --chart-4: #a855f7;
+  --chart-5: #f59e0b;
+  --chart-6: #0ea5e9;
+  --chart-7: #ec4899;
+  --chart-8: #14b8a6;
+
+  /* ── Fixed brand constants ────────────────────────────────────────────────
+     These do NOT flip with the theme, which is the point of them. The auth and
+     landing panels are a deliberately dark showcase surface in both themes —
+     inverting them in light mode would turn the product's front door into a
+     different design. Declared here so they are still named values rather than
+     hex literals sprinkled through components. */
+  --brand-navy: #0b1220;
+  --brand-gold: #f2a93b;
+  --brand-mint: #5ec8a0;
+  --on-brand: #ffffff;
+  --on-brand-hover: #f1f5f9;
+
+  --scrollbar-thumb: #cbd5e1;
+
+  /* ── Legacy RGB channel aliases ───────────────────────────────────────────
+     The original tokens were declared as bare `R G B` triples so call sites
+     could write `rgb(var(--x) / 0.5)`. Kept and pointed at the values above so
+     the two naming schemes can never disagree. */
+  --bright-primary-rgb: 234 88 12;
+  --bright-primary-hover-rgb: 194 65 12;
+  --bright-secondary-rgb: 13 148 136;
+  --bright-secondary-hover-rgb: 15 118 110;
+  --app-bg-rgb: 249 250 251;
+  --surface-bg-rgb: 255 255 255;
+  --surface-alt-bg-rgb: 248 250 252;
+  --sidebar-bg-rgb: 255 255 255;
+  --text-primary-rgb: 17 24 39;
+  --text-secondary-rgb: 75 85 99;
+}
+
+.dark {
+  --canvas: #0f172a;        /* slate-900 */
+  --surface: #1e293b;       /* slate-800 */
+  --surface-2: #334155;     /* slate-700 */
+  --surface-3: #475569;     /* slate-600 */
+  --sidebar-surface: #1e293b;
+
+  --line: #334155;          /* slate-700 */
+  --line-2: #293548;        /* between slate-800 and 700 — a hairline that
+                               reads as a divider, not a border */
+
+  --ink: #e2e8f0;           /* slate-200 — text flips light */
+  --ink-2: #cbd5e1;         /* slate-300 */
+  --ink-3: #b4c0d0;
+  --muted: #94a3b8;         /* slate-400 */
+  --faint: #64748b;         /* slate-500 */
+
+  /* bg-ink stays a dark surface, one step lighter than the page so it still
+     reads as a raised element rather than a hole. */
+  --ink-solid: #263449;
+  --ink-solid-2: #2f3f57;
+  --ink-solid-3: #3a4c66;
+
+  /* Orange one stop brighter on dark so it keeps its contrast ratio. */
+  --bright: #f97316;        /* orange-500 */
+  --bright-deep: #ea580c;   /* orange-600 */
+  --bright-soft: #3a2008;   /* orange tint on a dark ground */
+
+  --bright-2: #2dd4bf;      /* teal-400 */
+  --bright-2-deep: #14b8a6; /* teal-500 */
+  --bright-2-soft: #0d2f2c;
+
+  --success: #34d399;
+  --success-soft: #0d2b21;
+  --warning: #fbbf24;
+  --warning-soft: #33270c;
+  --danger: #f87171;
+  --danger-soft: #3a1618;
+  --info: #60a5fa;
+  --info-soft: #12243d;
+
+  /* Accents follow the same rule as the status colours on dark: one stop
+     lighter for contrast, with the soft variant becoming a dark tint. */
+  --accent-violet: #c084fc;      /* purple-400 */
+  --accent-violet-soft: #2a1840;
+  --accent-indigo: #818cf8;      /* indigo-400 */
+  --accent-indigo-soft: #1e1f45;
+  --accent-pink: #f472b6;        /* pink-400 */
+  --accent-pink-soft: #3a1528;
+
+  /* Series lightened for contrast against the dark canvas. */
+  --chart-1: #fb923c;
+  --chart-2: #60a5fa;
+  --chart-3: #4ade80;
+  --chart-4: #c084fc;
+  --chart-5: #fbbf24;
+  --chart-6: #38bdf8;
+  --chart-7: #f472b6;
+  --chart-8: #2dd4bf;
+
+  --scrollbar-thumb: #475569;
+
+  --bright-primary-rgb: 249 115 22;
+  --bright-primary-hover-rgb: 234 88 12;
+  --bright-secondary-rgb: 45 212 191;
+  --bright-secondary-hover-rgb: 20 184 166;
+  --app-bg-rgb: 15 23 42;
+  --surface-bg-rgb: 30 41 59;
+  --surface-alt-bg-rgb: 51 65 85;
+  --sidebar-bg-rgb: 30 41 59;
+  --text-primary-rgb: 226 232 240;
+  --text-secondary-rgb: 148 163 184;
+}
+
 @theme inline {
-  --color-wujha-primary: rgb(var(--wujha-primary-rgb));
-  --color-wujha-primary-hover: rgb(var(--wujha-primary-hover-rgb));
-  --color-wujha-secondary: rgb(var(--wujha-secondary-rgb));
-  --color-wujha-secondary-hover: rgb(var(--wujha-secondary-hover-rgb));
-  --color-wujha-success: #10b981;
-  --color-wujha-warning: #f59e0b;
-  --color-wujha-danger: #ef4444;
+  /* ── Primary vocabulary — use these ───────────────────────────────────── */
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
 
-  --color-text-primary: rgb(var(--text-primary-rgb));
-  --color-text-secondary: rgb(var(--text-secondary-rgb));
+  /* The "solid" ink surfaces stay dark in both themes, unlike `ink` which
+     flips light so text stays readable. Used by dark buttons and overlays. */
+  --color-ink-solid: var(--ink-solid);
+  --color-ink-solid-2: var(--ink-solid-2);
+  --color-ink-solid-3: var(--ink-solid-3);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
 
-  --color-bg-light: rgb(var(--app-bg-rgb));
-  --color-bg-surface: rgb(var(--surface-bg-rgb));
-  --color-bg-surface-alt: rgb(var(--surface-alt-bg-rgb));
-  --color-bg-sidebar: rgb(var(--sidebar-bg-rgb));
+  --color-bright: var(--bright);
+  --color-bright-deep: var(--bright-deep);
+  --color-bright-soft: var(--bright-soft);
+  --color-bright-2: var(--bright-2);
+  --color-bright-2-deep: var(--bright-2-deep);
+  --color-bright-2-soft: var(--bright-2-soft);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+
+  --color-accent-violet: var(--accent-violet);
+  --color-accent-violet-soft: var(--accent-violet-soft);
+  --color-accent-indigo: var(--accent-indigo);
+  --color-accent-indigo-soft: var(--accent-indigo-soft);
+  --color-accent-pink: var(--accent-pink);
+  --color-accent-pink-soft: var(--accent-pink-soft);
+
+  --color-brand-navy: var(--brand-navy);
+  --color-brand-gold: var(--brand-gold);
+  --color-brand-mint: var(--brand-mint);
+  --color-on-brand: var(--on-brand);
+  --color-on-brand-hover: var(--on-brand-hover);
+
+  /* ── Legacy aliases — same variables, original names ──────────────────── */
+  --color-bright-primary: var(--bright);
+  --color-bright-primary-hover: var(--bright-deep);
+  --color-bright-secondary: var(--bright-2);
+  --color-bright-secondary-hover: var(--bright-2-deep);
+  --color-bright-success: var(--success);
+  --color-bright-warning: var(--warning);
+  --color-bright-danger: var(--danger);
+
+  --color-text-primary: var(--ink);
+  --color-text-secondary: var(--muted);
+
+  --color-bg-light: var(--canvas);
+  --color-bg-surface: var(--surface);
+  --color-bg-surface-alt: var(--surface-2);
+  --color-bg-sidebar: var(--sidebar-surface);
+
+  /* ── Radii ────────────────────────────────────────────────────────────── */
+  --radius-card: 14px;
+  --radius-control: 10px;
 
   /* Card elevation used by the list screens — a tight contact shadow plus a
      soft ambient one, so a table card reads as lifted without a hard edge. */
@@ -146,37 +398,27 @@
   --shadow-card-lg: 0 8px 40px rgb(20 24 34 / 0.12);
 }
 
-:root {
-  /* Brand — PMO orange, the colour already used across the app. */
-  --wujha-primary-rgb: 234 88 12; /* orange-600 */
-  --wujha-primary-hover-rgb: 194 65 12; /* orange-700 */
-  --wujha-secondary-rgb: 13 148 136; /* teal-600 */
-  --wujha-secondary-hover-rgb: 15 118 110; /* teal-700 */
-
-  /* Surfaces — matched to the greys the app shell already uses. */
-  --app-bg-rgb: 249 250 251; /* gray-50 */
-  --surface-bg-rgb: 255 255 255;
-  --surface-alt-bg-rgb: 248 250 252; /* slate-50 */
-  --sidebar-bg-rgb: 255 255 255;
-  --text-primary-rgb: 17 24 39; /* gray-900 */
-  --text-secondary-rgb: 75 85 99; /* gray-600 */
+/* `bg-ink*` elements (primary dark buttons, brand panels) render on the
+   dedicated "solid" surface in BOTH themes: it stays dark when `ink` flips
+   light for text. Written as plain rules because the utility name and the text
+   token name are intentionally the same word. */
+.bg-ink {
+  background-color: var(--ink-solid);
+}
+.bg-ink-2 {
+  background-color: var(--ink-solid-2);
+}
+.bg-ink-3,
+.hover\:bg-ink-3:hover {
+  background-color: var(--ink-solid-3);
 }
 
-.dark {
-  /* Orange one stop brighter on dark so it keeps its contrast ratio. */
-  --wujha-primary-rgb: 249 115 22; /* orange-500 */
-  --wujha-primary-hover-rgb: 234 88 12; /* orange-600 */
-  --wujha-secondary-rgb: 45 212 191; /* teal-400 */
-  --wujha-secondary-hover-rgb: 20 184 166; /* teal-500 */
-
-  --app-bg-rgb: 15 23 42; /* slate-900 */
-  --surface-bg-rgb: 30 41 59; /* slate-800 */
-  --surface-alt-bg-rgb: 51 65 85; /* slate-700 */
-  --sidebar-bg-rgb: 30 41 59; /* slate-800 */
-  --text-primary-rgb: 226 232 240; /* slate-200 */
-  --text-secondary-rgb: 148 163 184; /* slate-400 */
+/* Amber/orange badges carry dark text on a bright ground — keep it dark in the
+   dark theme too, where `text-ink` would otherwise flip to near-white. */
+.dark .bg-bright.text-ink,
+.dark .bg-bright-deep.text-ink {
+  color: #111827;
 }
-
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -186,57 +428,18 @@
   }
 }
 
-/* Glass morphism toast styling */
-.glass-toast {
-  background: rgba(255, 255, 255, 0.95) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
-  border-radius: 16px !important;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
-  color: #374151 !important;
-}
-
-.dark .glass-toast {
-  background: rgba(30, 41, 59, 0.95) !important;
-  border: 1px solid rgba(148, 163, 184, 0.2) !important;
-  color: #f3f4f6 !important;
-}
-
-.glass-success {
-  background: rgba(16, 185, 129, 0.15) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  border: 1px solid rgba(16, 185, 129, 0.3) !important;
-  border-radius: 16px !important;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
-}
-
-.glass-error {
-  background: rgba(239, 68, 68, 0.15) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  border: 1px solid rgba(239, 68, 68, 0.3) !important;
-  border-radius: 16px !important;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
-}
-
-.glass-warning {
-  background: rgba(245, 158, 11, 0.15) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  border: 1px solid rgba(245, 158, 11, 0.3) !important;
-  border-radius: 16px !important;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
-}
-
-.glass-info {
-  background: rgba(59, 130, 246, 0.15) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  border: 1px solid rgba(59, 130, 246, 0.3) !important;
-  border-radius: 16px !important;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+/* Frosted panel used by the app's dialogs.
+   Previously every one of these was an inline `style` object switched on an
+   `isDarkMode` boolean read from `document.documentElement` during render — so
+   the panel kept whatever theme was current when it first rendered and did not
+   follow a later toggle. As a class the browser reapplies it on theme change
+   with no React involvement at all. */
+.glass-panel {
+  background: color-mix(in srgb, var(--surface) 95%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--line);
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
 }
 
 /* Toast animations */
@@ -288,7 +491,8 @@ body {
   /* Follows the class-based `.dark` toggle rather than the OS preference — the
      app's theme switch writes `.dark` onto <html>, and an OS-media rule here
      used to disagree with it. */
-  background-color: rgb(var(--app-bg-rgb));
+  background-color: var(--canvas);
+  color: var(--ink);
   transition: background-color 180ms ease, color 180ms ease;
 }
 

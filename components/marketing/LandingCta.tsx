@@ -5,7 +5,7 @@ import { ArrowRight } from "lucide-react";
 export function LandingCta() {
   return (
     <section className="mx-auto max-w-6xl px-5 py-20 sm:px-8">
-      <div className="reveal-on-scroll relative overflow-hidden rounded-3xl bg-wujha-primary px-6 py-16 text-center shadow-xl sm:px-12">
+      <div className="reveal-on-scroll relative overflow-hidden rounded-3xl bg-bright-primary px-6 py-16 text-center shadow-xl sm:px-12">
         {/* Decorative glow */}
         <div
           aria-hidden="true"
@@ -25,11 +25,11 @@ export function LandingCta() {
           </p>
           <div className="mt-8 flex justify-center">
             {/* The band is the brand colour in both themes, so this pill stays
-                white on purpose. Uses an arbitrary value rather than `bg-white`
+                white on purpose. Uses an arbitrary value rather than `bg-surface`
                 so no dark-mode surface rule can rewrite it. */}
             <Link
               href="/auth/signin"
-              className="group inline-flex h-11 items-center gap-2 rounded-xl bg-[#ffffff] px-8 text-[0.95rem] font-semibold text-wujha-primary shadow-lg transition-colors hover:bg-[#f1f5f9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ffffff] focus-visible:ring-offset-2 focus-visible:ring-offset-wujha-primary"
+              className="group inline-flex h-11 items-center gap-2 rounded-xl bg-on-brand px-8 text-[0.95rem] font-semibold text-bright-primary shadow-lg transition-colors hover:bg-on-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-on-brand focus-visible:ring-offset-2 focus-visible:ring-offset-bright-primary"
             >
               Go to sign in
               <ArrowRight

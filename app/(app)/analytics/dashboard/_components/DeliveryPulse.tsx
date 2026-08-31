@@ -17,24 +17,24 @@ type Tone = "warning" | "info" | "success" | "neutral";
 
 const TONE_STYLES: Record<Tone, { iconBg: string; iconText: string; ring: string }> = {
   warning: {
-    iconBg: "bg-amber-100 dark:bg-amber-500/15",
-    iconText: "text-amber-600 dark:text-amber-400",
-    ring: "hover:border-amber-400/50",
+    iconBg: "bg-warning-soft ",
+    iconText: "text-warning",
+    ring: "hover:border-warning/50",
   },
   info: {
-    iconBg: "bg-sky-100 dark:bg-sky-500/15",
-    iconText: "text-sky-600 dark:text-sky-400",
-    ring: "hover:border-sky-400/50",
+    iconBg: "bg-info-soft ",
+    iconText: "text-info ",
+    ring: "hover:border-info/50",
   },
   success: {
-    iconBg: "bg-emerald-100 dark:bg-emerald-500/15",
-    iconText: "text-emerald-600 dark:text-emerald-400",
-    ring: "hover:border-emerald-400/50",
+    iconBg: "bg-success-soft ",
+    iconText: "text-success ",
+    ring: "hover:border-success/50",
   },
   neutral: {
-    iconBg: "bg-slate-100 dark:bg-slate-500/15",
-    iconText: "text-slate-600 dark:text-slate-300",
-    ring: "hover:border-slate-400/50",
+    iconBg: "bg-surface-2 ",
+    iconText: "text-muted ",
+    ring: "hover:border-line/50",
   },
 };
 
@@ -136,7 +136,7 @@ export function DeliveryPulse({
     <section className="rounded-2xl border border-border bg-bg-surface p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-wujha-primary/10 text-wujha-primary">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-bright-primary/10 text-bright-primary">
             <CalendarClock className="h-5 w-5" aria-hidden="true" />
           </div>
           <div className="min-w-0">
@@ -161,10 +161,10 @@ export function DeliveryPulse({
             <span
               className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
                 nextDeadline.daysRemaining < 0
-                  ? "bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300"
+                  ? "bg-danger-soft text-danger  "
                   : nextDeadline.daysRemaining <= 30
-                    ? "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300"
-                    : "bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300"
+                    ? "bg-warning-soft text-warning  "
+                    : "bg-info-soft text-info  "
               }`}
               title={`${nextDeadline.name} — planned finish ${new Date(nextDeadline.date).toLocaleDateString()}`}
             >
@@ -185,8 +185,8 @@ export function DeliveryPulse({
             <span
               className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
                 variance >= 0
-                  ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"
-                  : "bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300"
+                  ? "bg-success-soft text-success  "
+                  : "bg-danger-soft text-danger  "
               }`}
             >
               {variance >= 0 ? "+" : ""}
@@ -210,7 +210,7 @@ export function DeliveryPulse({
         </div>
         <div className="relative mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-bg-surface-alt">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-wujha-primary to-wujha-primary-hover transition-all duration-500"
+            className="h-full rounded-full bg-gradient-to-r from-bright-primary to-bright-primary-hover transition-all duration-500"
             style={{ width: `${Math.min(100, Math.max(0, actualPct))}%` }}
           />
           {/* Plan marker — the gap between the fill and this tick is the slip. */}
@@ -241,7 +241,7 @@ export function DeliveryPulse({
                 >
                   <Icon className={`h-4 w-4 ${tone.iconText}`} aria-hidden="true" />
                 </div>
-                <ArrowRight className="h-4 w-4 text-text-secondary/40 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-wujha-primary" />
+                <ArrowRight className="h-4 w-4 text-text-secondary/40 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-bright-primary" />
               </div>
               <div className="mt-3">
                 <div className="text-2xl font-semibold tabular-nums tracking-tight text-text-primary">

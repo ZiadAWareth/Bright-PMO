@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Spinner } from "@/components/ui/spinner";
 
 interface TeamMember {
   user_id: number;
@@ -279,7 +280,7 @@ const MentionTextarea: React.FC<MentionTextareaProps> = ({
         placeholder={placeholder}
         disabled={disabled}
         rows={rows}
-        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+        className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-info focus:border-transparent resize-none"
         style={{ fontFamily: 'inherit', fontSize: 'inherit' }}
       />
       
@@ -287,7 +288,7 @@ const MentionTextarea: React.FC<MentionTextareaProps> = ({
       {showSuggestions && suggestions.length > 0 && (
         <div
           ref={suggestionsRef}
-          className="absolute z-50 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg shadow-xl max-h-60 overflow-y-auto"
+          className="absolute z-50 bg-surface border border-line rounded-lg shadow-xl max-h-60 overflow-y-auto"
           style={{
             ...getSuggestionPosition(),
             minWidth: '280px',
@@ -301,17 +302,17 @@ const MentionTextarea: React.FC<MentionTextareaProps> = ({
               onClick={() => handleSuggestionClick(suggestion)}
               className={`px-3 py-2 cursor-pointer text-sm ${
                 index === selectedIndex
-                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100'
-                  : 'hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-900 dark:text-gray-100'
+                  ? 'bg-info-soft text-info '
+                  : 'hover:bg-surface-2 text-ink'
               }`}
             >
               <div className="flex items-center space-x-2">
-                <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium">
+                <div className="w-6 h-6 rounded-full bg-info flex items-center justify-center text-white text-xs font-medium">
                   {suggestion.display.split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
                 </div>
                 <div>
                   <div className="font-medium">{suggestion.display}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">@{suggestion.username}</div>
+                  <div className="text-xs text-muted">@{suggestion.username}</div>
                 </div>
               </div>
             </div>
@@ -322,7 +323,7 @@ const MentionTextarea: React.FC<MentionTextareaProps> = ({
       {/* Loading indicator */}
       {isLoading && (
         <div className="absolute right-3 top-3">
-          <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
+          <Spinner size={16} />
         </div>
       )}
     </div>

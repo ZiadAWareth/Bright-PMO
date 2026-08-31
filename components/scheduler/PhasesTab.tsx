@@ -125,7 +125,7 @@ function PhasesTab(props: PhasesTabProps){
             const indentWidth = (level - 1) * 24; // 24px per level
             const borderClass =
                 level > 1
-                    ? "border-l-4 border-gray-300 dark:border-gray-600 pl-4"
+                    ? "border-l-4 border-line pl-4"
                     : "";
 
             // Get progress and status for this WBS item
@@ -158,40 +158,40 @@ function PhasesTab(props: PhasesTabProps){
             // Enhanced color scheme based on level with gradients
             const colorSchemes = [
                 {
-                    gradient: "from-blue-500 to-blue-600",
-                    bg: "bg-blue-500",
-                    light: "bg-blue-50 dark:bg-blue-900/10",
-                    border: "border-blue-200 dark:border-blue-800",
+                    gradient: "from-info to-info",
+                    bg: "bg-info",
+                    light: "bg-info-soft ",
+                    border: "border-info ",
                 },
                 {
-                    gradient: "from-emerald-500 to-emerald-600",
-                    bg: "bg-emerald-500",
-                    light: "bg-emerald-50 dark:bg-emerald-900/10",
-                    border: "border-emerald-200 dark:border-emerald-800",
+                    gradient: "from-success to-success",
+                    bg: "bg-success",
+                    light: "bg-success-soft ",
+                    border: "border-success ",
                 },
                 {
-                    gradient: "from-purple-500 to-purple-600",
-                    bg: "bg-purple-500",
-                    light: "bg-purple-50 dark:bg-purple-900/10",
-                    border: "border-purple-200 dark:border-purple-800",
+                    gradient: "from-accent-violet to-accent-violet",
+                    bg: "bg-accent-violet",
+                    light: "bg-accent-violet-soft ",
+                    border: "border-accent-violet ",
                 },
                 {
-                    gradient: "from-orange-500 to-orange-600",
-                    bg: "bg-orange-500",
-                    light: "bg-orange-50 dark:bg-orange-900/10",
-                    border: "border-orange-200 dark:border-orange-800",
+                    gradient: "from-bright to-bright-deep",
+                    bg: "bg-bright",
+                    light: "bg-bright-soft ",
+                    border: "border-bright ",
                 },
                 {
-                    gradient: "from-pink-500 to-pink-600",
-                    bg: "bg-pink-500",
-                    light: "bg-pink-50 dark:bg-pink-900/10",
-                    border: "border-pink-200 dark:border-pink-800",
+                    gradient: "from-accent-pink to-accent-pink",
+                    bg: "bg-accent-pink",
+                    light: "bg-accent-pink-soft ",
+                    border: "border-accent-pink ",
                 },
                 {
-                    gradient: "from-indigo-500 to-indigo-600",
-                    bg: "bg-indigo-500",
-                    light: "bg-indigo-50 dark:bg-indigo-900/10",
-                    border: "border-indigo-200 dark:border-indigo-800",
+                    gradient: "from-accent-indigo to-accent-indigo",
+                    bg: "bg-accent-indigo",
+                    light: "bg-accent-indigo-soft ",
+                    border: "border-accent-indigo ",
                 },
             ];
             const colorScheme = colorSchemes[(level - 1) % colorSchemes.length];
@@ -199,10 +199,10 @@ function PhasesTab(props: PhasesTabProps){
             // Background intensity decreases with level
             const bgIntensity =
                 level === 1
-                    ? "bg-white dark:bg-gray-800"
+                    ? "bg-surface"
                     : level === 2
-                    ? "bg-gray-50 dark:bg-gray-750"
-                    : "bg-gray-100 dark:bg-gray-700";
+                    ? "bg-surface-2 "
+                    : "bg-surface-2";
 
             return (
                 <div
@@ -225,7 +225,7 @@ function PhasesTab(props: PhasesTabProps){
                                 <div className="flex items-center space-x-3">
                                     <div className="flex items-center space-x-2">
                                         {level > 1 && (
-                                            <div className="flex items-center text-gray-400 dark:text-gray-500 mr-2">
+                                            <div className="flex items-center text-faint mr-2">
                                                 <div className="text-lg">
                                                     {"└".repeat(
                                                         Math.min(level - 1, 3)
@@ -234,7 +234,7 @@ function PhasesTab(props: PhasesTabProps){
                                             </div>
                                         )}
                                         <div
-                                            className={`w-3 h-3 rounded-full bg-white shadow-md`}
+                                            className={`w-3 h-3 rounded-full bg-surface shadow-md`}
                                         ></div>
                                     </div>
                                     <div className="relative z-10">
@@ -287,14 +287,14 @@ function PhasesTab(props: PhasesTabProps){
                                             <div
                                                 className={`h-3 rounded-full transition-all duration-500 shadow-sm ${
                                                     progress === 100
-                                                        ? "bg-green-400"
+                                                        ? "bg-success"
                                                         : progress > 75
-                                                        ? "bg-blue-300"
+                                                        ? "bg-info"
                                                         : progress > 50
-                                                        ? "bg-yellow-300"
+                                                        ? "bg-warning"
                                                         : progress > 25
-                                                        ? "bg-orange-300"
-                                                        : "bg-white"
+                                                        ? "bg-bright"
+                                                        : "bg-surface"
                                                 }`}
                                                 style={{
                                                     width: `${progress}%`,
@@ -313,11 +313,11 @@ function PhasesTab(props: PhasesTabProps){
                                         <span
                                             className={`px-4 py-2 rounded-full text-sm font-semibold backdrop-blur-sm border border-white/30 ${
                                                 status === "completed"
-                                                    ? "bg-green-500/20 text-white"
+                                                    ? "bg-success/20 text-white"
                                                     : status === "active"
-                                                    ? "bg-blue-500/20 text-white"
+                                                    ? "bg-info/20 text-white"
                                                     : status === "delayed"
-                                                    ? "bg-red-500/20 text-white"
+                                                    ? "bg-danger/20 text-white"
                                                     : "bg-white/20 text-white"
                                             }`}
                                         >
@@ -419,12 +419,12 @@ function PhasesTab(props: PhasesTabProps){
                                                         {isOverdue ? (
                                                             <AlertTriangle
                                                                 size={14}
-                                                                className="text-red-200"
+                                                                className="text-white"
                                                             />
                                                         ) : isNearDeadline ? (
                                                             <Clock
                                                                 size={14}
-                                                                className="text-yellow-200"
+                                                                className="text-white"
                                                             />
                                                         ) : (
                                                             <Calendar
@@ -435,9 +435,9 @@ function PhasesTab(props: PhasesTabProps){
                                                         <span
                                                             className={`${
                                                                 isOverdue
-                                                                    ? "text-red-200"
+                                                                    ? "text-white"
                                                                     : isNearDeadline
-                                                                    ? "text-yellow-200"
+                                                                    ? "text-white"
                                                                     : ""
                                                             }`}
                                                         >
@@ -467,14 +467,14 @@ function PhasesTab(props: PhasesTabProps){
                             <div className="p-6">
                                 <div className="space-y-3">
                                     <div className="flex items-center justify-between mb-4">
-                                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+                                        <h4 className="text-sm font-medium text-ink-3 flex items-center">
                                             <Target
                                                 size={14}
                                                 className="mr-2"
                                             />
                                             Tasks in {wbs.name}
                                         </h4>
-                                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                                        <span className="text-xs text-muted">
                                             {isFilterActive
                                                 ? `${
                                                       tasksToDisplay.length
@@ -500,20 +500,20 @@ function PhasesTab(props: PhasesTabProps){
                                                         {task.is_milestone && (
                                                             <Star
                                                                 size={16}
-                                                                className="text-purple-500 flex-shrink-0"
+                                                                className="text-accent-violet flex-shrink-0"
                                                             />
                                                         )}
                                                         {task.is_critical_path && (
                                                             <Zap
                                                                 size={16}
-                                                                className="text-orange-500 flex-shrink-0"
+                                                                className="text-bright flex-shrink-0"
                                                             />
                                                         )}
-                                                        <h5 className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                                                        <h5 className="font-medium text-ink truncate">
                                                             {task.name}
                                                         </h5>
                                                     </div>
-                                                    <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                                    <div className="flex items-center space-x-4 text-sm text-muted mb-2">
                                                         <span className="flex items-center">
                                                             <Calendar
                                                                 size={12}
@@ -577,7 +577,7 @@ function PhasesTab(props: PhasesTabProps){
                                                                                 task
                                                                             )
                                                                         }
-                                                                        className="flex items-center justify-center h-7 w-7 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md text-xs font-medium transition-colors shadow-sm"
+                                                                        className="flex items-center justify-center h-7 w-7 bg-surface-2 hover:bg-surface-3 text-ink-3 rounded-md text-xs font-medium transition-colors shadow-sm"
                                                                         title="Edit Task"
                                                                     >
                                                                         <Edit2
@@ -593,7 +593,7 @@ function PhasesTab(props: PhasesTabProps){
                                                                                 task.wbs_id
                                                                             )
                                                                         }
-                                                                        className="flex items-center justify-center h-7 w-7 bg-gray-100 hover:bg-red-100 dark:bg-gray-700 dark:hover:bg-red-900/30 text-gray-700 hover:text-red-600 dark:text-gray-300 dark:hover:text-red-400 rounded-md text-xs font-medium transition-colors shadow-sm"
+                                                                        className="flex items-center justify-center h-7 w-7 bg-surface-2 hover:bg-danger-soft text-ink-3 hover:text-danger rounded-md text-xs font-medium transition-colors shadow-sm"
                                                                         title="Delete Task"
                                                                     >
                                                                         <Trash2
@@ -608,14 +608,14 @@ function PhasesTab(props: PhasesTabProps){
                                                     </div>
 
                                                     {/* Task Progress Bar - Allocation Based */}
-                                                    <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border">
+                                                    <div className="mt-4 p-3 bg-surface-2 rounded-lg border">
                                                         <div className="flex items-center justify-between mb-2">
-                                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                            <span className="text-sm font-medium text-ink-3">
                                                                 Task Progress
                                                                 (Allocation-Weighted)
                                                             </span>
                                                             <div className="flex items-center space-x-2">
-                                                                <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                                                                <span className="text-lg font-bold text-ink">
                                                                     {
                                                                         task.progress_percentage
                                                                     }
@@ -627,29 +627,29 @@ function PhasesTab(props: PhasesTabProps){
                                                                         size={
                                                                             16
                                                                         }
-                                                                        className="text-green-600"
+                                                                        className="text-success"
                                                                     />
                                                                 )}
                                                             </div>
                                                         </div>
 
                                                         {/* Progress Bar */}
-                                                        <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-3 mb-2 relative overflow-hidden">
+                                                        <div className="w-full bg-surface-3 rounded-full h-3 mb-2 relative overflow-hidden">
                                                             <div
                                                                 className={`h-3 rounded-full transition-all duration-500 ${
                                                                     task.progress_percentage ===
                                                                     100
-                                                                        ? "bg-green-500"
+                                                                        ? "bg-success"
                                                                         : task.progress_percentage >=
                                                                           75
-                                                                        ? "bg-blue-500"
+                                                                        ? "bg-info"
                                                                         : task.progress_percentage >=
                                                                           50
-                                                                        ? "bg-yellow-500"
+                                                                        ? "bg-warning"
                                                                         : task.progress_percentage >=
                                                                           25
-                                                                        ? "bg-orange-500"
-                                                                        : "bg-red-400"
+                                                                        ? "bg-bright"
+                                                                        : "bg-danger"
                                                                 }`}
                                                                 style={{
                                                                     width: `${task.progress_percentage}%`,
@@ -666,7 +666,7 @@ function PhasesTab(props: PhasesTabProps){
                                                         </div>
 
                                                         {/* Progress Details */}
-                                                        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                                                        <div className="flex items-center justify-between text-xs text-muted">
                                                             <span>
                                                                 Calculated from{" "}
                                                                 {props?.allTaskAssignments[
@@ -697,8 +697,8 @@ function PhasesTab(props: PhasesTabProps){
                                                             props?.allTaskAssignments[
                                                                 task.task_id
                                                             ].length > 0 && (
-                                                                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
-                                                                    <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+                                                                <div className="mt-3 pt-3 border-t border-line">
+                                                                    <div className="text-xs font-medium text-muted mb-2">
                                                                         Allocation
                                                                         Breakdown:
                                                                     </div>
@@ -731,7 +731,7 @@ function PhasesTab(props: PhasesTabProps){
                                                                                         }
                                                                                         className="flex items-center justify-between text-xs"
                                                                                     >
-                                                                                        <span className="text-gray-600 dark:text-gray-400 truncate flex-1">
+                                                                                        <span className="text-muted truncate flex-1">
                                                                                             {
                                                                                                 assignment
                                                                                                     .resource
@@ -748,8 +748,8 @@ function PhasesTab(props: PhasesTabProps){
                                                                                                 className={`${
                                                                                                     individualProgress ===
                                                                                                     100
-                                                                                                        ? "text-green-600 font-medium"
-                                                                                                        : "text-gray-500"
+                                                                                                        ? "text-success font-medium"
+                                                                                                        : "text-muted"
                                                                                                 }`}
                                                                                             >
                                                                                                 {
@@ -762,20 +762,20 @@ function PhasesTab(props: PhasesTabProps){
 
                                                                                                 h
                                                                                             </span>
-                                                                                            <div className="w-12 bg-gray-200 dark:bg-gray-600 rounded-full h-1">
+                                                                                            <div className="w-12 bg-surface-3 rounded-full h-1">
                                                                                                 <div
                                                                                                     className={`h-1 rounded-full ${
                                                                                                         individualProgress ===
                                                                                                         100
-                                                                                                            ? "bg-green-500"
-                                                                                                            : "bg-blue-400"
+                                                                                                            ? "bg-success"
+                                                                                                            : "bg-info"
                                                                                                     }`}
                                                                                                     style={{
                                                                                                         width: `${individualProgress}%`,
                                                                                                     }}
                                                                                                 ></div>
                                                                                             </div>
-                                                                                            <span className="text-gray-500 w-8 text-right">
+                                                                                            <span className="text-muted w-8 text-right">
                                                                                                 {
                                                                                                     individualProgress
                                                                                                 }
@@ -790,7 +790,7 @@ function PhasesTab(props: PhasesTabProps){
                                                                     </div>
 
                                                                     {/* Weighted Formula Explanation */}
-                                                                    <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-xs text-blue-700 dark:text-blue-300">
+                                                                    <div className="mt-2 p-2 bg-info-soft rounded text-xs text-info">
                                                                         <div className="font-medium mb-1">
                                                                             How
                                                                             progress
@@ -814,7 +814,7 @@ function PhasesTab(props: PhasesTabProps){
                                                                         ]
                                                                             .length >
                                                                             0 && (
-                                                                            <div className="mt-1 text-blue-600 dark:text-blue-400">
+                                                                            <div className="mt-1 text-info">
                                                                                 Example:
                                                                                 If
                                                                                 50%
@@ -850,15 +850,15 @@ function PhasesTab(props: PhasesTabProps){
                             tasksToDisplay.length === 0 &&
                             allTasks.length > 0 && (
                                 <div className="p-6 text-center">
-                                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                                    <div className="p-4 bg-info-soft border border-info rounded-md">
                                         <Filter
                                             size={24}
-                                            className="mx-auto mb-3 text-blue-500 dark:text-blue-400"
+                                            className="mx-auto mb-3 text-info"
                                         />
-                                        <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                                        <p className="text-sm font-medium text-info">
                                             No matching tasks in this WBS
                                         </p>
-                                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                                        <p className="text-xs text-info mt-1">
                                             This WBS has {allTasks.length} total
                                             tasks that don't match your current
                                             filters
@@ -871,7 +871,7 @@ function PhasesTab(props: PhasesTabProps){
                         {!isFilterActive &&
                             allTasks.length === 0 &&
                             wbs.children?.length > 0 && (
-                                <div className="p-6 text-center text-gray-500 dark:text-gray-400">
+                                <div className="p-6 text-center text-muted">
                                     <Building
                                         size={32}
                                         className="mx-auto mb-2 opacity-50"
@@ -888,7 +888,7 @@ function PhasesTab(props: PhasesTabProps){
                         {!isFilterActive &&
                             allTasks.length === 0 &&
                             (!wbs.children || wbs.children.length === 0) && (
-                                <div className="p-6 text-center text-gray-500 dark:text-gray-400">
+                                <div className="p-6 text-center text-muted">
                                     <Target
                                         size={32}
                                         className="mx-auto mb-2 opacity-50"
@@ -918,18 +918,18 @@ function PhasesTab(props: PhasesTabProps){
                 {(props?.searchTerm ||
                     props?.filterStatus !== "all" ||
                     props?.filterPriority !== "all") && (
-                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
+                    <div className="bg-info-soft border border-info rounded-lg p-4 mb-4">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-2">
                                 <Filter
                                     size={18}
-                                    className="text-blue-600 dark:text-blue-400"
+                                    className="text-info"
                                 />
-                                <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                                <h3 className="text-sm font-medium text-info">
                                     Filtered View
                                 </h3>
                             </div>
-                            <div className="text-xs text-blue-600 dark:text-blue-400">
+                            <div className="text-xs text-info">
                                 {(() => {
                                     const filters = [];
                                     if (props?.searchTerm)
@@ -949,7 +949,7 @@ function PhasesTab(props: PhasesTabProps){
                                 })()}
                             </div>
                         </div>
-                        <p className="mt-2 text-xs text-blue-700 dark:text-blue-300">
+                        <p className="mt-2 text-xs text-info">
                             Only showing WBS items containing tasks that match
                             your filters.
                             {hierarchicalWBS.length === 0 &&
@@ -962,15 +962,15 @@ function PhasesTab(props: PhasesTabProps){
                     hierarchicalWBS.map((wbs) => renderWBSItem(wbs, 1))
                 ) : props?.wbsItems.length > 0 ? (
                     <div className="text-center py-16 px-6">
-                        <div className="p-8 max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                        <div className="p-8 max-w-md mx-auto bg-surface rounded-lg shadow-sm border border-line">
                             <Building
                                 size={48}
-                                className="mx-auto mb-6 text-gray-400 dark:text-gray-500"
+                                className="mx-auto mb-6 text-faint"
                             />
-                            <h3 className="text-xl font-semibold mb-3 text-gray-800 dark:text-gray-200">
+                            <h3 className="text-xl font-semibold mb-3 text-ink-2">
                                 No Matching Results
                             </h3>
-                            <p className="text-gray-600 dark:text-gray-400">
+                            <p className="text-muted">
                                 No items match your current search criteria. Try
                                 adjusting your filters or search terms.
                             </p>
@@ -983,7 +983,7 @@ function PhasesTab(props: PhasesTabProps){
                                         props?.setFilterStatus("all");
                                         props?.setFilterPriority("all");
                                     }}
-                                    className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors"
+                                    className="mt-4 px-4 py-2 bg-info hover:opacity-90 text-white rounded-md text-sm font-medium transition-colors"
                                 >
                                     Clear Filters
                                 </button>
@@ -992,15 +992,15 @@ function PhasesTab(props: PhasesTabProps){
                     </div>
                 ) : (
                     <div className="text-center py-16 px-6">
-                        <div className="p-8 max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                        <div className="p-8 max-w-md mx-auto bg-surface rounded-lg shadow-sm border border-line">
                             <Building
                                 size={48}
-                                className="mx-auto mb-6 text-gray-400 dark:text-gray-500"
+                                className="mx-auto mb-6 text-faint"
                             />
-                            <h3 className="text-xl font-semibold mb-3 text-gray-800 dark:text-gray-200">
+                            <h3 className="text-xl font-semibold mb-3 text-ink-2">
                                 No WBS Structure Found
                             </h3>
-                            <p className="text-gray-600 dark:text-gray-400">
+                            <p className="text-muted">
                                 Create WBS (Work Breakdown Structure) items to
                                 organize your project structure and tasks.
                             </p>

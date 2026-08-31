@@ -50,7 +50,7 @@ export default function AnalyticsPage() {
         Admin: {
             title: "System Analytics Dashboard",
             subtitle: "Comprehensive system insights and optimization metrics",
-            gradient: "from-red-500 via-pink-500 to-purple-600",
+            gradient: "from-danger via-accent-pink to-accent-violet",
             icon: Database,
             totalMetric: "System Efficiency Score",
             totalValue: "94.7%",
@@ -59,7 +59,7 @@ export default function AnalyticsPage() {
         ProjectManager: {
             title: "Project Performance Analytics",
             subtitle: "Insights for project optimization and team productivity",
-            gradient: "from-blue-500 via-indigo-500 to-purple-600",
+            gradient: "from-info via-accent-indigo to-accent-violet",
             icon: ChartLine,
             totalMetric: "My Projects Success Rate",
             totalValue: "89.3%",
@@ -68,7 +68,7 @@ export default function AnalyticsPage() {
         Technical: {
             title: "Technical Performance Analytics",
             subtitle: "Development metrics and quality insights",
-            gradient: "from-green-500 via-emerald-500 to-teal-600",
+            gradient: "from-success via-success to-bright-2-deep",
             icon: Cpu,
             totalMetric: "Code Quality Score",
             totalValue: "92.1%",
@@ -77,7 +77,7 @@ export default function AnalyticsPage() {
         PMO: {
             title: "Portfolio Analytics Hub",
             subtitle: "Strategic insights and governance effectiveness",
-            gradient: "from-purple-500 via-violet-500 to-indigo-600",
+            gradient: "from-accent-violet via-accent-violet to-accent-indigo",
             icon: Globe,
             totalMetric: "Portfolio Health Index",
             totalValue: "96.2%",
@@ -86,7 +86,7 @@ export default function AnalyticsPage() {
         Executive: {
             title: "Strategic Business Analytics",
             subtitle: "Executive insights for strategic decision making",
-            gradient: "from-amber-500 via-orange-500 to-red-600",
+            gradient: "from-warning via-bright to-danger",
             icon: Award,
             totalMetric: "Business Impact Score",
             totalValue: "OMR 47.3M",
@@ -95,7 +95,7 @@ export default function AnalyticsPage() {
         IT: {
             title: "IT Support Analytics Dashboard",
             subtitle: "System performance and infrastructure monitoring",
-            gradient: "from-cyan-500 via-blue-500 to-indigo-600",
+            gradient: "from-bright-2 via-info to-accent-indigo",
             icon: Shield,
             totalMetric: "System Health Score",
             totalValue: "98.5%",
@@ -105,7 +105,7 @@ export default function AnalyticsPage() {
             title: "Director Analytics Dashboard",
             subtitle:
                 "Strategic oversight and organizational performance insights",
-            gradient: "from-purple-600 via-indigo-600 to-blue-700",
+            gradient: "from-accent-violet via-accent-indigo to-info",
             icon: Award,
             totalMetric: "Organizational Value",
             totalValue: "OMR 152.8M",
@@ -118,17 +118,17 @@ export default function AnalyticsPage() {
 
     return (
         <DashboardLayout title="Analytics Dashboard">
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
+            <div className="min-h-screen bg-gradient-to-br from-surface-2 via-info-soft to-accent-indigo-soft p-6">
                 <div className="max-w-7xl mx-auto space-y-8">
                     {/* Header Section */}
                     <div className="text-center space-y-6">
                         <div className="inline-flex items-center gap-3 px-6 py-3 bg-white/80 backdrop-blur-sm rounded-full shadow-lg border border-white/20">
-                            <Brain className="w-8 h-8 text-indigo-600" />
-                            <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                            <Brain className="w-8 h-8 text-accent-indigo" />
+                            <h1 className="text-3xl font-bold bg-gradient-to-r from-accent-indigo to-accent-violet bg-clip-text text-transparent">
                                 Analytics & Insights
                             </h1>
                         </div>
-                        <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+                        <p className="text-lg text-muted max-w-2xl mx-auto">
                             Advanced data analysis and insights for strategic
                             optimization and future planning
                         </p>
@@ -151,8 +151,8 @@ export default function AnalyticsPage() {
                                     }
                                     className={`transition-all duration-300 ${
                                         currentRole === role
-                                            ? "bg-indigo-600 text-white shadow-md scale-105"
-                                            : "hover:bg-indigo-50 text-slate-600"
+                                            ? "bg-accent-indigo text-white shadow-md scale-105"
+                                            : "hover:bg-accent-indigo-soft text-muted"
                                     }`}
                                 >
                                     {role}
@@ -176,23 +176,23 @@ export default function AnalyticsPage() {
                                         <IconComponent className="w-12 h-12 text-white" />
                                     </div>
                                 </div>
-                                <CardTitle className="text-4xl font-bold text-slate-800 mb-2">
+                                <CardTitle className="text-4xl font-bold text-ink-2 mb-2">
                                     {currentData.title}
                                 </CardTitle>
-                                <CardDescription className="text-xl text-slate-600 mb-6">
+                                <CardDescription className="text-xl text-muted mb-6">
                                     {currentData.subtitle}
                                 </CardDescription>
                                 <div className="inline-flex items-center gap-4 px-8 py-4 bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20">
                                     <div className="text-center">
-                                        <div className="text-3xl font-bold text-slate-800">
+                                        <div className="text-3xl font-bold text-ink-2">
                                             {currentData.totalValue}
                                         </div>
-                                        <div className="text-sm text-slate-600">
+                                        <div className="text-sm text-muted">
                                             {currentData.totalMetric}
                                         </div>
                                     </div>
-                                    <div className="w-px h-12 bg-slate-200" />
-                                    <div className="text-sm text-slate-500">
+                                    <div className="w-px h-12 bg-surface-3" />
+                                    <div className="text-sm text-muted">
                                         {currentData.totalSubtext}
                                     </div>
                                 </div>
@@ -225,19 +225,19 @@ function AdminAnalytics() {
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
-                            <Database className="w-8 h-8 text-red-500 group-hover:scale-110 transition-transform duration-300" />
+                            <Database className="w-8 h-8 text-danger group-hover:scale-110 transition-transform duration-300" />
                             <Badge
                                 variant="secondary"
-                                className="bg-red-50 text-red-600"
+                                className="bg-danger-soft text-danger"
                             >
                                 System
                             </Badge>
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-800 mb-1">
+                        <h3 className="text-2xl font-bold text-ink-2 mb-1">
                             99.7%
                         </h3>
-                        <p className="text-sm text-slate-600">System Uptime</p>
-                        <p className="text-xs text-slate-500 mt-2">
+                        <p className="text-sm text-muted">System Uptime</p>
+                        <p className="text-xs text-muted mt-2">
                             Last 30 days
                         </p>
                     </CardContent>
@@ -246,19 +246,19 @@ function AdminAnalytics() {
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
-                            <Users className="w-8 h-8 text-pink-500 group-hover:scale-110 transition-transform duration-300" />
+                            <Users className="w-8 h-8 text-accent-pink group-hover:scale-110 transition-transform duration-300" />
                             <Badge
                                 variant="secondary"
-                                className="bg-pink-50 text-pink-600"
+                                className="bg-accent-pink-soft text-accent-pink"
                             >
                                 Users
                             </Badge>
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-800 mb-1">
+                        <h3 className="text-2xl font-bold text-ink-2 mb-1">
                             847
                         </h3>
-                        <p className="text-sm text-slate-600">Active Users</p>
-                        <p className="text-xs text-slate-500 mt-2">
+                        <p className="text-sm text-muted">Active Users</p>
+                        <p className="text-xs text-muted mt-2">
                             +12% this month
                         </p>
                     </CardContent>
@@ -267,21 +267,21 @@ function AdminAnalytics() {
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
-                            <Activity className="w-8 h-8 text-purple-500 group-hover:scale-110 transition-transform duration-300" />
+                            <Activity className="w-8 h-8 text-accent-violet group-hover:scale-110 transition-transform duration-300" />
                             <Badge
                                 variant="secondary"
-                                className="bg-purple-50 text-purple-600"
+                                className="bg-accent-violet-soft text-accent-violet"
                             >
                                 Performance
                             </Badge>
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-800 mb-1">
+                        <h3 className="text-2xl font-bold text-ink-2 mb-1">
                             2.3s
                         </h3>
-                        <p className="text-sm text-slate-600">
+                        <p className="text-sm text-muted">
                             Avg Response Time
                         </p>
-                        <p className="text-xs text-slate-500 mt-2">
+                        <p className="text-xs text-muted mt-2">
                             -15% improved
                         </p>
                     </CardContent>
@@ -290,21 +290,21 @@ function AdminAnalytics() {
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
-                            <Shield className="w-8 h-8 text-indigo-500 group-hover:scale-110 transition-transform duration-300" />
+                            <Shield className="w-8 h-8 text-accent-indigo group-hover:scale-110 transition-transform duration-300" />
                             <Badge
                                 variant="secondary"
-                                className="bg-indigo-50 text-indigo-600"
+                                className="bg-accent-indigo-soft text-accent-indigo"
                             >
                                 Security
                             </Badge>
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-800 mb-1">
+                        <h3 className="text-2xl font-bold text-ink-2 mb-1">
                             Zero
                         </h3>
-                        <p className="text-sm text-slate-600">
+                        <p className="text-sm text-muted">
                             Security Incidents
                         </p>
-                        <p className="text-xs text-slate-500 mt-2">
+                        <p className="text-xs text-muted mt-2">
                             Last 90 days
                         </p>
                     </CardContent>
@@ -313,19 +313,19 @@ function AdminAnalytics() {
 
             {/* Action Buttons */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Button className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
+                <Button className="bg-gradient-to-r from-danger to-accent-pink hover:from-danger hover:to-accent-pink text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
                     <Settings className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform duration-500" />
                     System Config
                 </Button>
-                <Button className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
+                <Button className="bg-gradient-to-r from-accent-pink to-accent-violet hover:from-accent-pink hover:to-accent-violet text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
                     <Download className="w-4 h-4 mr-2 group-hover:-translate-y-1 transition-transform duration-300" />
                     Export Logs
                 </Button>
-                <Button className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
+                <Button className="bg-gradient-to-r from-accent-violet to-accent-indigo hover:from-accent-violet hover:to-accent-indigo text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
                     <RefreshCw className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform duration-500" />
                     Refresh Data
                 </Button>
-                <Button className="bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
+                <Button className="bg-gradient-to-r from-accent-indigo to-info hover:from-accent-indigo hover:to-info text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
                     <Filter className="w-4 h-4 mr-2" />
                     Filter View
                 </Button>
@@ -343,21 +343,21 @@ function ProjectManagerAnalytics() {
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
-                            <Target className="w-8 h-8 text-blue-500 group-hover:scale-110 transition-transform duration-300" />
+                            <Target className="w-8 h-8 text-info group-hover:scale-110 transition-transform duration-300" />
                             <Badge
                                 variant="secondary"
-                                className="bg-blue-50 text-blue-600"
+                                className="bg-info-soft text-info"
                             >
                                 Projects
                             </Badge>
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-800 mb-1">
+                        <h3 className="text-2xl font-bold text-ink-2 mb-1">
                             12/14
                         </h3>
-                        <p className="text-sm text-slate-600">
+                        <p className="text-sm text-muted">
                             On-Time Delivery
                         </p>
-                        <p className="text-xs text-slate-500 mt-2">
+                        <p className="text-xs text-muted mt-2">
                             85.7% success rate
                         </p>
                     </CardContent>
@@ -366,21 +366,21 @@ function ProjectManagerAnalytics() {
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
-                            <DollarSign className="w-8 h-8 text-indigo-500 group-hover:scale-110 transition-transform duration-300" />
+                            <DollarSign className="w-8 h-8 text-accent-indigo group-hover:scale-110 transition-transform duration-300" />
                             <Badge
                                 variant="secondary"
-                                className="bg-indigo-50 text-indigo-600"
+                                className="bg-accent-indigo-soft text-accent-indigo"
                             >
                                 Budget
                             </Badge>
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-800 mb-1">
+                        <h3 className="text-2xl font-bold text-ink-2 mb-1">
                             92.3%
                         </h3>
-                        <p className="text-sm text-slate-600">
+                        <p className="text-sm text-muted">
                             Budget Efficiency
                         </p>
-                        <p className="text-xs text-slate-500 mt-2">
+                        <p className="text-xs text-muted mt-2">
                             OMR 18.7M managed
                         </p>
                     </CardContent>
@@ -389,21 +389,21 @@ function ProjectManagerAnalytics() {
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
-                            <Users className="w-8 h-8 text-purple-500 group-hover:scale-110 transition-transform duration-300" />
+                            <Users className="w-8 h-8 text-accent-violet group-hover:scale-110 transition-transform duration-300" />
                             <Badge
                                 variant="secondary"
-                                className="bg-purple-50 text-purple-600"
+                                className="bg-accent-violet-soft text-accent-violet"
                             >
                                 Team
                             </Badge>
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-800 mb-1">
+                        <h3 className="text-2xl font-bold text-ink-2 mb-1">
                             94.1%
                         </h3>
-                        <p className="text-sm text-slate-600">
+                        <p className="text-sm text-muted">
                             Team Satisfaction
                         </p>
-                        <p className="text-xs text-slate-500 mt-2">
+                        <p className="text-xs text-muted mt-2">
                             67 team members
                         </p>
                     </CardContent>
@@ -412,19 +412,19 @@ function ProjectManagerAnalytics() {
 
             {/* Action Buttons */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Button className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
+                <Button className="bg-gradient-to-r from-info to-accent-indigo hover:from-info hover:to-accent-indigo text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
                     <BarChart3 className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-300" />
                     Performance Report
                 </Button>
-                <Button className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
+                <Button className="bg-gradient-to-r from-accent-indigo to-accent-violet hover:from-accent-indigo hover:to-accent-violet text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
                     <TrendingUp className="w-4 h-4 mr-2 group-hover:translate-x-1 transition-transform duration-300" />
                     Trend Analysis
                 </Button>
-                <Button className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
+                <Button className="bg-gradient-to-r from-accent-violet to-accent-pink hover:from-accent-violet hover:to-accent-pink text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
                     <Lightbulb className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform duration-300" />
                     Optimization Tips
                 </Button>
-                <Button className="bg-gradient-to-r from-pink-500 to-red-500 hover:from-pink-600 hover:to-red-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
+                <Button className="bg-gradient-to-r from-accent-pink to-danger hover:from-accent-pink hover:to-danger text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
                     <Share2 className="w-4 h-4 mr-2" />
                     Share Insights
                 </Button>
@@ -442,21 +442,21 @@ function TechnicalAnalytics() {
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
-                            <Cpu className="w-8 h-8 text-green-500 group-hover:scale-110 transition-transform duration-300" />
+                            <Cpu className="w-8 h-8 text-success group-hover:scale-110 transition-transform duration-300" />
                             <Badge
                                 variant="secondary"
-                                className="bg-green-50 text-green-600"
+                                className="bg-success-soft text-success"
                             >
                                 Performance
                             </Badge>
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-800 mb-1">
+                        <h3 className="text-2xl font-bold text-ink-2 mb-1">
                             98.2%
                         </h3>
-                        <p className="text-sm text-slate-600">
+                        <p className="text-sm text-muted">
                             Code Quality Score
                         </p>
-                        <p className="text-xs text-slate-500 mt-2">
+                        <p className="text-xs text-muted mt-2">
                             Last 30 days
                         </p>
                     </CardContent>
@@ -465,19 +465,19 @@ function TechnicalAnalytics() {
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
-                            <Zap className="w-8 h-8 text-emerald-500 group-hover:scale-110 transition-transform duration-300" />
+                            <Zap className="w-8 h-8 text-success group-hover:scale-110 transition-transform duration-300" />
                             <Badge
                                 variant="secondary"
-                                className="bg-emerald-50 text-emerald-600"
+                                className="bg-success-soft text-success"
                             >
                                 Speed
                             </Badge>
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-800 mb-1">
+                        <h3 className="text-2xl font-bold text-ink-2 mb-1">
                             1.8s
                         </h3>
-                        <p className="text-sm text-slate-600">Build Time</p>
-                        <p className="text-xs text-slate-500 mt-2">
+                        <p className="text-sm text-muted">Build Time</p>
+                        <p className="text-xs text-muted mt-2">
                             -23% faster
                         </p>
                     </CardContent>
@@ -486,19 +486,19 @@ function TechnicalAnalytics() {
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
-                            <Star className="w-8 h-8 text-teal-500 group-hover:scale-110 transition-transform duration-300" />
+                            <Star className="w-8 h-8 text-bright-2 group-hover:scale-110 transition-transform duration-300" />
                             <Badge
                                 variant="secondary"
-                                className="bg-teal-50 text-teal-600"
+                                className="bg-bright-2-soft text-bright-2"
                             >
                                 Quality
                             </Badge>
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-800 mb-1">
+                        <h3 className="text-2xl font-bold text-ink-2 mb-1">
                             Zero
                         </h3>
-                        <p className="text-sm text-slate-600">Critical Bugs</p>
-                        <p className="text-xs text-slate-500 mt-2">
+                        <p className="text-sm text-muted">Critical Bugs</p>
+                        <p className="text-xs text-muted mt-2">
                             Last 14 days
                         </p>
                     </CardContent>
@@ -507,19 +507,19 @@ function TechnicalAnalytics() {
 
             {/* Action Buttons */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Button className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
+                <Button className="bg-gradient-to-r from-success to-success hover:from-success hover:to-success text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
                     <Activity className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-300" />
                     Performance Metrics
                 </Button>
-                <Button className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
+                <Button className="bg-gradient-to-r from-success to-bright-2-deep hover:from-success hover:to-bright-2-deep text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
                     <PieChart className="w-4 h-4 mr-2 group-hover:rotate-45 transition-transform duration-300" />
                     Code Analysis
                 </Button>
-                <Button className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
+                <Button className="bg-gradient-to-r from-bright-2 to-bright-2-deep hover:from-bright-2-deep hover:to-bright-2-deep text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
                     <Download className="w-4 h-4 mr-2 group-hover:-translate-y-1 transition-transform duration-300" />
                     Export Report
                 </Button>
-                <Button className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
+                <Button className="bg-gradient-to-r from-bright-2 to-info hover:from-bright-2-deep hover:to-info text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
                     <Settings className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform duration-500" />
                     Configure
                 </Button>
@@ -537,19 +537,19 @@ function PMOAnalytics() {
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
-                            <Globe className="w-8 h-8 text-purple-500 group-hover:scale-110 transition-transform duration-300" />
+                            <Globe className="w-8 h-8 text-accent-violet group-hover:scale-110 transition-transform duration-300" />
                             <Badge
                                 variant="secondary"
-                                className="bg-purple-50 text-purple-600"
+                                className="bg-accent-violet-soft text-accent-violet"
                             >
                                 Portfolio
                             </Badge>
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-800 mb-1">
+                        <h3 className="text-2xl font-bold text-ink-2 mb-1">
                             96.2%
                         </h3>
-                        <p className="text-sm text-slate-600">Health Index</p>
-                        <p className="text-xs text-slate-500 mt-2">
+                        <p className="text-sm text-muted">Health Index</p>
+                        <p className="text-xs text-muted mt-2">
                             34 active projects
                         </p>
                     </CardContent>
@@ -558,21 +558,21 @@ function PMOAnalytics() {
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
-                            <Target className="w-8 h-8 text-violet-500 group-hover:scale-110 transition-transform duration-300" />
+                            <Target className="w-8 h-8 text-accent-violet group-hover:scale-110 transition-transform duration-300" />
                             <Badge
                                 variant="secondary"
-                                className="bg-violet-50 text-violet-600"
+                                className="bg-accent-violet-soft text-accent-violet"
                             >
                                 Alignment
                             </Badge>
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-800 mb-1">
+                        <h3 className="text-2xl font-bold text-ink-2 mb-1">
                             89.7%
                         </h3>
-                        <p className="text-sm text-slate-600">
+                        <p className="text-sm text-muted">
                             Strategic Alignment
                         </p>
-                        <p className="text-xs text-slate-500 mt-2">
+                        <p className="text-xs text-muted mt-2">
                             vs corporate goals
                         </p>
                     </CardContent>
@@ -581,21 +581,21 @@ function PMOAnalytics() {
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
-                            <Award className="w-8 h-8 text-indigo-500 group-hover:scale-110 transition-transform duration-300" />
+                            <Award className="w-8 h-8 text-accent-indigo group-hover:scale-110 transition-transform duration-300" />
                             <Badge
                                 variant="secondary"
-                                className="bg-indigo-50 text-indigo-600"
+                                className="bg-accent-indigo-soft text-accent-indigo"
                             >
                                 Quality
                             </Badge>
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-800 mb-1">
+                        <h3 className="text-2xl font-bold text-ink-2 mb-1">
                             93.4%
                         </h3>
-                        <p className="text-sm text-slate-600">
+                        <p className="text-sm text-muted">
                             Governance Score
                         </p>
-                        <p className="text-xs text-slate-500 mt-2">
+                        <p className="text-xs text-muted mt-2">
                             Process compliance
                         </p>
                     </CardContent>
@@ -604,19 +604,19 @@ function PMOAnalytics() {
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
-                            <TrendingUp className="w-8 h-8 text-cyan-500 group-hover:scale-110 transition-transform duration-300" />
+                            <TrendingUp className="w-8 h-8 text-bright-2 group-hover:scale-110 transition-transform duration-300" />
                             <Badge
                                 variant="secondary"
-                                className="bg-cyan-50 text-cyan-600"
+                                className="bg-bright-2-soft text-bright-2"
                             >
                                 ROI
                             </Badge>
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-800 mb-1">
+                        <h3 className="text-2xl font-bold text-ink-2 mb-1">
                             247%
                         </h3>
-                        <p className="text-sm text-slate-600">Portfolio ROI</p>
-                        <p className="text-xs text-slate-500 mt-2">
+                        <p className="text-sm text-muted">Portfolio ROI</p>
+                        <p className="text-xs text-muted mt-2">
                             This fiscal year
                         </p>
                     </CardContent>
@@ -625,19 +625,19 @@ function PMOAnalytics() {
 
             {/* Action Buttons */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Button className="bg-gradient-to-r from-purple-500 to-violet-500 hover:from-purple-600 hover:to-violet-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
+                <Button className="bg-gradient-to-r from-accent-violet to-accent-violet hover:from-accent-violet hover:to-accent-violet text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
                     <Globe className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform duration-500" />
                     Portfolio View
                 </Button>
-                <Button className="bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
+                <Button className="bg-gradient-to-r from-accent-violet to-accent-indigo hover:from-accent-violet hover:to-accent-indigo text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
                     <BarChart3 className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-300" />
                     Governance Report
                 </Button>
-                <Button className="bg-gradient-to-r from-indigo-500 to-cyan-500 hover:from-indigo-600 hover:to-cyan-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
+                <Button className="bg-gradient-to-r from-accent-indigo to-bright-2-deep hover:from-accent-indigo hover:to-bright-2-deep text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
                     <TrendingUp className="w-4 h-4 mr-2 group-hover:translate-x-1 transition-transform duration-300" />
                     ROI Analysis
                 </Button>
-                <Button className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
+                <Button className="bg-gradient-to-r from-bright-2 to-accent-violet hover:from-bright-2-deep hover:to-accent-violet text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
                     <Share2 className="w-4 h-4 mr-2" />
                     Strategic Report
                 </Button>
@@ -655,21 +655,21 @@ function ExecutiveAnalytics() {
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group col-span-full lg:col-span-1">
                     <CardContent className="p-8">
                         <div className="flex items-center justify-between mb-6">
-                            <Award className="w-12 h-12 text-amber-500 group-hover:scale-110 transition-transform duration-300" />
+                            <Award className="w-12 h-12 text-warning group-hover:scale-110 transition-transform duration-300" />
                             <Badge
                                 variant="secondary"
-                                className="bg-amber-50 text-amber-600 text-lg px-4 py-2"
+                                className="bg-warning-soft text-warning text-lg px-4 py-2"
                             >
                                 Strategic Value
                             </Badge>
                         </div>
-                        <h3 className="text-4xl font-bold text-slate-800 mb-2">
+                        <h3 className="text-4xl font-bold text-ink-2 mb-2">
                             OMR 47.3M
                         </h3>
-                        <p className="text-lg text-slate-600 mb-2">
+                        <p className="text-lg text-muted mb-2">
                             Business Impact Value
                         </p>
-                        <p className="text-sm text-slate-500">
+                        <p className="text-sm text-muted">
                             Generated this quarter
                         </p>
                     </CardContent>
@@ -678,19 +678,19 @@ function ExecutiveAnalytics() {
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
-                            <TrendingUp className="w-8 h-8 text-orange-500 group-hover:scale-110 transition-transform duration-300" />
+                            <TrendingUp className="w-8 h-8 text-bright group-hover:scale-110 transition-transform duration-300" />
                             <Badge
                                 variant="secondary"
-                                className="bg-orange-50 text-orange-600"
+                                className="bg-bright-soft text-bright"
                             >
                                 Growth
                             </Badge>
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-800 mb-1">
+                        <h3 className="text-2xl font-bold text-ink-2 mb-1">
                             +34.7%
                         </h3>
-                        <p className="text-sm text-slate-600">Revenue Growth</p>
-                        <p className="text-xs text-slate-500 mt-2">
+                        <p className="text-sm text-muted">Revenue Growth</p>
+                        <p className="text-xs text-muted mt-2">
                             Year over year
                         </p>
                     </CardContent>
@@ -699,21 +699,21 @@ function ExecutiveAnalytics() {
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
-                            <Star className="w-8 h-8 text-red-500 group-hover:scale-110 transition-transform duration-300" />
+                            <Star className="w-8 h-8 text-danger group-hover:scale-110 transition-transform duration-300" />
                             <Badge
                                 variant="secondary"
-                                className="bg-red-50 text-red-600"
+                                className="bg-danger-soft text-danger"
                             >
                                 Excellence
                             </Badge>
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-800 mb-1">
+                        <h3 className="text-2xl font-bold text-ink-2 mb-1">
                             97.8%
                         </h3>
-                        <p className="text-sm text-slate-600">
+                        <p className="text-sm text-muted">
                             Client Satisfaction
                         </p>
-                        <p className="text-xs text-slate-500 mt-2">
+                        <p className="text-xs text-muted mt-2">
                             Across all projects
                         </p>
                     </CardContent>
@@ -722,19 +722,19 @@ function ExecutiveAnalytics() {
 
             {/* Action Buttons */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Button className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
+                <Button className="bg-gradient-to-r from-warning to-bright-deep hover:from-warning hover:to-bright-deep text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
                     <Award className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-300" />
                     Executive Summary
                 </Button>
-                <Button className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
+                <Button className="bg-gradient-to-r from-bright to-danger hover:from-bright-deep hover:to-danger text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
                     <TrendingUp className="w-4 h-4 mr-2 group-hover:translate-x-1 transition-transform duration-300" />
                     Business Impact
                 </Button>
-                <Button className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
+                <Button className="bg-gradient-to-r from-danger to-accent-pink hover:from-danger hover:to-accent-pink text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
                     <BarChart3 className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-300" />
                     Strategic Metrics
                 </Button>
-                <Button className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
+                <Button className="bg-gradient-to-r from-accent-pink to-accent-violet hover:from-accent-pink hover:to-accent-violet text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
                     <Download className="w-4 h-4 mr-2 group-hover:-translate-y-1 transition-transform duration-300" />
                     Board Report
                 </Button>
@@ -752,19 +752,19 @@ function ITAnalytics() {
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
-                            <Shield className="w-8 h-8 text-cyan-500 group-hover:scale-110 transition-transform duration-300" />
+                            <Shield className="w-8 h-8 text-bright-2 group-hover:scale-110 transition-transform duration-300" />
                             <Badge
                                 variant="secondary"
-                                className="bg-cyan-50 text-cyan-600"
+                                className="bg-bright-2-soft text-bright-2"
                             >
                                 Security
                             </Badge>
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-800 mb-1">
+                        <h3 className="text-2xl font-bold text-ink-2 mb-1">
                             99.9%
                         </h3>
-                        <p className="text-sm text-slate-600">System Uptime</p>
-                        <p className="text-xs text-slate-500 mt-2">
+                        <p className="text-sm text-muted">System Uptime</p>
+                        <p className="text-xs text-muted mt-2">
                             Last 30 days
                         </p>
                     </CardContent>
@@ -773,21 +773,21 @@ function ITAnalytics() {
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
-                            <Activity className="w-8 h-8 text-blue-500 group-hover:scale-110 transition-transform duration-300" />
+                            <Activity className="w-8 h-8 text-info group-hover:scale-110 transition-transform duration-300" />
                             <Badge
                                 variant="secondary"
-                                className="bg-blue-50 text-blue-600"
+                                className="bg-info-soft text-info"
                             >
                                 Performance
                             </Badge>
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-800 mb-1">
+                        <h3 className="text-2xl font-bold text-ink-2 mb-1">
                             1.2s
                         </h3>
-                        <p className="text-sm text-slate-600">
+                        <p className="text-sm text-muted">
                             Avg Response Time
                         </p>
-                        <p className="text-xs text-slate-500 mt-2">
+                        <p className="text-xs text-muted mt-2">
                             -20% improved
                         </p>
                     </CardContent>
@@ -796,21 +796,21 @@ function ITAnalytics() {
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
-                            <CheckCircle className="w-8 h-8 text-green-500 group-hover:scale-110 transition-transform duration-300" />
+                            <CheckCircle className="w-8 h-8 text-success group-hover:scale-110 transition-transform duration-300" />
                             <Badge
                                 variant="secondary"
-                                className="bg-green-50 text-green-600"
+                                className="bg-success-soft text-success"
                             >
                                 Support
                             </Badge>
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-800 mb-1">
+                        <h3 className="text-2xl font-bold text-ink-2 mb-1">
                             94.8%
                         </h3>
-                        <p className="text-sm text-slate-600">
+                        <p className="text-sm text-muted">
                             Ticket Resolution
                         </p>
-                        <p className="text-xs text-slate-500 mt-2">
+                        <p className="text-xs text-muted mt-2">
                             First contact resolution
                         </p>
                     </CardContent>
@@ -819,21 +819,21 @@ function ITAnalytics() {
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
-                            <Database className="w-8 h-8 text-indigo-500 group-hover:scale-110 transition-transform duration-300" />
+                            <Database className="w-8 h-8 text-accent-indigo group-hover:scale-110 transition-transform duration-300" />
                             <Badge
                                 variant="secondary"
-                                className="bg-indigo-50 text-indigo-600"
+                                className="bg-accent-indigo-soft text-accent-indigo"
                             >
                                 Infrastructure
                             </Badge>
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-800 mb-1">
+                        <h3 className="text-2xl font-bold text-ink-2 mb-1">
                             78.4%
                         </h3>
-                        <p className="text-sm text-slate-600">
+                        <p className="text-sm text-muted">
                             Resource Utilization
                         </p>
-                        <p className="text-xs text-slate-500 mt-2">
+                        <p className="text-xs text-muted mt-2">
                             Optimal range
                         </p>
                     </CardContent>
@@ -842,19 +842,19 @@ function ITAnalytics() {
 
             {/* Action Buttons */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Button className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
+                <Button className="bg-gradient-to-r from-bright-2 to-info hover:from-bright-2-deep hover:to-info text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
                     <Shield className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-300" />
                     System Health
                 </Button>
-                <Button className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
+                <Button className="bg-gradient-to-r from-info to-accent-indigo hover:from-info hover:to-accent-indigo text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
                     <Activity className="w-4 h-4 mr-2 group-hover:translate-x-1 transition-transform duration-300" />
                     Performance Report
                 </Button>
-                <Button className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
+                <Button className="bg-gradient-to-r from-accent-indigo to-accent-violet hover:from-accent-indigo hover:to-accent-violet text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
                     <Database className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-300" />
                     Infrastructure
                 </Button>
-                <Button className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
+                <Button className="bg-gradient-to-r from-accent-violet to-accent-pink hover:from-accent-violet hover:to-accent-pink text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
                     <Download className="w-4 h-4 mr-2 group-hover:-translate-y-1 transition-transform duration-300" />
                     IT Report
                 </Button>
@@ -872,21 +872,21 @@ function DirectorAnalytics() {
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
-                            <Award className="w-8 h-8 text-purple-500 group-hover:scale-110 transition-transform duration-300" />
+                            <Award className="w-8 h-8 text-accent-violet group-hover:scale-110 transition-transform duration-300" />
                             <Badge
                                 variant="secondary"
-                                className="bg-purple-50 text-purple-600"
+                                className="bg-accent-violet-soft text-accent-violet"
                             >
                                 Strategic
                             </Badge>
                         </div>
-                        <h3 className="font-semibold text-gray-900 mb-2">
+                        <h3 className="font-semibold text-ink mb-2">
                             Portfolio Value
                         </h3>
-                        <div className="text-3xl font-bold text-purple-600 mb-1">
+                        <div className="text-3xl font-bold text-accent-violet mb-1">
                             OMR 152.8M
                         </div>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-muted">
                             +12.3% from last quarter
                         </p>
                     </CardContent>
@@ -895,21 +895,21 @@ function DirectorAnalytics() {
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
-                            <TrendingUp className="w-8 h-8 text-green-500 group-hover:scale-110 transition-transform duration-300" />
+                            <TrendingUp className="w-8 h-8 text-success group-hover:scale-110 transition-transform duration-300" />
                             <Badge
                                 variant="secondary"
-                                className="bg-green-50 text-green-600"
+                                className="bg-success-soft text-success"
                             >
                                 Performance
                             </Badge>
                         </div>
-                        <h3 className="font-semibold text-gray-900 mb-2">
+                        <h3 className="font-semibold text-ink mb-2">
                             ROI Performance
                         </h3>
-                        <div className="text-3xl font-bold text-green-600 mb-1">
+                        <div className="text-3xl font-bold text-success mb-1">
                             24.7%
                         </div>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-muted">
                             Above industry benchmark
                         </p>
                     </CardContent>
@@ -918,21 +918,21 @@ function DirectorAnalytics() {
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
-                            <Target className="w-8 h-8 text-blue-500 group-hover:scale-110 transition-transform duration-300" />
+                            <Target className="w-8 h-8 text-info group-hover:scale-110 transition-transform duration-300" />
                             <Badge
                                 variant="secondary"
-                                className="bg-blue-50 text-blue-600"
+                                className="bg-info-soft text-info"
                             >
                                 Delivery
                             </Badge>
                         </div>
-                        <h3 className="font-semibold text-gray-900 mb-2">
+                        <h3 className="font-semibold text-ink mb-2">
                             Strategic Goals
                         </h3>
-                        <div className="text-3xl font-bold text-blue-600 mb-1">
+                        <div className="text-3xl font-bold text-info mb-1">
                             87%
                         </div>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-muted">
                             On track for annual targets
                         </p>
                     </CardContent>
@@ -941,21 +941,21 @@ function DirectorAnalytics() {
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
-                            <AlertTriangle className="w-8 h-8 text-orange-500 group-hover:scale-110 transition-transform duration-300" />
+                            <AlertTriangle className="w-8 h-8 text-bright group-hover:scale-110 transition-transform duration-300" />
                             <Badge
                                 variant="secondary"
-                                className="bg-orange-50 text-orange-600"
+                                className="bg-bright-soft text-bright"
                             >
                                 Risk
                             </Badge>
                         </div>
-                        <h3 className="font-semibold text-gray-900 mb-2">
+                        <h3 className="font-semibold text-ink mb-2">
                             Risk Score
                         </h3>
-                        <div className="text-3xl font-bold text-orange-600 mb-1">
+                        <div className="text-3xl font-bold text-bright mb-1">
                             Low
                         </div>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-muted">
                             3 active risk items
                         </p>
                     </CardContent>
@@ -967,7 +967,7 @@ function DirectorAnalytics() {
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <BarChart3 className="w-5 h-5 text-purple-500" />
+                            <BarChart3 className="w-5 h-5 text-accent-violet" />
                             Portfolio Performance
                         </CardTitle>
                         <CardDescription>
@@ -975,7 +975,7 @@ function DirectorAnalytics() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="h-80 flex items-center justify-center text-gray-500">
+                        <div className="h-80 flex items-center justify-center text-muted">
                             Portfolio performance chart would be here
                         </div>
                     </CardContent>
@@ -984,7 +984,7 @@ function DirectorAnalytics() {
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <TrendingUp className="w-5 h-5 text-green-500" />
+                            <TrendingUp className="w-5 h-5 text-success" />
                             Strategic KPIs
                         </CardTitle>
                         <CardDescription>
@@ -992,7 +992,7 @@ function DirectorAnalytics() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="h-80 flex items-center justify-center text-gray-500">
+                        <div className="h-80 flex items-center justify-center text-muted">
                             Strategic KPIs chart would be here
                         </div>
                     </CardContent>

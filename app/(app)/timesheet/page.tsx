@@ -13,14 +13,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -31,9 +23,43 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Calendar, Plus, Download, Eye, Users, Search, Loader2 } from "lucide-react";
+import { Clock, Calendar, Plus, Download, Eye, Users, Search } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
+import { LoadingState, Spinner } from "@/components/ui/spinner";
+import { ListPagination } from "@/components/ui/list-pagination";
+import { ViewToggle, type ListViewMode } from "@/components/ui/view-toggle";
+import { PersonCell } from "@/components/ui/person-cell";
+import {
+  EmptyState,
+  EntityCard,
+  EntityCardFooter,
+  EntityCardHeader,
+  EntityStat,
+  EntityStats,
+} from "@/components/ui/entity-card";
+import {
+  ListCard,
+  ListHead,
+  ListMessage,
+  ListRow,
+  NewButton,
+  RowAction,
+  RowActions,
+  StatusBadge,
+} from "@/components/ui/form-shell";
+import { humanize, timesheetStatusTone } from "@/lib/status-tone";
+
+const PAGE_SIZE = 12;
+const TIMESHEET_COLUMNS = ["Project", "Period", "Status", "Hours", "Entries"];
+const TEAM_COLUMNS = [
+  "Project",
+  "Person",
+  "Period",
+  "Status",
+  "Hours",
+  "Entries",
+];
 
 interface Timesheet {
   timesheet_id: number;
@@ -111,23 +137,43 @@ export default function TimesheetPage() {
     return matchesSearch && matchesStatus;
   });
   const [allTimesheets, setAllTimesheets] = useState<Timesheet[]>([]);
+
+  // The team tab reads from a different endpoint and was previously unfiltered
+  // and unpaginated, so it kept its own search/status state rather than sharing
+  // the personal tab's — switching tabs should not carry a filter across.
+  const [teamSearch, setTeamSearch] = useState("");
+  const [teamStatusFilter, setTeamStatusFilter] = useState("all");
+  const [view, setView] = useState<ListViewMode>("grid");
+  const [page, setPage] = useState(0);
+  const [teamPage, setTeamPage] = useState(0);
+
+  const visibleTeamTimesheets = allTimesheets.filter((timesheet) => {
+    const term = teamSearch.trim().toLowerCase();
+    const who = timesheet.user
+      ? `${timesheet.user.account.first_name} ${timesheet.user.account.last_name}`.toLowerCase()
+      : "";
+    const matchesSearch =
+      !term ||
+      (timesheet.project?.name ?? "").toLowerCase().includes(term) ||
+      who.includes(term) ||
+      new Date(timesheet.start_date)
+        .toLocaleDateString()
+        .toLowerCase()
+        .includes(term) ||
+      new Date(timesheet.end_date)
+        .toLocaleDateString()
+        .toLowerCase()
+        .includes(term);
+    const matchesStatus =
+      teamStatusFilter === "all" || timesheet.status === teamStatusFilter;
+    return matchesSearch && matchesStatus;
+  });
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [activeTab, setActiveTab] = useState("current");
 
-  // Modal state
-  const [isNewTimesheetModalOpen, setIsNewTimesheetModalOpen] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
-  const [allProjects, setAllProjects] = useState<Project[]>([]);
-  const [selectedUser, setSelectedUser] = useState("");
-  const [selectedProject, setSelectedProject] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [creatingTimesheet, setCreatingTimesheet] = useState(false);
   const [allTeamLoading, setAllTeamLoading] = useState(false);
-  const [userSearchQuery, setUserSearchQuery] = useState("");
-  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-  const userDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchCurrentUser();
@@ -228,17 +274,6 @@ export default function TimesheetPage() {
     }
   }, [activeTab, currentUser]);
 
-  // Click outside to close user dropdown
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (userDropdownRef.current && !userDropdownRef.current.contains(e.target as Node)) {
-        setUserDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
   const fetchUserProjects = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -270,223 +305,18 @@ export default function TimesheetPage() {
     }
   };
 
-  const fetchAllUsers = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      const response = await axios.get("/api/users", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      setUsers(response.data);
-    } catch (error) {
-      console.error("Failed to fetch users:", error);
-      toast.error("Failed to load users");
-    }
-  };
-
-  const fetchAllProjects = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      const response = await axios.get("/api/projects", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      // For admin users, show all projects
-      setAllProjects(response.data);
-    } catch (error) {
-      console.error("Failed to fetch all projects:", error);
-      toast.error("Failed to load projects");
-    }
-  };
-
-  // Helper function to validate date range
-  const validateDateRange = (start: string, end: string) => {
-    if (!start || !end) return { isValid: true, error: "" };
-
-    const startDateObj = new Date(start);
-    const endDateObj = new Date(end);
-
-    if (startDateObj > endDateObj) {
-      return {
-        isValid: false,
-        error: "Start date cannot be after end date",
-      };
-    }
-
-    const timeDifference = endDateObj.getTime() - startDateObj.getTime();
-    const daysDifference = Math.ceil(timeDifference / (1000 * 3600 * 24));
-
-    if (daysDifference > 28) {
-      return {
-        isValid: false,
-        error: "Timesheet period cannot exceed 4 weeks",
-      };
-    }
-
-    return { isValid: true, error: "" };
-  };
-
-  const openNewTimesheetModal = () => {
-    if (canViewAllTimesheets()) {
-      // For admin users, fetch all users and all projects
-      fetchAllUsers();
-      fetchAllProjects();
-    } else {
-      // For regular users, only fetch their projects (already loaded)
-      setAllProjects(projects); // Use the projects they're already assigned to
-      setSelectedUser(currentUser?.user_id?.toString() || ""); // Pre-select current user
-    }
-
-    setIsNewTimesheetModalOpen(true);
-
-    // Set default dates (current week)
-    const today = new Date();
-    const startOfWeek = new Date(
-      today.setDate(today.getDate() - today.getDay())
-    );
-    const endOfWeek = new Date(
-      today.setDate(today.getDate() - today.getDay() + 6)
-    );
-
-    setStartDate(startOfWeek.toISOString().split("T")[0]);
-    setEndDate(endOfWeek.toISOString().split("T")[0]);
-  };
-
-  const handleCreateTimesheet = async () => {
-    // For regular users, selectedUser should be pre-filled with current user
-    const targetUserId = canViewAllTimesheets()
-      ? selectedUser
-      : currentUser?.user_id?.toString() || "";
-
-    if (!targetUserId || !selectedProject || !startDate || !endDate) {
-      toast.error("Please fill in all fields");
-      return;
-    }
-
-    // Validate date range - start date should not be after end date
-    const startDateObj = new Date(startDate);
-    const endDateObj = new Date(endDate);
-
-    if (startDateObj > endDateObj) {
-      toast.error(
-        "Start date cannot be after end date. Please select a valid date range."
-      );
-      return;
-    }
-
-    // Additional validation: check if the date range is reasonable (not more than 4 weeks)
-    const timeDifference = endDateObj.getTime() - startDateObj.getTime();
-    const daysDifference = Math.ceil(timeDifference / (1000 * 3600 * 24));
-
-    if (daysDifference > 28) {
-      toast.error(
-        "Timesheet period cannot exceed 4 weeks. Please select a shorter date range."
-      );
-      return;
-    }
-
-    setCreatingTimesheet(true);
-    try {
-      const token = localStorage.getItem("token");
-
-      // For admin users, check across all timesheets. For regular users, check their own timesheets
-      const checkUrl = canViewAllTimesheets()
-        ? "/api/timesheets?view_all=true"
-        : "/api/timesheets";
-      const checkResponse = await axios.get(checkUrl, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const existingTimesheet = checkResponse.data.find(
-        (ts: Timesheet) =>
-          (canViewAllTimesheets()
-            ? ts.user?.user_id === parseInt(targetUserId)
-            : true) &&
-          ts.project_id === parseInt(selectedProject) &&
-          new Date(ts.start_date).toDateString() ===
-            new Date(startDate).toDateString()
-      );
-
-      if (existingTimesheet) {
-        toast.error("A timesheet already exists for this user and date range");
-        return;
-      }
-
-      // Create the timesheet - only send user_id if it's different from current user (admin creating for others)
-      const createData: any = {
-        project_id: parseInt(selectedProject),
-        start_date: startDate,
-        end_date: endDate,
-        status: "DRAFT",
-      };
-
-      // Only include user_id if admin is creating for someone else
-      if (
-        canViewAllTimesheets() &&
-        targetUserId !== currentUser?.user_id?.toString()
-      ) {
-        createData.user_id = parseInt(targetUserId);
-      }
-
-      const response = await axios.post("/api/timesheets", createData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      toast.success("Timesheet created successfully");
-      setIsNewTimesheetModalOpen(false);
-      resetModalForm();
-
-      // Refresh the timesheets
-      fetchUserTimesheets();
-      if (activeTab === "all-team") {
-        fetchAllTimesheets();
-      }
-
-      // Navigate to the created timesheet
-      router.push(`/timesheet/${response.data.timesheet_id}`);
-    } catch (error: any) {
-      console.error("Failed to create timesheet:", error);
-      const errorMessage =
-        error.response?.data?.error || "Failed to create timesheet";
-      toast.error(errorMessage);
-    } finally {
-      setCreatingTimesheet(false);
-    }
-  };
-
-  const resetModalForm = () => {
-    setSelectedUser("");
-    setSelectedProject("");
-    setStartDate("");
-    setEndDate("");
-    setUserSearchQuery("");
-    setUserDropdownOpen(false);
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case "DRAFT":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300";
+        return "bg-warning-soft text-warning  ";
       case "SUBMITTED":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300";
+        return "bg-info-soft text-info  ";
       case "APPROVED":
-        return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300";
+        return "bg-success-soft text-success  ";
       case "REJECTED":
-        return "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300";
+        return "bg-danger-soft text-danger  ";
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300";
+        return "bg-surface-2 text-ink-2  ";
     }
   };
 
@@ -498,6 +328,150 @@ export default function TimesheetPage() {
     });
   };
 
+  // Filtering changes what "page 1" means, so reset rather than stranding the
+  // user on a page index that no longer has rows.
+  useEffect(
+    () => setPage(0),
+    [timesheetSearch, timesheetStatusFilter, view],
+  );
+  useEffect(() => setTeamPage(0), [teamSearch, teamStatusFilter, view]);
+
+  const timesheetPageCount = Math.max(
+    1,
+    Math.ceil(visibleTimesheets.length / PAGE_SIZE),
+  );
+  const pagedTimesheets = visibleTimesheets.slice(
+    page * PAGE_SIZE,
+    (page + 1) * PAGE_SIZE,
+  );
+  const teamPageCount = Math.max(
+    1,
+    Math.ceil(visibleTeamTimesheets.length / PAGE_SIZE),
+  );
+  const pagedTeamTimesheets = visibleTeamTimesheets.slice(
+    teamPage * PAGE_SIZE,
+    (teamPage + 1) * PAGE_SIZE,
+  );
+
+  const personOf = (timesheet: Timesheet) =>
+    timesheet.user
+      ? `${timesheet.user.account.first_name} ${timesheet.user.account.last_name}`.trim()
+      : "";
+
+  /**
+   * One card renderer for both the personal and team tabs. `withPerson` adds
+   * the owner row, which is meaningless on your own timesheets but is the first
+   * thing you look for on the team tab.
+   */
+  const renderTimesheetCard = (timesheet: Timesheet, withPerson = false) => (
+    <EntityCard
+      key={timesheet.timesheet_id}
+      onClick={() => router.push(`/timesheet/${timesheet.timesheet_id}`)}
+    >
+      <EntityCardHeader
+        title={timesheet.project?.name ?? "Untitled project"}
+        subtitle={`${formatDate(timesheet.start_date)} – ${formatDate(timesheet.end_date)}`}
+        badges={
+          <StatusBadge
+            label={humanize(timesheet.status)}
+            tone={timesheetStatusTone(timesheet.status)}
+          />
+        }
+      />
+
+      <EntityStats>
+        <EntityStat icon={<Clock className="h-3.5 w-3.5" />}>
+          {timesheet.total_hours}h total
+        </EntityStat>
+        <EntityStat icon={<Calendar className="h-3.5 w-3.5" />}>
+          {timesheet.time_entries.length}{" "}
+          {timesheet.time_entries.length === 1 ? "entry" : "entries"}
+        </EntityStat>
+      </EntityStats>
+
+      <EntityCardFooter
+        actions={
+          <div onClick={(e) => e.stopPropagation()}>
+            <RowActions>
+              <RowAction
+                icon={Eye}
+                label={`View ${timesheet.project?.name ?? "timesheet"}`}
+                onClick={() =>
+                  router.push(`/timesheet/${timesheet.timesheet_id}`)
+                }
+              />
+            </RowActions>
+          </div>
+        }
+      >
+        {withPerson && personOf(timesheet) ? (
+          <PersonCell
+            name={personOf(timesheet)}
+            subtitle={
+              timesheet.user?.role?.name ??
+              timesheet.user?.account.department ??
+              undefined
+            }
+          />
+        ) : (
+          <span className="text-[12px] text-faint">
+            {timesheet.time_entries.length}{" "}
+            {timesheet.time_entries.length === 1 ? "entry" : "entries"}
+          </span>
+        )}
+      </EntityCardFooter>
+    </EntityCard>
+  );
+
+  const renderTimesheetRow = (timesheet: Timesheet, withPerson = false) => (
+    <ListRow
+      key={timesheet.timesheet_id}
+      onClick={() => router.push(`/timesheet/${timesheet.timesheet_id}`)}
+    >
+      <td className="max-w-[200px] px-4 py-3">
+        <div className="min-w-0 truncate text-[13.5px] font-medium text-ink">
+          {timesheet.project?.name ?? "Untitled project"}
+        </div>
+      </td>
+      {withPerson && (
+        <td className="max-w-[180px] px-4 py-3">
+          {personOf(timesheet) ? (
+            <PersonCell
+              name={personOf(timesheet)}
+              subtitle={timesheet.user?.role?.name ?? undefined}
+            />
+          ) : (
+            <span className="text-faint">—</span>
+          )}
+        </td>
+      )}
+      <td className="whitespace-nowrap px-4 py-3 text-[13.5px] text-ink-2">
+        {formatDate(timesheet.start_date)} – {formatDate(timesheet.end_date)}
+      </td>
+      <td className="whitespace-nowrap px-4 py-3">
+        <StatusBadge
+          label={humanize(timesheet.status)}
+          tone={timesheetStatusTone(timesheet.status)}
+        />
+      </td>
+      <td className="whitespace-nowrap px-4 py-3 text-[13.5px] tabular-nums text-ink-2">
+        {timesheet.total_hours}h
+      </td>
+      <td className="whitespace-nowrap px-4 py-3 text-[13.5px] tabular-nums text-ink-2">
+        {timesheet.time_entries.length}
+      </td>
+      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+        <RowActions>
+          <RowAction
+            icon={Eye}
+            label={`View ${timesheet.project?.name ?? "timesheet"}`}
+            onClick={() => router.push(`/timesheet/${timesheet.timesheet_id}`)}
+          />
+        </RowActions>
+      </td>
+    </ListRow>
+  );
+
   const getCurrentWeekTimesheets = () => {
     const now = new Date();
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -508,37 +482,11 @@ export default function TimesheetPage() {
     });
   };
 
-  // Helper function to get projects filtered by selected user
-  const getFilteredProjects = () => {
-    if (!canViewAllTimesheets()) {
-      // For regular users, return their assigned projects
-      return projects;
-    }
-
-    if (!selectedUser) {
-      // If no user selected, return empty array
-      return [];
-    }
-
-    // For privileged users, filter projects based on selected user (team member, creator, or manager)
-    const targetUserId = parseInt(selectedUser);
-    return allProjects.filter((project: any) => {
-      const isActiveProject =
-        project.status === "execution" || project.status === "planning";
-      const isTeamMember = project.team_members?.some(
-        (member: any) => member.user?.user_id === targetUserId
-      );
-      const isCreator = project.created_by === targetUserId;
-      const isManager = project.manager_id === targetUserId;
-      return isActiveProject && (isTeamMember || isCreator || isManager);
-    });
-  };
-
   if (loading) {
     return (
       <DashboardLayout title="My Timesheet">
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
+          <Spinner size={48} className="text-bright-primary" />
         </div>
       </DashboardLayout>
     );
@@ -547,44 +495,36 @@ export default function TimesheetPage() {
   const currentTimesheets = getCurrentWeekTimesheets();
 
   return (
-    <DashboardLayout title="My Timesheet">
-      <div className="max-w-7xl mx-auto space-y-8 px-1">
-        {/* Header Section */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {canViewAllTimesheets() ? "Timesheet Management" : "My Timesheet"}
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              {canViewAllTimesheets()
-                ? "Track and manage work hours across all team members and projects"
-                : "Track and manage your work hours across projects"}
-            </p>
-          </div>
-          <div className="flex items-center space-x-3">
-            <Button
-              onClick={openNewTimesheetModal}
-              className="bg-orange-600 hover:bg-orange-700 text-white"
-            >
-              <Plus size={16} className="mr-2" />
-              New Timesheet
-            </Button>
-          </div>
-        </div>
-
+    <DashboardLayout
+      title={canViewAllTimesheets() ? "Timesheet Management" : "My Timesheet"}
+      subtitle={
+        canViewAllTimesheets()
+          ? "Track and manage work hours across all team members and projects."
+          : "Track and manage your work hours across projects."
+      }
+      actions={
+        <>
+          {(activeTab === "all" || activeTab === "all-team") && (
+            <ViewToggle value={view} onChange={setView} />
+          )}
+          <NewButton label="New timesheet" href="/timesheet/new" />
+        </>
+      }
+    >
+      <div className="space-y-6">
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
           <Card>
             <CardContent className="p-5">
               <div className="flex items-center space-x-2">
-                <Clock className="h-5 w-5 text-orange-600" />
+                <Clock className="h-5 w-5 text-bright" />
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  <p className="text-sm font-medium text-muted">
                     {activeTab === "all-team" && canViewAllTimesheets()
                       ? "Team Total (This Week)"
                       : "This Week"}
                   </p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  <p className="text-2xl font-bold text-ink">
                     {activeTab === "all-team" && canViewAllTimesheets()
                       ? allTimesheets
                           .filter((ts) => {
@@ -610,14 +550,14 @@ export default function TimesheetPage() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center space-x-2">
-                <Calendar className="h-5 w-5 text-blue-600" />
+                <Calendar className="h-5 w-5 text-info" />
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  <p className="text-sm font-medium text-muted">
                     {activeTab === "all-team" && canViewAllTimesheets()
                       ? "Team Projects"
                       : "Active Projects"}
                   </p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  <p className="text-2xl font-bold text-ink">
                     {activeTab === "all-team" && canViewAllTimesheets()
                       ? new Set(allTimesheets.map((ts) => ts.project_id)).size
                       : projects.length}
@@ -630,14 +570,14 @@ export default function TimesheetPage() {
           <Card>
             <CardContent className="p-5">
               <div className="flex items-center space-x-2">
-                <Eye className="h-5 w-5 text-green-600" />
+                <Eye className="h-5 w-5 text-success" />
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  <p className="text-sm font-medium text-muted">
                     {activeTab === "all-team" && canViewAllTimesheets()
                       ? "Total Team Timesheets"
                       : "Total Timesheets"}
                   </p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  <p className="text-2xl font-bold text-ink">
                     {activeTab === "all-team" && canViewAllTimesheets()
                       ? allTimesheets.length
                       : timesheets.length}
@@ -650,14 +590,14 @@ export default function TimesheetPage() {
           <Card>
             <CardContent className="p-5">
               <div className="flex items-center space-x-2">
-                <Download className="h-5 w-5 text-purple-600" />
+                <Download className="h-5 w-5 text-accent-violet" />
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  <p className="text-sm font-medium text-muted">
                     {activeTab === "all-team" && canViewAllTimesheets()
                       ? "Team Pending"
                       : "Pending"}
                   </p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  <p className="text-2xl font-bold text-ink">
                     {activeTab === "all-team" && canViewAllTimesheets()
                       ? allTimesheets.filter((ts) => ts.status === "SUBMITTED")
                           .length
@@ -671,7 +611,7 @@ export default function TimesheetPage() {
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="mb-6">
+          <TabsList variant="line">
             <TabsTrigger value="current">Current Week</TabsTrigger>
             <TabsTrigger value="all">My Timesheets</TabsTrigger>
             {canViewAllTimesheets() && (
@@ -691,16 +631,16 @@ export default function TimesheetPage() {
               <CardContent className="pt-4">
                 {currentTimesheets.length === 0 ? (
                   <div className="text-center py-8">
-                    <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                    <Clock className="h-12 w-12 text-faint mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-ink mb-2">
                       No current timesheets
                     </h3>
-                    <p className="text-gray-600 dark:text-gray-400 mb-4">
+                    <p className="text-muted mb-4">
                       Start tracking your time by creating a new timesheet
                     </p>
                     <Button
-                      onClick={openNewTimesheetModal}
-                      className="bg-orange-600 hover:bg-orange-700 text-white"
+                      onClick={() => router.push("/timesheet/new")}
+                      className="bg-bright hover:bg-bright-deep text-white"
                     >
                       <Plus size={16} className="mr-2" />
                       Create Timesheet
@@ -711,20 +651,20 @@ export default function TimesheetPage() {
                     {currentTimesheets.map((timesheet) => (
                       <div
                         key={timesheet.timesheet_id}
-                        className="border border-gray-200 dark:border-gray-700 rounded-lg p-5 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
+                        className="border border-line rounded-lg p-5 hover:bg-surface-2 cursor-pointer transition-colors"
                         onClick={() =>
                           router.push(`/timesheet/${timesheet.timesheet_id}`)
                         }
                       >
                         <div className="flex items-center justify-between mb-3">
-                          <h4 className="font-semibold text-gray-900 dark:text-gray-100">
+                          <h4 className="font-semibold text-ink">
                             {timesheet.project.name}
                           </h4>
                           <Badge className={getStatusColor(timesheet.status)}>
                             {timesheet.status}
                           </Badge>
                         </div>
-                        <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+                        <div className="flex items-center justify-between text-sm text-muted">
                           <span>
                             {formatDate(timesheet.start_date)} -{" "}
                             {formatDate(timesheet.end_date)}
@@ -733,7 +673,7 @@ export default function TimesheetPage() {
                             {timesheet.total_hours}h total
                           </span>
                         </div>
-                        <div className="mt-2 text-sm text-gray-500 dark:text-gray-500">
+                        <div className="mt-2 text-sm text-faint">
                           {timesheet.time_entries.length} entries
                         </div>
                       </div>
@@ -745,85 +685,94 @@ export default function TimesheetPage() {
           </TabsContent>
 
           <TabsContent value="all">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle>My Timesheets</CardTitle>
-                <CardDescription>
-                  Complete history of your timesheet submissions
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <div className="mb-5">
-                  <FilterBar
-                    search={timesheetSearch}
-                    onSearch={setTimesheetSearch}
-                    searchPlaceholder="Search timesheets by project or period…"
-                    resultLabel={`${visibleTimesheets.length} ${visibleTimesheets.length === 1 ? "timesheet" : "timesheets"}`}
-                    activeCount={timesheetStatusFilter !== "all" ? 1 : 0}
-                    onClear={() => setTimesheetStatusFilter("all")}
-                  >
-                    <FilterSelect
-                      label="Status"
-                      value={timesheetStatusFilter}
-                      onChange={setTimesheetStatusFilter}
-                      options={[
-                        { value: "all", label: "All statuses" },
-                        { value: "DRAFT", label: "Draft" },
-                        { value: "SUBMITTED", label: "Submitted" },
-                        { value: "APPROVED", label: "Approved" },
-                        { value: "REJECTED", label: "Rejected" },
-                      ]}
-                    />
-                  </FilterBar>
-                </div>
-                {visibleTimesheets.length === 0 ? (
-                  <div className="text-center py-10">
-                    <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                      No timesheets found
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-400">
-                      {timesheets.length === 0
-                        ? "You haven't created any timesheets yet"
-                        : "No timesheet matches the current search or filter"}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-5">
-                    {visibleTimesheets.map((timesheet) => (
-                      <div
-                        key={timesheet.timesheet_id}
-                        className="border border-gray-200 dark:border-gray-700 rounded-lg p-5 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
-                        onClick={() =>
-                          router.push(`/timesheet/${timesheet.timesheet_id}`)
-                        }
+            <div className="space-y-6">
+              <FilterBar
+                search={timesheetSearch}
+                onSearch={setTimesheetSearch}
+                searchPlaceholder="Search timesheets by project or period…"
+                resultLabel={`${visibleTimesheets.length} ${visibleTimesheets.length === 1 ? "timesheet" : "timesheets"}`}
+                activeCount={timesheetStatusFilter !== "all" ? 1 : 0}
+                onClear={() => setTimesheetStatusFilter("all")}
+              >
+                <FilterSelect
+                  label="Status"
+                  value={timesheetStatusFilter}
+                  onChange={setTimesheetStatusFilter}
+                  options={[
+                    { value: "all", label: "All statuses" },
+                    { value: "DRAFT", label: "Draft" },
+                    { value: "SUBMITTED", label: "Submitted" },
+                    { value: "APPROVED", label: "Approved" },
+                    { value: "REJECTED", label: "Rejected" },
+                  ]}
+                />
+              </FilterBar>
+
+              {visibleTimesheets.length === 0 ? (
+                <EmptyState
+                  icon={<Calendar className="h-10 w-10" />}
+                  title="No timesheets found"
+                  message={
+                    timesheets.length === 0
+                      ? "You haven't created any timesheets yet."
+                      : "Try adjusting your search or filter to see more results."
+                  }
+                  action={
+                    timesheets.length === 0 ? (
+                      <NewButton
+                        label="New timesheet"
+                        href="/timesheet/new"
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTimesheetSearch("");
+                          setTimesheetStatusFilter("all");
+                        }}
+                        className="text-[13px] font-semibold text-bright hover:text-bright-deep"
                       >
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="font-semibold text-gray-900 dark:text-gray-100">
-                            {timesheet.project.name}
-                          </h4>
-                          <Badge className={getStatusColor(timesheet.status)}>
-                            {timesheet.status}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
-                          <span>
-                            {formatDate(timesheet.start_date)} -{" "}
-                            {formatDate(timesheet.end_date)}
-                          </span>
-                          <span className="font-medium">
-                            {timesheet.total_hours}h total
-                          </span>
-                        </div>
-                        <div className="mt-2 text-sm text-gray-500 dark:text-gray-500">
-                          {timesheet.time_entries.length} entries
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                        Clear all filters
+                      </button>
+                    )
+                  }
+                />
+              ) : view === "grid" ? (
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+                  {pagedTimesheets.map((timesheet) =>
+                    renderTimesheetCard(timesheet)
+                  )}
+                </div>
+              ) : (
+                <ListCard>
+                  <table className="w-full border-collapse">
+                    <ListHead columns={TIMESHEET_COLUMNS} />
+                    <tbody>
+                      {pagedTimesheets.length === 0 ? (
+                        <ListMessage colSpan={TIMESHEET_COLUMNS.length + 1}>
+                          No timesheets on this page.
+                        </ListMessage>
+                      ) : (
+                        pagedTimesheets.map((timesheet) =>
+                          renderTimesheetRow(timesheet)
+                        )
+                      )}
+                    </tbody>
+                  </table>
+                </ListCard>
+              )}
+
+              {visibleTimesheets.length > 0 && (
+                <ListPagination
+                  page={page}
+                  pageCount={timesheetPageCount}
+                  total={visibleTimesheets.length}
+                  pageSize={PAGE_SIZE}
+                  onPageChange={setPage}
+                  noun="timesheet"
+                />
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="projects">
@@ -837,11 +786,11 @@ export default function TimesheetPage() {
               <CardContent className="pt-4">
                 {projects.length === 0 ? (
                   <div className="text-center py-8">
-                    <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                    <Calendar className="h-12 w-12 text-faint mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-ink mb-2">
                       No active projects
                     </h3>
-                    <p className="text-gray-600 dark:text-gray-400">
+                    <p className="text-muted">
                       You're not currently assigned to any active projects
                     </p>
                   </div>
@@ -853,7 +802,7 @@ export default function TimesheetPage() {
                         className="hover:shadow-md transition-shadow"
                       >
                         <CardContent className="p-5">
-                          <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                          <h4 className="font-semibold text-ink mb-2">
                             {project.name}
                           </h4>
                           <Badge variant="secondary" className="mb-3">
@@ -863,18 +812,11 @@ export default function TimesheetPage() {
                             variant="outline"
                             size="sm"
                             className="w-full"
-                            onClick={() => {
-                              if (canViewAllTimesheets()) {
-                                setSelectedProject(
-                                  project.project_id.toString()
-                                );
-                                openNewTimesheetModal();
-                              } else {
-                                router.push(
-                                  `/timesheet/new?project=${project.project_id}`
-                                );
-                              }
-                            }}
+                            onClick={() =>
+                              router.push(
+                                `/timesheet/new?project=${project.project_id}`
+                              )
+                            }
                           >
                             Create Timesheet
                           </Button>
@@ -889,319 +831,99 @@ export default function TimesheetPage() {
 
           {canViewAllTimesheets() && (
             <TabsContent value="all-team">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle>All Team Timesheets</CardTitle>
-                  <CardDescription>
-                    View and manage timesheets from all team members
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-4">
-                  {allTeamLoading ? (
-                    <div className="flex flex-col items-center justify-center py-16">
-                      <Loader2 className="h-10 w-10 text-orange-600 animate-spin mb-4" />
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Loading team timesheets...</p>
-                    </div>
-                  ) : allTimesheets.length === 0 ? (
-                    <div className="text-center py-10">
-                      <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                        No team timesheets found
-                      </h3>
-                      <p className="text-gray-600 dark:text-gray-400">
-                        There are no timesheets submitted by team members yet
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-5">
-                      {allTimesheets.map((timesheet) => (
-                        <div
-                          key={timesheet.timesheet_id}
-                          className="border border-gray-200 dark:border-gray-700 rounded-lg p-5 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
-                          onClick={() =>
-                            router.push(`/timesheet/${timesheet.timesheet_id}`)
-                          }
+              <div className="space-y-6">
+                <FilterBar
+                  search={teamSearch}
+                  onSearch={setTeamSearch}
+                  searchPlaceholder="Search team timesheets by project, person or period…"
+                  resultLabel={
+                    allTeamLoading
+                      ? "Loading…"
+                      : `${visibleTeamTimesheets.length} ${visibleTeamTimesheets.length === 1 ? "timesheet" : "timesheets"}`
+                  }
+                  activeCount={teamStatusFilter !== "all" ? 1 : 0}
+                  onClear={() => setTeamStatusFilter("all")}
+                >
+                  <FilterSelect
+                    label="Status"
+                    value={teamStatusFilter}
+                    onChange={setTeamStatusFilter}
+                    options={[
+                      { value: "all", label: "All statuses" },
+                      { value: "DRAFT", label: "Draft" },
+                      { value: "SUBMITTED", label: "Submitted" },
+                      { value: "APPROVED", label: "Approved" },
+                      { value: "REJECTED", label: "Rejected" },
+                    ]}
+                  />
+                </FilterBar>
+
+                {allTeamLoading ? (
+                  <LoadingState label="Loading team timesheets…" />
+                ) : visibleTeamTimesheets.length === 0 ? (
+                  <EmptyState
+                    icon={<Clock className="h-10 w-10" />}
+                    title="No team timesheets found"
+                    message={
+                      allTimesheets.length === 0
+                        ? "There are no timesheets submitted by team members yet."
+                        : "Try adjusting your search or filter to see more results."
+                    }
+                    action={
+                      allTimesheets.length > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTeamSearch("");
+                            setTeamStatusFilter("all");
+                          }}
+                          className="text-[13px] font-semibold text-bright hover:text-bright-deep"
                         >
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center flex-wrap gap-2 sm:gap-3">
-                              <h4 className="font-semibold text-gray-900 dark:text-gray-100">
-                                {timesheet.project.name}
-                              </h4>
-                              {timesheet.user && (
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300 px-2 py-1 rounded">
-                                    {timesheet.user.account.first_name}{" "}
-                                    {timesheet.user.account.last_name}
-                                  </span>
-                                  {timesheet.user.role && (
-                                    <span className="text-xs bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 px-2 py-1 rounded">
-                                      {timesheet.user.role.name}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                            <Badge className={getStatusColor(timesheet.status)}>
-                              {timesheet.status}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
-                            <span>
-                              {formatDate(timesheet.start_date)} -{" "}
-                              {formatDate(timesheet.end_date)}
-                            </span>
-                            <span className="font-medium">
-                              {timesheet.total_hours}h total
-                            </span>
-                          </div>
-                          <div className="mt-2 flex items-center justify-between text-sm">
-                            <span className="text-gray-500 dark:text-gray-500">
-                              {timesheet.time_entries.length} entries
-                            </span>
-                            {timesheet.user?.account.department && (
-                              <span className="text-gray-500 dark:text-gray-500">
-                                {timesheet.user.account.department}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                          Clear all filters
+                        </button>
+                      ) : undefined
+                    }
+                  />
+                ) : view === "grid" ? (
+                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+                    {pagedTeamTimesheets.map((timesheet) =>
+                      renderTimesheetCard(timesheet, true)
+                    )}
+                  </div>
+                ) : (
+                  <ListCard>
+                    <table className="w-full border-collapse">
+                      <ListHead columns={TEAM_COLUMNS} />
+                      <tbody>
+                        {pagedTeamTimesheets.length === 0 ? (
+                          <ListMessage colSpan={TEAM_COLUMNS.length + 1}>
+                            No timesheets on this page.
+                          </ListMessage>
+                        ) : (
+                          pagedTeamTimesheets.map((timesheet) =>
+                            renderTimesheetRow(timesheet, true)
+                          )
+                        )}
+                      </tbody>
+                    </table>
+                  </ListCard>
+                )}
+
+                {!allTeamLoading && visibleTeamTimesheets.length > 0 && (
+                  <ListPagination
+                    page={teamPage}
+                    pageCount={teamPageCount}
+                    total={visibleTeamTimesheets.length}
+                    pageSize={PAGE_SIZE}
+                    onPageChange={setTeamPage}
+                    noun="timesheet"
+                  />
+                )}
+              </div>
             </TabsContent>
           )}
         </Tabs>
 
-        {/* New Timesheet Modal */}
-        <Dialog
-          open={isNewTimesheetModalOpen}
-          onOpenChange={setIsNewTimesheetModalOpen}
-        >
-          <DialogContent className="sm:max-w-[520px]">
-            <DialogHeader>
-              <DialogTitle>Create New Timesheet</DialogTitle>
-              <DialogDescription>
-                {canViewAllTimesheets()
-                  ? "Create a timesheet for a team member. Select the user, project, and date range."
-                  : "Create a new timesheet for yourself. Select the project and date range."}
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-5">
-              {canViewAllTimesheets() && (
-                <div ref={userDropdownRef} className="relative">
-                  <Label htmlFor="user-search">User *</Label>
-                  <div className="relative mt-1.5">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                    <input
-                      id="user-search"
-                      type="text"
-                      value={
-                        selectedUser && users.length > 0
-                          ? (() => {
-                              const u = users.find((u) => u.user_id.toString() === selectedUser);
-                              return u
-                                ? `${u.account.first_name} ${u.account.last_name} (${u.email}) ${u.role?.name || ""}`
-                                : userSearchQuery;
-                            })()
-                          : userSearchQuery
-                      }
-                      onChange={(e) => {
-                        setUserSearchQuery(e.target.value);
-                        setUserDropdownOpen(true);
-                        setSelectedUser("");
-                        setSelectedProject("");
-                      }}
-                      onFocus={() => setUserDropdownOpen(true)}
-                      placeholder="Search by name, email, or role..."
-                      className="w-full pl-9 pr-3 py-2.5 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    />
-                  </div>
-                  {userDropdownOpen && users.length > 0 && (
-                    <ul className="absolute z-10 mt-1 w-full max-h-56 overflow-auto rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-lg py-1">
-                      {users
-                        .filter(
-                          (user) =>
-                            !userSearchQuery.trim() ||
-                            `${user.account.first_name} ${user.account.last_name} ${user.email} ${user.role?.name || ""}`
-                              .toLowerCase()
-                              .includes(userSearchQuery.trim().toLowerCase())
-                        )
-                        .map((user) => (
-                          <li
-                            key={user.user_id}
-                            role="option"
-                            className="px-3 py-2.5 text-sm cursor-pointer hover:bg-orange-50 dark:hover:bg-slate-600 text-gray-900 dark:text-gray-100 border-b border-gray-100 dark:border-slate-600 last:border-0"
-                            onClick={() => {
-                              setSelectedUser(user.user_id.toString());
-                              setUserSearchQuery("");
-                              setUserDropdownOpen(false);
-                              setSelectedProject("");
-                            }}
-                          >
-                            <span className="font-medium">
-                              {user.account.first_name} {user.account.last_name}
-                            </span>
-                            <span className="text-gray-500 dark:text-gray-400 ml-1">
-                              ({user.email})
-                            </span>
-                            {user.role && (
-                              <span className="text-xs bg-gray-100 dark:bg-slate-600 text-gray-600 dark:text-gray-300 ml-2 px-1.5 py-0.5 rounded">
-                                {user.role.name}
-                              </span>
-                            )}
-                          </li>
-                        ))}
-                      {users.filter(
-                        (u) =>
-                          !userSearchQuery.trim() ||
-                          `${u.account.first_name} ${u.account.last_name} ${u.email} ${u.role?.name || ""}`
-                            .toLowerCase()
-                            .includes(userSearchQuery.trim().toLowerCase())
-                      ).length === 0 && (
-                        <li className="px-3 py-2.5 text-sm text-gray-500 dark:text-gray-400">
-                          No matching user
-                        </li>
-                      )}
-                    </ul>
-                  )}
-                </div>
-              )}
-
-              <div>
-                <Label htmlFor="project-select" className="block mb-1.5">Project *</Label>
-                <Select
-                  value={selectedProject}
-                  onValueChange={setSelectedProject}
-                  disabled={canViewAllTimesheets() && !selectedUser}
-                >
-                  <SelectTrigger>
-                    <SelectValue
-                      placeholder={
-                        canViewAllTimesheets() && !selectedUser
-                          ? "Select a user first"
-                          : "Select a project"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {getFilteredProjects().map((project) => (
-                      <SelectItem
-                        key={project.project_id}
-                        value={project.project_id.toString()}
-                      >
-                        <div className="flex items-center space-x-2">
-                          <span>{project.name}</span>
-                          <Badge variant="secondary" className="text-xs">
-                            {project.status}
-                          </Badge>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {canViewAllTimesheets() && !selectedUser && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Please select a user to see their available projects
-                  </p>
-                )}
-                {canViewAllTimesheets() &&
-                  selectedUser &&
-                  getFilteredProjects().length === 0 && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      This user is not assigned to any active projects
-                    </p>
-                  )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-5">
-                <div>
-                  <Label htmlFor="start-date" className="block mb-1.5">Start Date *</Label>
-                  <Input
-                    id="start-date"
-                    type="date"
-                    value={startDate}
-                    max={endDate || undefined} // Prevent selecting start date after end date
-                    onChange={(e) => {
-                      setStartDate(e.target.value);
-                      // If end date is set and new start date is after it, clear end date
-                      if (
-                        endDate &&
-                        new Date(e.target.value) > new Date(endDate)
-                      ) {
-                        setEndDate("");
-                      }
-                    }}
-                    className={
-                      validateDateRange(startDate, endDate).isValid
-                        ? ""
-                        : "border-red-500 focus:border-red-500 focus:ring-red-500"
-                    }
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="end-date" className="block mb-1.5">End Date *</Label>
-                  <Input
-                    id="end-date"
-                    type="date"
-                    value={endDate}
-                    min={startDate || undefined} // Prevent selecting end date before start date
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className={
-                      validateDateRange(startDate, endDate).isValid
-                        ? ""
-                        : "border-red-500 focus:border-red-500 focus:ring-red-500"
-                    }
-                  />
-                </div>
-              </div>
-
-              {/* Date validation error message */}
-              {startDate &&
-                endDate &&
-                !validateDateRange(startDate, endDate).isValid && (
-                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-                    <p className="text-sm text-red-600 dark:text-red-400">
-                      <span className="font-medium">Invalid date range:</span>{" "}
-                      {validateDateRange(startDate, endDate).error}
-                    </p>
-                  </div>
-                )}
-
-              <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-slate-700 mt-6">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setIsNewTimesheetModalOpen(false);
-                    resetModalForm();
-                  }}
-                  disabled={creatingTimesheet}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleCreateTimesheet}
-                  disabled={
-                    creatingTimesheet ||
-                    (canViewAllTimesheets() ? !selectedUser : false) ||
-                    (canViewAllTimesheets() &&
-                      selectedUser &&
-                      getFilteredProjects().length === 0) ||
-                    !selectedProject ||
-                    !startDate ||
-                    !endDate ||
-                    !validateDateRange(startDate, endDate).isValid
-                  }
-                  className="bg-orange-600 hover:bg-orange-700 text-white"
-                >
-                  {creatingTimesheet ? "Creating..." : "Create Timesheet"}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
     </DashboardLayout>
   );

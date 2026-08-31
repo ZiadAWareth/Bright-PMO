@@ -31,16 +31,16 @@ const statusOptions = [
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'DRAFT': return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200';
-      case 'IN_PROGRESS': return 'bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300';
-      case 'ANALYZING': return 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300';
-      case 'FEASIBLE': return 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300';
-      case 'INFEASIBLE': return 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-300';
-      case 'PENDING_APPROVAL': return 'bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300';
-      case 'APPROVED': return 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300';
-      case 'REJECTED': return 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-300';
-      case 'CONVERTED': return 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300';
-      default: return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200';
+      case 'DRAFT': return 'bg-surface-2 text-ink-2';
+      case 'IN_PROGRESS': return 'bg-info-soft  text-info ';
+      case 'ANALYZING': return 'bg-warning-soft  text-warning ';
+      case 'FEASIBLE': return 'bg-success-soft  text-success ';
+      case 'INFEASIBLE': return 'bg-danger-soft  text-danger ';
+      case 'PENDING_APPROVAL': return 'bg-accent-violet-soft  text-accent-violet ';
+      case 'APPROVED': return 'bg-success-soft  text-success ';
+      case 'REJECTED': return 'bg-danger-soft  text-danger ';
+      case 'CONVERTED': return 'bg-success-soft  text-success ';
+      default: return 'bg-surface-2 text-ink-2';
     }
   };
 
@@ -140,7 +140,7 @@ const StatusManager: React.FC<StatusManagerProps> = ({
                     >
                       <div className="flex flex-col">
                         <span>{option.label}</span>
-                        <span className="text-xs text-gray-500">{option.description}</span>
+                        <span className="text-xs text-muted">{option.description}</span>
                       </div>
                     </SelectItem>
                   ))}

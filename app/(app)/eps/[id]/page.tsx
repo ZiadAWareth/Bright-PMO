@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { FormSection, InfoGrid, StatusBadge } from "@/components/ui/form-shell";
 import {
   ArrowLeft,
   Edit,
@@ -49,6 +50,8 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { format } from "date-fns";
 // Removed EpsEditForm import since we're using dedicated edit page
 import ProjectsTab from "@/components/ProjectsTab";
+import { Spinner } from "@/components/ui/spinner";
+import { TabRow } from "@/components/ui/tab-row";
 
 
 // User interface for role checking
@@ -125,21 +128,21 @@ const DeleteModal = ({
       onMouseDown={handleBackdropMouseDown}
       onClick={handleBackdropClick}
     >
-      <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md w-full shadow-2xl border border-gray-200 dark:border-slate-700">
+      <div className="bg-surface rounded-xl p-6 max-w-md w-full shadow-2xl border border-line">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          <h2 className="text-lg font-semibold text-ink">
             Delete EPS
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+            className="text-faint hover:text-muted"
           >
             <X size={20} />
           </button>
         </div>
-        <p className="text-gray-600 dark:text-gray-400 mb-4">
+        <p className="text-muted mb-4">
           Are you sure you want to delete{" "}
-          <span className="font-semibold text-red-600 dark:text-red-400">
+          <span className="font-semibold text-danger">
             {epsName}
           </span>
           ? This action cannot be undone.
@@ -147,10 +150,10 @@ const DeleteModal = ({
         <div className="mb-6">
           <label
             htmlFor="confirmDelete"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            className="block text-sm font-medium text-ink-3 mb-2"
           >
             Type{" "}
-            <span className="font-semibold text-red-600 dark:text-red-400">
+            <span className="font-semibold text-danger">
               {epsName}
             </span>{" "}
             to confirm deletion
@@ -160,21 +163,21 @@ const DeleteModal = ({
             id="confirmDelete"
             value={confirmText}
             onChange={(e) => setConfirmText(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            className="w-full px-3 py-2 border border-line rounded-lg text-sm bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-bright"
             placeholder="Enter EPS name to confirm"
           />
         </div>
         <div className="flex justify-end space-x-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+            className="px-4 py-2 text-sm font-medium text-ink-3 hover:bg-surface-2 rounded-lg transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             disabled={isDeleting || !canDelete}
-            className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-sm font-medium text-white bg-danger hover:opacity-90 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isDeleting ? "Deleting..." : "Delete"}
           </button>
@@ -423,7 +426,7 @@ const EPSDetailPage = ({ params }: { params: Promise<{ id: string }> }) => {
       <ProtectedRoute>
         <DashboardLayout onViewChange={setActiveView} activeView={activeView}>
           <div className="flex items-center justify-center min-h-96">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
+            <Spinner size={48} className="text-bright-primary" />
           </div>
         </DashboardLayout>
       </ProtectedRoute>
@@ -435,16 +438,16 @@ const EPSDetailPage = ({ params }: { params: Promise<{ id: string }> }) => {
       <ProtectedRoute>
         <DashboardLayout onViewChange={setActiveView} activeView={activeView}>
           <div className="text-center py-12">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+            <h3 className="text-lg font-medium text-ink mb-2">
               EPS not found
             </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
+            <p className="text-muted mb-4">
               The EPS you're looking for doesn't exist or you don't have
               permission to view it.
             </p>
             <button
               onClick={() => router.back()}
-              className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+              className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors"
             >
               Go Back
             </button>
@@ -463,311 +466,151 @@ const EPSDetailPage = ({ params }: { params: Promise<{ id: string }> }) => {
     { id: "projects", label: "Projects", icon: <FolderTree size={16} /> },
   ];
 
+  const projectList = Array.isArray(eps.projects) ? eps.projects : [];
+  const projectCount = projectList.length;
+  const totalBudget = projectList.reduce(
+    (sum, project) => sum + (project.budget_amount || 0),
+    0,
+  );
+  // Averages over an empty EPS are 0 rather than NaN.
+  const averageProgress = projectCount
+    ? Math.round(
+        projectList.reduce(
+          (sum, project) => sum + (project.progress_percentage || 0),
+          0,
+        ) / projectCount,
+      )
+    : 0;
+  const averageHealth = projectCount
+    ? Math.round(
+        projectList.reduce(
+          (sum, project) => sum + (project.healthScore || 0),
+          0,
+        ) / projectCount,
+      )
+    : 0;
+
+  const epsRows: [string, React.ReactNode][] = [
+    ["EPS Code", <StatusBadge key="code" label={eps.eps_code} tone="neutral" />],
+    ["Level", <StatusBadge key="level" label={`Level ${eps.level}`} tone="info" />],
+    [
+      "Parent EPS",
+      eps.parent_eps_id && eps.parent ? (
+        <button
+          key="parent"
+          onClick={() => {
+            if (eps.parent) router.push(`/eps/${eps.parent.eps_id}`);
+          }}
+          className="text-[13.5px] font-medium text-bright transition-colors hover:text-bright-deep hover:underline"
+        >
+          {eps.parent.name} (Level {eps.parent.level})
+        </button>
+      ) : eps.parent_eps_id ? (
+        `Level ${eps.level - 1} EPS (ID: ${eps.parent_eps_id})`
+      ) : (
+        "None"
+      ),
+    ],
+    ["Total Projects", <span key="count" className="tabular-nums">{projectCount}</span>],
+    ["Total Budget", <span key="budget" className="tabular-nums">{formatCurrency(totalBudget)}</span>],
+    ["Created", formatDate(eps.created_at)],
+  ];
+
   return (
     <ProtectedRoute>
-      <DashboardLayout onViewChange={setActiveView} activeView={activeView}>
-        {/* Breadcrumb Navigation */}
-        <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400 mb-6">
+      <DashboardLayout
+        title={eps.name}
+        subtitle={eps.description}
+        backHref="/eps"
+        backLabel="Back to EPS"
+        actions={roleSpecificActions.map((action, index) => (
           <button
-            onClick={() => router.push("/eps")}
-            className="hover:text-orange-600 transition-colors"
+            key={index}
+            onClick={() => {
+              if (action.action === "edit") handleEditClick();
+              else if (action.action === "delete") handleDeleteClick();
+            }}
+            className={`inline-flex h-[38px] items-center gap-2 rounded-[10px] px-4 text-[13.5px] font-semibold transition-colors ${
+              action.variant === "primary"
+                ? "bg-bright text-white hover:bg-bright-deep"
+                : action.variant === "danger"
+                  ? "border border-line text-muted hover:border-danger hover:bg-danger-soft hover:text-danger"
+                  : "border border-line text-muted hover:bg-surface-2 hover:text-ink"
+            }`}
           >
-            EPS
+            {action.icon}
+            <span>{action.label}</span>
           </button>
-          <span>/</span>
-          <span className="text-gray-900 dark:text-gray-100">{eps.name}</span>
-        </div>
-
-        {/* EPS Header */}
-        <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6 mb-6">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex-1">
-              <div className="flex items-center space-x-3 mb-2">
-                <button
-                  onClick={() => router.back()}
-                  className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
-                >
-                  <ArrowLeft size={20} />
-                </button>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {eps.name}
-                </h1>
-                <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                  Level {eps.level}
-                </span>
-                <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300">
-                  {eps.eps_code}
-                </span>
-              </div>
-              <p className="text-gray-600 dark:text-gray-400 mb-3">
-                {eps.description}
+        ))}
+        onViewChange={setActiveView}
+        activeView={activeView}
+      >
+        <FormSection title="Rollup" className="mb-6">
+          <div className="grid grid-cols-2 gap-x-8 gap-y-6 md:grid-cols-4">
+            <div>
+              <p className="text-[12px] text-muted">Total Projects</p>
+              <p className="mt-1 text-[22px] font-semibold tabular-nums text-ink">
+                {projectCount}
               </p>
             </div>
-          </div>
-
-          {/* Progress and Key Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Total Projects
-                </span>
-                <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                  {Array.isArray(eps.projects) ? eps.projects.length : 0}
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2">
-                <div
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: "100%" }}
-                ></div>
-              </div>
+            <div>
+              <p className="text-[12px] text-muted">Total Budget</p>
+              <p className="mt-1 text-[22px] font-semibold tabular-nums text-ink">
+                {formatCurrency(totalBudget)}
+              </p>
             </div>
-            <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Total Budget
-                </span>
-                <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                  {formatCurrency(
-                    Array.isArray(eps.projects)
-                      ? eps.projects.reduce(
-                          (sum, project) => sum + (project.budget_amount || 0),
-                          0
-                        )
-                      : 0
-                  )}
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2">
-                <div
-                  className="bg-green-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: "100%" }}
-                ></div>
-              </div>
-            </div>
-            <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Average Progress
-                </span>
-                <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                  {Array.isArray(eps.projects) && eps.projects.length > 0
-                    ? `${Math.round(
-                        eps.projects.reduce(
-                          (sum, project) =>
-                            sum + (project.progress_percentage || 0),
-                          0
-                        ) / eps.projects.length
-                      )}%`
-                    : "0%"}
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2">
-                <div
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{
-                    width: `${
-                      Array.isArray(eps.projects) && eps.projects.length > 0
-                        ? Math.round(
-                            eps.projects.reduce(
-                              (sum, project) =>
-                                sum + (project.progress_percentage || 0),
-                              0
-                            ) / eps.projects.length
-                          )
-                        : 0
-                    }%`,
-                  }}
-                ></div>
-              </div>
-            </div>
-            <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Health Score
-                </span>
-                <span className="text-lg font-bold text-green-600">
-                  {Array.isArray(eps.projects) && eps.projects.length > 0
-                    ? `${Math.round(
-                        eps.projects.reduce(
-                          (sum, project) => sum + (project.healthScore || 0),
-                          0
-                        ) / eps.projects.length
-                      )}%`
-                    : "0%"}
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2">
-                <div
-                  className="bg-green-600 h-2 rounded-full transition-all duration-300"
-                  style={{
-                    width: `${
-                      Array.isArray(eps.projects) && eps.projects.length > 0
-                        ? Math.round(
-                            eps.projects.reduce(
-                              (sum, project) =>
-                                sum + (project.healthScore || 0),
-                              0
-                            ) / eps.projects.length
-                          )
-                        : 0
-                    }%`,
-                  }}
-                ></div>
-              </div>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-slate-700">
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-500">
-                Level {eps.level} EPS
-              </span>
-              <span className="text-sm text-gray-500">
-                Created on {formatDate(eps.created_at)}
-              </span>
-              {/* <span className="text-sm text-gray-500">
-                • Created by {eps.created_by || 'N/A'}
-              </span> */}
-            </div>
-            <div className="flex items-center space-x-2">
-              {roleSpecificActions.map((action, index) => (
-                <button
-                  key={index}
-                  onClick={() => {
-                    if (action.action === "edit") handleEditClick();
-                    else if (action.action === "delete") handleDeleteClick();
-                  }}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm transition-colors ${
-                    action.variant === "primary"
-                      ? "bg-orange-600 text-white hover:bg-orange-700"
-                      : action.variant === "danger"
-                      ? "bg-red-600 text-white hover:bg-red-700"
-                      : "border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700"
-                  }`}
-                >
-                  {action.icon}
-                  <span>{action.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Tab Navigation */}
-        <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl mb-6">
-          <div className="flex items-center space-x-1 p-1 overflow-x-auto whitespace-nowrap">
-            {epsTabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === tab.id
-                    ? "bg-orange-600 text-white"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-slate-700"
-                }`}
+            <div>
+              <p className="text-[12px] text-muted">Average Progress</p>
+              <p className="mt-1 text-[22px] font-semibold tabular-nums text-ink">
+                {averageProgress}%
+              </p>
+              <div
+                className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-surface-3"
+                role="img"
+                aria-label={`Average progress ${averageProgress} percent`}
               >
-                {tab.icon}
-                <span>{tab.label}</span>
-              </button>
-            ))}
+                <div
+                  className="h-full rounded-full bg-info transition-[width] duration-300"
+                  style={{ width: `${averageProgress}%` }}
+                />
+              </div>
+            </div>
+            <div>
+              <p className="text-[12px] text-muted">Health Score</p>
+              <p className="mt-1 text-[22px] font-semibold tabular-nums text-ink">
+                {averageHealth}%
+              </p>
+              <div
+                className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-surface-3"
+                role="img"
+                aria-label={`Average health score ${averageHealth} percent`}
+              >
+                <div
+                  className="h-full rounded-full bg-success transition-[width] duration-300"
+                  style={{ width: `${averageHealth}%` }}
+                />
+              </div>
+            </div>
           </div>
-        </div>
+        </FormSection>
+
+        <TabRow tabs={epsTabs} value={activeTab} onChange={setActiveTab} />
 
         {/* Tab Content */}
         <div className="mt-6">
           {activeTab === "overview" && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Main EPS Information */}
-              <div className="lg:col-span-2 space-y-6">
-                {/* EPS Details */}
-                <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                    EPS Information
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        EPS Code
-                      </label>
-                      <p className="text-sm text-gray-900 dark:text-gray-100">
-                        {eps.eps_code}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Level
-                      </label>
-                      <p className="text-sm text-gray-900 dark:text-gray-100">
-                        {eps.level}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Parent EPS
-                      </label>
-                      {eps.parent_eps_id && eps.parent ? (
-                        <button
-                          onClick={() => {
-                            if (eps.parent) {
-                              router.push(`/eps/${eps.parent.eps_id}`);
-                            }
-                          }}
-                          className="text-sm text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 hover:underline"
-                        >
-                          {eps.parent.name} (Level {eps.parent.level})
-                        </button>
-                      ) : eps.parent_eps_id ? (
-                        <p className="text-sm text-gray-900 dark:text-gray-100">
-                          Level {eps.level - 1} EPS (ID: {eps.parent_eps_id})
-                        </p>
-                      ) : (
-                        <p className="text-sm text-gray-900 dark:text-gray-100">
-                          None
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Total Projects
-                      </label>
-                      <p className="text-sm text-gray-900 dark:text-gray-100">
-                        {eps.projects.length}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Description
-                    </label>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {eps.description}
-                    </p>
-                  </div>
-                </div>
-              </div>
+            <div className="space-y-6">
+              <FormSection title="EPS Information">
+                <InfoGrid rows={epsRows} />
+              </FormSection>
 
-              {/* Sidebar */}
-              <div className="space-y-6">
-                {/* Quick Stats */}
-                <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                    Quick Stats
-                  </h3>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Total Projects
-                      </span>
-                      <span className="text-sm font-medium text-orange-600">
-                        {Array.isArray(eps.projects) ? eps.projects.length : 0}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {eps.description && (
+                <FormSection title="Description">
+                  <p className="whitespace-pre-line text-[13.5px] text-ink">
+                    {eps.description}
+                  </p>
+                </FormSection>
+              )}
             </div>
           )}
 

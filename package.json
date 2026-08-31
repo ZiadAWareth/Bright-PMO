@@ -1,12 +1,12 @@
 {
-  "name": "pm_wujha",
+  "name": "pm_bright",
   "version": "0.1.0",
   "private": true,
   "module": "types",
   "scripts": {
-    "dev": "next dev --turbopack --port 3000",
+    "dev": "node --max-old-space-size=8192 node_modules/next/dist/bin/next dev --turbopack --port 7060",
     "build": "next build",
-    "start": "next start",
+    "start": "next start --port 7060",
     "lint": "next lint",
     "cron": "tsx scripts/cron.ts",
     "create-timesheets": "tsx scripts/create-weekly-timesheets.ts"

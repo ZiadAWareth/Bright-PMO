@@ -1,45 +1,41 @@
 import React from "react";
 import { Calendar, Building, Flag, Zap } from "lucide-react";
+import { TabRow } from "@/components/ui/tab-row";
+
+type ScheduleView = "calendar" | "phases" | "milestones" | "critical";
 
 interface ViewTabsProps {
-    activeView: "calendar" | "phases" | "milestones" | "critical";
-    onViewChange: (view: "calendar" | "phases" | "milestones" | "critical") => void;
+    activeView: ScheduleView;
+    onViewChange: (view: ScheduleView) => void;
 }
 
-const ViewTabs: React.FC<ViewTabsProps> = ({ activeView, onViewChange }) => {
-    const views = [
-        { id: "calendar", label: "Calendar", icon: Calendar },
-        { id: "phases", label: "Phases", icon: Building },
-        { id: "milestones", label: "Milestones", icon: Flag },
-        { id: "critical", label: "Critical Path", icon: Zap },
-    ] as const;
+const views = [
+    { id: "calendar", label: "Calendar", icon: <Calendar size={16} /> },
+    { id: "phases", label: "Phases", icon: <Building size={16} /> },
+    { id: "milestones", label: "Milestones", icon: <Flag size={16} /> },
+    { id: "critical", label: "Critical Path", icon: <Zap size={16} /> },
+];
 
-    return (
-        <div className="flex items-center space-x-1 bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-sm p-1 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
-            {views.map((view) => {
-                const IconComponent = view.icon;
-                return (
-                    <button
-                        key={view.id}
-                        onClick={() => onViewChange(view.id)}
-                        className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-all duration-200 ${
-                            activeView === view.id
-                                ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm font-medium"
-                                : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-750 hover:text-gray-900 dark:hover:text-gray-200"
-                        }`}
-                    >
-                        <IconComponent
-                            size={16}
-                            className={activeView === view.id ? "text-blue-500" : ""}
-                        />
-                        <span className={activeView === view.id ? "font-medium" : ""}>
-                            {view.label}
-                        </span>
-                    </button>
-                );
-            })}
-        </div>
-    );
-};
+/**
+ * The project schedule's view switcher.
+ *
+ * Previously a hand-rolled pill row: four buttons on a `bg-surface-2/80`
+ * backdrop-blurred track, with the active view lifting onto its own surface.
+ * That is the pill treatment the house style rules out — every multi-tab view
+ * uses the underline row, so the two ways of building a tabbed screen look
+ * identical and brand colour stays with primary actions and active navigation.
+ *
+ * Delegating to `TabRow` rather than restyling in place also means this row
+ * picks up the shared `role="tablist"` / `aria-selected` semantics, which the
+ * hand-rolled version never had — a screen reader announced it as four
+ * unrelated buttons.
+ */
+const ViewTabs: React.FC<ViewTabsProps> = ({ activeView, onViewChange }) => (
+    <TabRow
+        tabs={views}
+        value={activeView}
+        onChange={(id) => onViewChange(id as ScheduleView)}
+    />
+);
 
 export default ViewTabs;

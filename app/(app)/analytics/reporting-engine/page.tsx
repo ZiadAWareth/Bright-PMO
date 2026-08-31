@@ -42,7 +42,7 @@ export default function ReportingEnginePage() {
   const relatedColumnCount = Object.values(selectedRelatedColumns).flat().length;
 
   return (
-    <DashboardLayout title="Analytics · Reporting Engine">
+    <DashboardLayout hideHeader>
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -138,14 +138,14 @@ function ConnectionBadge({
   }
   if (connection.status === "ok") {
     return (
-      <span className="inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+      <span className="inline-flex items-center gap-2 rounded-xl bg-success-soft px-3 py-2 text-xs font-medium text-success">
         <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
         Engine connected
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-2 rounded-xl bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+    <span className="inline-flex items-center gap-2 rounded-xl bg-danger-soft px-3 py-2 text-xs font-medium text-danger">
       <AlertCircle className="h-4 w-4" aria-hidden="true" />
       Engine unavailable
     </span>
@@ -159,10 +159,10 @@ function ConnectionBadge({
  */
 function ConnectionError({ message }: { message: string }) {
   return (
-    <section className="rounded-2xl border border-wujha-danger/30 bg-wujha-danger/5 p-6">
+    <section className="rounded-2xl border border-bright-danger/30 bg-bright-danger/5 p-6">
       <div className="flex items-start gap-3">
         <AlertCircle
-          className="mt-0.5 h-5 w-5 shrink-0 text-wujha-danger"
+          className="mt-0.5 h-5 w-5 shrink-0 text-bright-danger"
           aria-hidden="true"
         />
         <div className="min-w-0">
@@ -200,8 +200,8 @@ function Banner({
       role={isError ? "alert" : "status"}
       className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${
         isError
-          ? "border-wujha-danger/30 bg-wujha-danger/10 text-wujha-danger"
-          : "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+          ? "border-bright-danger/30 bg-bright-danger/10 text-bright-danger"
+          : "border-success/30 bg-success/10 text-success "
       }`}
     >
       {isError ? (

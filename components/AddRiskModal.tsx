@@ -11,6 +11,8 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
+import { Dropdown } from "@/components/ui/dropdown";
 
 interface User {
     user_id: number;
@@ -308,8 +310,13 @@ export default function AddRiskModal({
         return (
             <Dialog open={isOpen} onOpenChange={handleClose}>
                 <DialogContent className="max-w-2xl">
-                    <div className="flex items-center justify-center h-32">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+                    {/* The dialog still needs an accessible name while it
+                        loads, even though only a spinner is on screen. */}
+                    <DialogHeader className="sr-only">
+                        <DialogTitle>Add New Risk</DialogTitle>
+                    </DialogHeader>
+                    <div className="flex h-32 items-center justify-center">
+                        <Spinner size={32} className="text-bright" />
                     </div>
                 </DialogContent>
             </Dialog>
@@ -321,18 +328,18 @@ export default function AddRiskModal({
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-orange-100 dark:bg-orange-900/20 rounded-full flex items-center justify-center">
-                            <AlertCircle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                        <div className="w-8 h-8 bg-bright-soft rounded-full flex items-center justify-center">
+                            <AlertCircle className="w-4 h-4 text-bright" />
                         </div>
                         Add New Risk
                     </DialogTitle>
                 </DialogHeader>
 
                 {error && (
-                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
+                    <div className="bg-danger-soft border border-danger rounded-lg p-4 mb-4">
                         <div className="flex items-center gap-2">
-                            <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-                            <span className="text-red-700 dark:text-red-300">
+                            <AlertCircle className="h-4 w-4 text-danger" />
+                            <span className="text-danger">
                                 {error}
                             </span>
                         </div>
@@ -343,22 +350,22 @@ export default function AddRiskModal({
                     {/* Basic Information */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label className="block text-sm font-medium text-ink-3 mb-1">
                                 Risk Name{" "}
-                                <span className="text-red-500">*</span>
+                                <span className="text-danger">*</span>
                             </label>
                             <input
                                 name="name"
                                 value={form.name}
                                 onChange={handleChange}
                                 required
-                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white"
+                                className="w-full px-3 py-2 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-bright dark:text-white"
                                 placeholder="Enter risk name"
                             />
                         </div>
 
                         <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label className="block text-sm font-medium text-ink-3 mb-1">
                                 Description
                             </label>
                             <textarea
@@ -366,78 +373,66 @@ export default function AddRiskModal({
                                 value={form.description}
                                 onChange={handleChange}
                                 rows={3}
-                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white"
+                                className="w-full px-3 py-2 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-bright dark:text-white"
                                 placeholder="Describe the risk in detail"
                             />
                         </div>
 
                         {isMultiProjectMode && (
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Project <span className="text-red-500">*</span>
+                                <label className="block text-sm font-medium text-ink-3 mb-1">
+                                    Project <span className="text-danger">*</span>
                                 </label>
-                                <select
-                                    name="project_id"
-                                    value={form.project_id}
-                                    onChange={handleChange}
-                                    required
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white"
-                                >
-                                    <option value={0}>Select Project</option>
-                                    {projects!.map((proj) => (
-                                        <option
-                                            key={proj.project_id}
-                                            value={proj.project_id}
-                                        >
-                                            {proj.name}
-                                        </option>
-                                    ))}
-                                </select>
+                                <Dropdown
+                                  value={String(form.project_id ?? '')}
+                                  onChange={(__v: string) => handleChange({ target: { name: "project_id", value: __v } } as React.ChangeEvent<HTMLSelectElement>)}
+                                  options={[
+                                  { value: String(0), label: "Select Project" },
+                                  ...projects!.map((proj) => ({ value: String(proj.project_id), label: proj.name })),
+                                ]}
+                                  name="project_id"
+                                  required={true}
+                                  modal
+                                />
                             </div>
                         )}
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Category <span className="text-red-500">*</span>
+                            <label className="block text-sm font-medium text-ink-3 mb-1">
+                                Category <span className="text-danger">*</span>
                             </label>
-                            <select
-                                name="category"
-                                value={form.category}
-                                onChange={handleChange}
-                                required
-                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white"
-                            >
-                                {categoryOptions.map((option) => (
-                                    <option
-                                        key={option.value}
-                                        value={option.value}
-                                    >
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
+                            <Dropdown
+                              value={String(form.category ?? '')}
+                              onChange={(__v: string) => handleChange({ target: { name: "category", value: __v } } as React.ChangeEvent<HTMLSelectElement>)}
+                              options={[
+                              ...categoryOptions.map((option) => ({ value: String(option.value), label: option.label })),
+                            ]}
+                              name="category"
+                              required={true}
+                              modal
+                            />
                         </div>
 
                         <div className="relative">
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Owner <span className="text-red-500">*</span>
+                            <label className="block text-sm font-medium text-ink-3 mb-1">
+                                Owner <span className="text-danger">*</span>
                             </label>
                             <div className="relative">
                                 <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-faint" />
                                     <input
                                         type="text"
                                         value={ownerSearchQuery}
                                         onChange={(e) => setOwnerSearchQuery(e.target.value)}
                                         onFocus={() => setShowOwnerDropdown(true)}
                                         placeholder="Search owner..."
-                                        className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white"
+                                        className="w-full pl-10 pr-3 py-2 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-bright dark:text-white"
                                     />
                                 </div>
                                 {showOwnerDropdown && (
-                                    <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                    <div className="absolute z-50 w-full mt-1 bg-surface border border-line rounded-lg shadow-lg max-h-60 overflow-y-auto">
                                         <div
-                                            className="px-3 py-2 hover:bg-orange-50 dark:hover:bg-orange-900/20 cursor-pointer text-sm text-gray-700 dark:text-gray-300"
+                                            className="px-3 py-2 hover:bg-bright-soft cursor-pointer text-sm text-ink-3"
                                             onClick={() => {
                                                 setForm(prev => ({ ...prev, owner_id: 0 }));
                                                 setOwnerSearchQuery("");
@@ -450,10 +445,10 @@ export default function AddRiskModal({
                                             filteredUsers.map((user) => (
                                                 <div
                                                     key={user.user_id}
-                                                    className={`px-3 py-2 hover:bg-orange-50 dark:hover:bg-orange-900/20 cursor-pointer text-sm ${
+                                                    className={`px-3 py-2 hover:bg-bright-soft  cursor-pointer text-sm ${
                                                         form.owner_id === user.user_id
-                                                            ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300'
-                                                            : 'text-gray-700 dark:text-gray-300'
+                                                            ? 'bg-bright-soft  text-bright-deep'
+                                                            : 'text-ink-3'
                                                     }`}
                                                     onClick={() => {
                                                         setForm(prev => ({ ...prev, owner_id: user.user_id }));
@@ -465,7 +460,7 @@ export default function AddRiskModal({
                                                 </div>
                                             ))
                                         ) : (
-                                            <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                                            <div className="px-3 py-2 text-sm text-muted">
                                                 No users found
                                             </div>
                                         )}
@@ -481,94 +476,70 @@ export default function AddRiskModal({
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Impact <span className="text-red-500">*</span>
+                            <label className="block text-sm font-medium text-ink-3 mb-1">
+                                Impact <span className="text-danger">*</span>
                             </label>
-                            <select
-                                name="impact"
-                                value={form.impact}
-                                onChange={handleChange}
-                                required
-                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white"
-                            >
-                                {impactOptions.map((option) => (
-                                    <option
-                                        key={option.value}
-                                        value={option.value}
-                                    >
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
+                            <Dropdown
+                              value={String(form.impact ?? '')}
+                              onChange={(__v: string) => handleChange({ target: { name: "impact", value: __v } } as React.ChangeEvent<HTMLSelectElement>)}
+                              options={[
+                              ...impactOptions.map((option) => ({ value: String(option.value), label: option.label })),
+                            ]}
+                              name="impact"
+                              required={true}
+                              modal
+                            />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label className="block text-sm font-medium text-ink-3 mb-1">
                                 Probability{" "}
-                                <span className="text-red-500">*</span>
+                                <span className="text-danger">*</span>
                             </label>
-                            <select
-                                name="probability"
-                                value={form.probability}
-                                onChange={handleChange}
-                                required
-                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white"
-                            >
-                                {probabilityOptions.map((option) => (
-                                    <option
-                                        key={option.value}
-                                        value={option.value}
-                                    >
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
+                            <Dropdown
+                              value={String(form.probability ?? '')}
+                              onChange={(__v: string) => handleChange({ target: { name: "probability", value: __v } } as React.ChangeEvent<HTMLSelectElement>)}
+                              options={[
+                              ...probabilityOptions.map((option) => ({ value: String(option.value), label: option.label })),
+                            ]}
+                              name="probability"
+                              required={true}
+                              modal
+                            />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label className="block text-sm font-medium text-ink-3 mb-1">
                                 Status
                             </label>
-                            <select
-                                name="status"
-                                value={form.status}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white"
-                            >
-                                {statusOptions.map((option) => (
-                                    <option
-                                        key={option.value}
-                                        value={option.value}
-                                    >
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
+                            <Dropdown
+                              value={String(form.status ?? '')}
+                              onChange={(__v: string) => handleChange({ target: { name: "status", value: __v } } as React.ChangeEvent<HTMLSelectElement>)}
+                              options={[
+                              ...statusOptions.map((option) => ({ value: String(option.value), label: option.label })),
+                            ]}
+                              name="status"
+                              modal
+                            />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label className="block text-sm font-medium text-ink-3 mb-1">
                                 Approval Status
                             </label>
-                            <select
-                                name="approvalStatus"
-                                value={form.approvalStatus}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white"
-                            >
-                                {approvalStatusOptions.map((option) => (
-                                    <option
-                                        key={option.value}
-                                        value={option.value}
-                                    >
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
+                            <Dropdown
+                              value={String(form.approvalStatus ?? '')}
+                              onChange={(__v: string) => handleChange({ target: { name: "approvalStatus", value: __v } } as React.ChangeEvent<HTMLSelectElement>)}
+                              options={[
+                              ...approvalStatusOptions.map((option) => ({ value: String(option.value), label: option.label })),
+                            ]}
+                              name="approvalStatus"
+                              modal
+                            />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label className="block text-sm font-medium text-ink-3 mb-1">
                                 Identified Date
                             </label>
                             <input
@@ -578,12 +549,12 @@ export default function AddRiskModal({
                                 onChange={handleChange}
                                 min={isSingleProjectMode && project?.start_date ? new Date(project.start_date).toISOString().split('T')[0] : undefined}
                                 max={isSingleProjectMode && project?.planned_end_date ? new Date(project.planned_end_date).toISOString().split('T')[0] : undefined}
-                                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white ${
-                                    dateError ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
+                                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-bright  dark:text-white ${
+                                    dateError ? 'border-danger ' : 'border-line'
                                 }`}
                             />
                             {dateError && (
-                                <div className="mt-1 flex items-center text-sm text-red-600 dark:text-red-400">
+                                <div className="mt-1 flex items-center text-sm text-danger">
                                     <AlertCircle className="w-3 h-3 mr-1" />
                                     {dateError}
                                 </div>
@@ -592,26 +563,26 @@ export default function AddRiskModal({
                     </div>
 
                     {/* Calculated Risk Score Display */}
-                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                    <div className="bg-surface-2 rounded-lg p-4">
                         <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            <span className="text-sm font-medium text-ink-3">
                                 Calculated Risk Score:
                             </span>
-                            <span className="text-lg font-bold text-orange-600 dark:text-orange-400">
+                            <span className="text-lg font-bold text-bright">
                                 {calculateRiskScore(
                                     form.impact,
                                     form.probability
                                 )}
                             </span>
                         </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        <p className="text-xs text-muted mt-1">
                             Based on Impact × Probability (High=3, Medium=2,
                             Low=1)
                         </p>
                     </div>
 
                     {/* Submit Buttons */}
-                    <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex justify-end gap-3 pt-4 border-t border-line">
                         <Button
                             type="button"
                             variant="outline"
@@ -623,11 +594,11 @@ export default function AddRiskModal({
                         <Button
                             type="submit"
                             disabled={isSubmitting || (isSingleProjectMode && !!dateError)}
-                            className="bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="bg-bright hover:bg-bright-deep text-white disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSubmitting ? (
                                 <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                    <Spinner size={16} className="mr-2" />
                                     Creating...
                                 </>
                             ) : (

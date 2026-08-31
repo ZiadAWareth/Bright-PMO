@@ -97,7 +97,7 @@ model EPS {
 
 model Portfolio {
   portfolio_id        Int               @id @default(autoincrement())
-  name                String
+  name                String            @unique
   description         String?
   manager_id          Int
   created_at          DateTime          @default(now())
@@ -510,7 +510,7 @@ model IdpInbox {
 
 model Role {
   role_id     Int      @id @default(autoincrement())
-  name        String
+  name        String   @unique
   description String
   permissions Json
   created_at  DateTime @default(now())

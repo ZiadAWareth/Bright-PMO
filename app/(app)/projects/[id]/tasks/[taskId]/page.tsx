@@ -37,6 +37,8 @@ import EditAssignmentModal from "./_components/EditAssignmentModal";
 import FieldDataModal from "./_components/FieldDataModal";
 import CommentThread from "./_components/CommentThread";
 import { useTaskData } from "./_hooks/useTaskData";
+import { Spinner } from "@/components/ui/spinner";
+import { Dropdown } from "@/components/ui/dropdown";
 
 const TaskDetailsPage = ({
   params,
@@ -102,9 +104,15 @@ const TaskDetailsPage = ({
     confirmDeleteDocument,
   } = useTaskData(params);
 
-  const isDarkMode =
-    typeof window !== "undefined" &&
-    document.documentElement.classList.contains("dark");
+
+  const [progressStatus, setProgressStatus] = React.useState("");
+  const [progressPriority, setProgressPriority] = React.useState("");
+  React.useEffect(() => {
+    if (showProgressModal && task) {
+      setProgressStatus(task.status ?? "");
+      setProgressPriority(task.priority ?? "");
+    }
+  }, [showProgressModal, task]);
 
   const isTaskOverdue = () => {
     return (
@@ -131,7 +139,7 @@ const TaskDetailsPage = ({
           activeView={activeView}
         >
           <div className="flex items-center justify-center min-h-96">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
+            <Spinner size={48} className="text-bright-primary" />
           </div>
         </DashboardLayout>
       </ProtectedRoute>
@@ -147,16 +155,16 @@ const TaskDetailsPage = ({
           activeView={activeView}
         >
           <div className="text-center py-12">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+            <h3 className="text-lg font-medium text-ink mb-2">
               Task not found
             </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
+            <p className="text-muted mb-4">
               The task you're looking for doesn't exist or you don't have
               permission to view it.
             </p>
             <button
               onClick={() => router.back()}
-              className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+              className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors"
             >
               Go Back
             </button>
@@ -175,31 +183,31 @@ const TaskDetailsPage = ({
           activeView={activeView}
         >
           <div className="text-center py-12">
-            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
+            <div className="w-16 h-16 bg-danger-soft rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle className="w-8 h-8 text-danger" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+            <h3 className="text-lg font-medium text-ink mb-2">
               Access Denied
             </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
+            <p className="text-muted mb-4">
               You don't have permission to view the details of this task. Only
               Project Managers (PJM), PMO, Administrators, and users assigned to
               this task can access task details.
             </p>
-            <p className="text-sm text-gray-500 dark:text-gray-500 mb-6">
+            <p className="text-sm text-faint mb-6">
               Your current role:{" "}
               <span className="font-medium">{userRole || "Unknown"}</span>
             </p>
             <div className="flex justify-center space-x-3">
               <button
                 onClick={() => router.push(`/projects/${projectId}/tasks`)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="px-4 py-2 bg-info text-white rounded-lg hover:opacity-90 transition-colors"
               >
                 Back to Tasks
               </button>
               <button
                 onClick={() => router.push(`/projects/${projectId}`)}
-                className="px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors"
               >
                 Back to Project
               </button>
@@ -219,7 +227,7 @@ const TaskDetailsPage = ({
           activeView={activeView}
         >
           <div className="flex items-center justify-center min-h-96">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
+            <Spinner size={48} className="text-bright-primary" />
           </div>
         </DashboardLayout>
       </ProtectedRoute>
@@ -236,41 +244,41 @@ const TaskDetailsPage = ({
         activeView={activeView}
       >
         {/* Breadcrumb Navigation */}
-        <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400 mb-6">
+        <div className="flex items-center space-x-2 text-sm text-muted mb-6">
           <button
             onClick={() => router.push("/projects")}
-            className="hover:text-orange-600 transition-colors"
+            className="hover:text-bright transition-colors"
           >
             Projects
           </button>
           <span>/</span>
           <button
             onClick={() => router.push(`/projects/${projectId}`)}
-            className="hover:text-orange-600 transition-colors"
+            className="hover:text-bright transition-colors"
           >
             {projectName}
           </button>
           <span>/</span>
           <button
             onClick={() => router.push(`/projects/${projectId}/tasks`)}
-            className="hover:text-orange-600 transition-colors"
+            className="hover:text-bright transition-colors"
           >
             Tasks
           </button>
           <span>/</span>
-          <span className="text-gray-900 dark:text-gray-100">{task.name}</span>
+          <span className="text-ink">{task.name}</span>
         </div>
 
         {/* Task Dependency Warning */}
         {isTaskLocked && (
-          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-6">
+          <div className="bg-warning-soft border border-warning rounded-xl p-4 mb-6">
             <div className="flex items-start space-x-3">
-              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+              <AlertTriangle className="w-5 h-5 text-warning mt-0.5 flex-shrink-0" />
               <div className="flex-1">
-                <h3 className="text-amber-800 dark:text-amber-200 font-medium mb-2">
+                <h3 className="text-warning font-medium mb-2">
                   Task Access Restricted
                 </h3>
-                <div className="text-amber-700 dark:text-amber-300 text-sm space-y-1">
+                <div className="text-warning text-sm space-y-1">
                   <p>This task is locked due to incomplete dependencies:</p>
                   <ul className="list-disc list-inside space-y-1 ml-2">
                     {lockReasons.map((reason, index) => (
@@ -283,7 +291,7 @@ const TaskDetailsPage = ({
                     </p>
                   )}
                   {canAccessLocked && (
-                    <p className="mt-2 text-amber-600 dark:text-amber-400 font-medium">
+                    <p className="mt-2 text-warning font-medium">
                       You have administrative access to view this locked task.
                     </p>
                   )}
@@ -295,7 +303,7 @@ const TaskDetailsPage = ({
 
         {/* Task Header */}
         <div
-          className={`bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6 mb-6 ${
+          className={`bg-surface border border-line rounded-xl p-6 mb-6 ${
             isTaskLocked && !canAccessLocked
               ? "opacity-60 pointer-events-none"
               : ""
@@ -306,15 +314,15 @@ const TaskDetailsPage = ({
               <div className="flex items-center space-x-3 mb-2">
                 <button
                   onClick={() => router.push(`/projects/${projectId}/tasks`)}
-                  className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                  className="p-2 rounded-lg text-faint hover:text-muted hover:bg-surface-2 transition-colors"
                 >
                   <ArrowLeft size={20} />
                 </button>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                <h1 className="text-2xl font-bold text-ink">
                   {task.name}
                 </h1>
                 {task.is_milestone && (
-                  <span className="px-2 py-1 bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 text-xs rounded-full">
+                  <span className="px-2 py-1 bg-accent-violet-soft text-accent-violet text-xs rounded-full">
                     Milestone
                   </span>
                 )}
@@ -330,7 +338,7 @@ const TaskDetailsPage = ({
                   <span>{task.status.replace("_", " ").toUpperCase()}</span>
                 </div>
               </div>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
+              <p className="text-muted mb-4">
                 {task.description}
               </p>
             </div>
@@ -339,7 +347,7 @@ const TaskDetailsPage = ({
               <button
                 onClick={() => setShowProgressModal(true)}
                 disabled={isTaskLocked && !canAccessLocked}
-                className="flex items-center space-x-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center space-x-1 px-4 py-2 bg-info text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <RefreshCw size={16} />
                 <span>Update Task</span>
@@ -349,24 +357,24 @@ const TaskDetailsPage = ({
 
           {/* Task Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+            <div className="bg-info-soft rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                <span className="text-sm font-medium text-info">
                   Task Progress
                 </span>
-                <span className="text-lg font-bold text-blue-900 dark:text-blue-100">
+                <span className="text-lg font-bold text-info">
                   {task.progress_percentage}%
                 </span>
               </div>
-              <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2">
+              <div className="w-full bg-info-soft rounded-full h-2">
                 <div
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  className="bg-info h-2 rounded-full transition-all duration-300"
                   style={{
                     width: `${task.progress_percentage}%`,
                   }}
                 ></div>
               </div>
-              <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+              <div className="text-xs text-info mt-1">
                 {fieldDataEntries.length > 0
                   ? "Updated based on resource assignments progress"
                   : "Based on planned progress"}
@@ -392,29 +400,29 @@ const TaskDetailsPage = ({
                 <div
                   className={`rounded-lg p-4 ${
                     isOverBudget
-                      ? "bg-red-50 dark:bg-red-900/20"
-                      : "bg-green-50 dark:bg-green-900/20"
+                      ? "bg-danger-soft"
+                      : "bg-success-soft"
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span
                       className={`text-sm font-medium ${
                         isOverBudget
-                          ? "text-red-700 dark:text-red-300"
-                          : "text-green-700 dark:text-green-300"
+                          ? "text-danger"
+                          : "text-success"
                       }`}
                     >
                       Cost Status
                     </span>
                     <Target
                       className={`w-5 h-5 ${
-                        isOverBudget ? "text-red-500" : "text-green-500"
+                        isOverBudget ? "text-danger" : "text-success"
                       }`}
                     />
                   </div>
                   <div className="space-y-1">
                     <div className="flex justify-between text-xs">
-                      <span className="text-gray-600 dark:text-gray-400">
+                      <span className="text-muted">
                         Planned:
                       </span>
                       <span className="font-medium">
@@ -422,24 +430,24 @@ const TaskDetailsPage = ({
                       </span>
                     </div>
                     <div className="flex justify-between text-xs">
-                      <span className="text-gray-600 dark:text-gray-400">
+                      <span className="text-muted">
                         Actual:
                       </span>
                       <span
                         className={`font-medium ${
-                          isOverBudget ? "text-red-600" : "text-green-600"
+                          isOverBudget ? "text-danger" : "text-success"
                         }`}
                       >
                         OMR {actualCost.toFixed(2)}
                       </span>
                     </div>
                     <div className="flex justify-between text-xs pt-1 border-t">
-                      <span className="text-gray-600 dark:text-gray-400">
+                      <span className="text-muted">
                         Variance:
                       </span>
                       <span
                         className={`font-medium ${
-                          isOverBudget ? "text-red-600" : "text-green-600"
+                          isOverBudget ? "text-danger" : "text-success"
                         }`}
                       >
                         {isOverBudget ? "+" : ""} OMR {budgetVariance.toFixed(2)}
@@ -449,8 +457,8 @@ const TaskDetailsPage = ({
                   <div
                     className={`text-xs mt-2 ${
                       isOverBudget
-                        ? "text-red-600 dark:text-red-400"
-                        : "text-green-600 dark:text-green-400"
+                        ? "text-danger"
+                        : "text-success"
                     }`}
                   >
                     {isOverBudget
@@ -464,31 +472,31 @@ const TaskDetailsPage = ({
             <div
               className={`rounded-lg p-4 ${
                 overdue
-                  ? "bg-red-50 dark:bg-red-900/20"
-                  : "bg-green-50 dark:bg-green-900/20"
+                  ? "bg-danger-soft"
+                  : "bg-success-soft"
               }`}
             >
               <div className="flex items-center justify-between mb-2">
                 <span
                   className={`text-sm font-medium ${
                     overdue
-                      ? "text-red-700 dark:text-red-300"
-                      : "text-green-700 dark:text-green-300"
+                      ? "text-danger"
+                      : "text-success"
                   }`}
                 >
                   Due Date
                 </span>
                 <Calendar
                   className={`w-5 h-5 ${
-                    overdue ? "text-red-500" : "text-green-500"
+                    overdue ? "text-danger" : "text-success"
                   }`}
                 />
               </div>
               <p
                 className={`text-sm font-medium ${
                   overdue
-                    ? "text-red-900 dark:text-red-100"
-                    : "text-green-900 dark:text-green-100"
+                    ? "text-danger "
+                    : "text-success "
                 }`}
               >
                 {new Date(task.end_date).toLocaleDateString()}
@@ -496,10 +504,10 @@ const TaskDetailsPage = ({
               <p
                 className={`text-xs ${
                   overdue
-                    ? "text-red-600"
+                    ? "text-danger"
                     : daysUntilDue <= 3
-                    ? "text-orange-600"
-                    : "text-green-600"
+                    ? "text-bright"
+                    : "text-success"
                 }`}
               >
                 {overdue ? "Overdue" : `${daysUntilDue} days left`}
@@ -518,37 +526,37 @@ const TaskDetailsPage = ({
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Task Timeline */}
-            <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            <div className="bg-surface border border-line rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-ink mb-4">
                 Timeline
               </h3>
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-surface-2 rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <div className="w-3 h-3 bg-success rounded-full"></div>
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-gray-100">
+                      <p className="font-medium text-ink">
                         Start Date
                       </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-sm text-muted">
                         {new Date(task.start_date).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-surface-2 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <div
                       className={`w-3 h-3 rounded-full ${
-                        overdue ? "bg-red-500" : "bg-blue-500"
+                        overdue ? "bg-danger" : "bg-info"
                       }`}
                     ></div>
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-gray-100">
+                      <p className="font-medium text-ink">
                         End Date
                       </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-sm text-muted">
                         {new Date(task.end_date).toLocaleDateString()}
                       </p>
                     </div>
@@ -558,9 +566,9 @@ const TaskDetailsPage = ({
             </div>
 
             {/* Field Data Collection */}
-            <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6">
+            <div className="bg-surface border border-line rounded-xl p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <h3 className="text-lg font-semibold text-ink">
                   Field Data Collection
                 </h3>
                 <div className="flex items-center space-x-2">
@@ -572,13 +580,13 @@ const TaskDetailsPage = ({
                         setShowFieldDataModal(true);
                       }}
                       disabled={isTaskLocked && !canAccessLocked}
-                      className="flex items-center space-x-2 px-3 py-1 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex items-center space-x-2 px-3 py-1 text-sm bg-success text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Plus size={14} />
                       <span>Add Field Data</span>
                     </button>
                   ) : (
-                    <p className="text-sm text-gray-500 italic">
+                    <p className="text-sm text-muted italic">
                       Assign resources to this task to collect field data
                     </p>
                   )}
@@ -588,11 +596,11 @@ const TaskDetailsPage = ({
               {/* Info box explaining field data behavior */}
               {task.resource_assignments &&
                 task.resource_assignments.length > 0 && (
-                  <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <div className="mb-4 p-3 bg-info-soft border border-info rounded-lg">
                     <div className="flex items-start space-x-2">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4 text-blue-600 mt-0.5"
+                        className="h-4 w-4 text-info mt-0.5"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -604,7 +612,7 @@ const TaskDetailsPage = ({
                           d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                         />
                       </svg>
-                      <div className="text-xs text-blue-800 dark:text-blue-200">
+                      <div className="text-xs text-info">
                         <div className="font-medium mb-1">
                           Field Data Collection & Cost Tracking
                         </div>
@@ -624,12 +632,12 @@ const TaskDetailsPage = ({
                 )}
 
               {fieldDataEntries.length === 0 ? (
-                <div className="text-center py-8 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg">
-                  <Target className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-600 dark:text-gray-400">
+                <div className="text-center py-8 border-2 border-dashed border-line rounded-lg">
+                  <Target className="w-12 h-12 text-faint mx-auto mb-3" />
+                  <p className="text-muted">
                     No field data collected yet
                   </p>
-                  <p className="text-sm text-gray-500 mt-2">
+                  <p className="text-sm text-muted mt-2">
                     {task.resource_assignments &&
                     task.resource_assignments.length > 0
                       ? "Collect actual progress data from assigned resources"
@@ -641,15 +649,15 @@ const TaskDetailsPage = ({
                   {fieldDataEntries.map((entry) => (
                     <div
                       key={entry.id}
-                      className="flex items-center justify-between p-3 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                      className="flex items-center justify-between p-3 border border-line rounded-lg hover:bg-surface-2 transition-colors"
                     >
                       <div className="flex-1">
                         <div className="flex items-center space-x-3 mb-1">
-                          <span className="font-medium text-gray-900 dark:text-gray-100">
+                          <span className="font-medium text-ink">
                             +{entry.actual_progress}% progress • +
                             {entry.actual_hours}h worked
                           </span>
-                          <span className="text-sm text-green-600 dark:text-green-400 font-medium">
+                          <span className="text-sm text-success font-medium">
                             +$
                             {(
                               (entry.actual_hours || 0) *
@@ -659,8 +667,8 @@ const TaskDetailsPage = ({
                           <span
                             className={`px-2 py-1 rounded-full text-xs font-medium ${
                               entry.is_according_to_plan
-                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-                                : "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300"
+                                ? "bg-success-soft text-success  "
+                                : "bg-bright-soft text-bright  "
                             }`}
                           >
                             {entry.is_according_to_plan
@@ -668,7 +676,7 @@ const TaskDetailsPage = ({
                               : "Off Track"}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                        <p className="text-sm text-muted mb-1">
                           Resource:{" "}
                           {entry.resource_assignment?.resource?.name ||
                             "Unknown"}{" "}
@@ -678,10 +686,10 @@ const TaskDetailsPage = ({
                           ) • ${entry.resource_assignment?.resource?.rate || 0}
                           /hr
                         </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                        <p className="text-sm text-muted mb-1">
                           {entry.notes || "No notes provided"}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted">
                           Reported by {entry.reporter.first_name}{" "}
                           {entry.reporter.last_name} •{" "}
                           {new Date(entry.timestamp).toLocaleDateString()}{" "}
@@ -698,7 +706,7 @@ const TaskDetailsPage = ({
                             setShowFieldDataModal(true);
                           }}
                           disabled={isTaskLocked && !canAccessLocked}
-                          className="p-1 text-gray-400 hover:text-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="p-1 text-faint hover:text-info transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           title={
                             isTaskLocked && !canAccessLocked
                               ? "Task is locked due to incomplete dependencies"
@@ -710,7 +718,7 @@ const TaskDetailsPage = ({
                         <button
                           onClick={() => handleDeleteFieldData(entry.id)}
                           disabled={isTaskLocked && !canAccessLocked}
-                          className="p-1 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="p-1 text-faint hover:text-danger transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           title={
                             isTaskLocked && !canAccessLocked
                               ? "Task is locked due to incomplete dependencies"
@@ -727,34 +735,34 @@ const TaskDetailsPage = ({
 
               {/* Field Data Summary */}
               {fieldDataEntries.length > 0 && (
-                <div className="mt-6 pt-4 border-t border-gray-200 dark:border-slate-700">
+                <div className="mt-6 pt-4 border-t border-line">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <h4 className="text-sm font-medium text-ink">
                       Field Data Summary
                     </h4>
                   </div>
                   <div className="grid grid-cols-3 gap-4">
-                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                      <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                    <div className="p-3 bg-info-soft rounded-lg">
+                      <p className="text-sm font-medium text-info">
                         Total Field Entries
                       </p>
-                      <p className="text-lg font-bold text-blue-600">
+                      <p className="text-lg font-bold text-info">
                         {fieldDataEntries.length}
                       </p>
                     </div>
-                    <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                      <p className="text-sm font-medium text-green-900 dark:text-green-100">
+                    <div className="p-3 bg-success-soft rounded-lg">
+                      <p className="text-sm font-medium text-success">
                         Current Task Progress
                       </p>
-                      <p className="text-lg font-bold text-green-600">
+                      <p className="text-lg font-bold text-success">
                         {task.progress_percentage}%
                       </p>
                     </div>
-                    <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                      <p className="text-sm font-medium text-orange-900 dark:text-orange-100">
+                    <div className="p-3 bg-bright-soft rounded-lg">
+                      <p className="text-sm font-medium text-bright">
                         Total Cost Added
                       </p>
-                      <p className="text-lg font-bold text-orange-600">
+                      <p className="text-lg font-bold text-bright">
                         $
                         {fieldDataEntries
                           .reduce((total, entry) => {
@@ -767,7 +775,7 @@ const TaskDetailsPage = ({
                       </p>
                     </div>
                   </div>
-                  <div className="mt-3 text-xs text-gray-600 dark:text-gray-400">
+                  <div className="mt-3 text-xs text-muted">
                     Task progress is automatically calculated based on resource
                     assignment progress, which is updated by field data entries.
                   </div>
@@ -776,8 +784,8 @@ const TaskDetailsPage = ({
             </div>
 
             {/* Comments */}
-            <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            <div className="bg-surface border border-line rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-ink mb-4">
                 Comments
               </h3>
 
@@ -796,10 +804,10 @@ const TaskDetailsPage = ({
                   <button
                     onClick={addComment}
                     disabled={!newComment.trim() || isAddingComment}
-                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center space-x-2 px-4 py-2 bg-info text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isAddingComment && (
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                      <Spinner size={16} />
                     )}
                     <MessageSquare size={16} />
                     <span>Add Comment</span>
@@ -809,9 +817,9 @@ const TaskDetailsPage = ({
 
               {/* Comments List */}
               {comments.length === 0 ? (
-                <div className="text-center py-8 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg">
-                  <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-600 dark:text-gray-400">
+                <div className="text-center py-8 border-2 border-dashed border-line rounded-lg">
+                  <MessageSquare className="w-12 h-12 text-faint mx-auto mb-3" />
+                  <p className="text-muted">
                     No comments yet
                   </p>
                 </div>
@@ -840,15 +848,15 @@ const TaskDetailsPage = ({
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Assigned Resources */}
-            <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6">
+            <div className="bg-surface border border-line rounded-xl p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <h3 className="text-lg font-semibold text-ink">
                   Assigned Resources
                 </h3>
                 <button
                   onClick={() => setShowResourceModal(true)}
                   disabled={isTaskLocked && !canAccessLocked}
-                  className="flex items-center space-x-2 px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center space-x-2 px-3 py-1 text-sm bg-info text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <User size={14} />
                   <span>Assign</span>
@@ -870,15 +878,15 @@ const TaskDetailsPage = ({
                         key={index}
                         className={`flex items-center justify-between border rounded-lg p-2 transition-colors ${
                           isResourceCompleted
-                            ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20"
-                            : "border-gray-200 dark:border-slate-700"
+                            ? "border-success bg-success-soft  "
+                            : "border-line"
                         }`}
                       >
                         <div
                           className={`flex items-center space-x-3 flex-1 rounded-lg p-2 transition-colors ${
                             isTaskLocked && !canAccessLocked
                               ? "cursor-not-allowed opacity-60"
-                              : "cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700"
+                              : "cursor-pointer hover:bg-surface-2"
                           }`}
                           onClick={() => {
                             if (!(isTaskLocked && !canAccessLocked)) {
@@ -895,14 +903,14 @@ const TaskDetailsPage = ({
                           <div
                             className={`w-8 h-8 rounded-full flex items-center justify-center ${
                               isResourceCompleted
-                                ? "bg-green-100 dark:bg-green-900"
-                                : "bg-blue-100 dark:bg-blue-900"
+                                ? "bg-success-soft"
+                                : "bg-info-soft"
                             }`}
                           >
                             {isResourceCompleted ? (
-                              <CheckCircle className="w-4 h-4 text-green-600" />
+                              <CheckCircle className="w-4 h-4 text-success" />
                             ) : (
-                              <span className="text-sm font-medium text-blue-600">
+                              <span className="text-sm font-medium text-info">
                                 {`${assignment.resource?.name || "Unknown"}`
                                   .split(" ")
                                   .map((n) => n[0])
@@ -915,8 +923,8 @@ const TaskDetailsPage = ({
                               <span
                                 className={`text-sm font-medium ${
                                   isResourceCompleted
-                                    ? "text-green-900 dark:text-green-100"
-                                    : "text-gray-900 dark:text-gray-100"
+                                    ? "text-success "
+                                    : "text-ink"
                                 }`}
                               >
                                 {`${
@@ -925,17 +933,17 @@ const TaskDetailsPage = ({
                                 }`}
                               </span>
                               {isResourceCompleted && (
-                                <span className="px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 text-xs rounded-full font-medium">
+                                <span className="px-2 py-1 bg-success-soft text-success text-xs rounded-full font-medium">
                                   Completed
                                 </span>
                               )}
-                              <Edit size={12} className="text-gray-400" />
+                              <Edit size={12} className="text-faint" />
                             </div>
                             <div
                               className={`text-xs space-y-1 ${
                                 isResourceCompleted
-                                  ? "text-green-700 dark:text-green-300"
-                                  : "text-gray-500"
+                                  ? "text-success"
+                                  : "text-muted"
                               }`}
                             >
                               <div>
@@ -958,7 +966,7 @@ const TaskDetailsPage = ({
                               </div>
                               {(assignment.actual_hours || 0) >
                                 (assignment.planned_hours || 0) && (
-                                <div className="text-orange-600 dark:text-orange-400 font-medium">
+                                <div className="text-bright font-medium">
                                   Over planned by{" "}
                                   {(
                                     (assignment.actual_hours || 0) -
@@ -981,7 +989,7 @@ const TaskDetailsPage = ({
                             e.stopPropagation();
                             handleUnassignResource(assignment.assignment_id);
                           }}
-                          className="p-1 text-gray-400 hover:text-red-500 transition-colors rounded"
+                          className="p-1 text-faint hover:text-danger transition-colors rounded"
                           title="Remove assignment"
                         >
                           <X size={14} />
@@ -990,14 +998,14 @@ const TaskDetailsPage = ({
                     );
                   })
                 ) : (
-                  <div className="text-center py-6 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg">
-                    <User className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-600 dark:text-gray-400 mb-3">
+                  <div className="text-center py-6 border-2 border-dashed border-line rounded-lg">
+                    <User className="w-8 h-8 text-faint mx-auto mb-2" />
+                    <p className="text-muted mb-3">
                       No resources assigned
                     </p>
                     <button
                       onClick={() => setShowResourceModal(true)}
-                      className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                      className="text-sm text-info hover:text-info font-medium"
                     >
                       Assign the first resource
                     </button>
@@ -1007,13 +1015,13 @@ const TaskDetailsPage = ({
             </div>
 
             {/* Task Documents */}
-            <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6">
+            <div className="bg-surface border border-line rounded-xl p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <h3 className="text-lg font-semibold text-ink">
                   Documents
                 </h3>
                 <label
-                  className={`flex items-center space-x-2 px-3 py-1 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors cursor-pointer ${
+                  className={`flex items-center space-x-2 px-3 py-1 text-sm bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors cursor-pointer ${
                     isTaskLocked && !canAccessLocked
                       ? "opacity-50 cursor-not-allowed pointer-events-none"
                       : ""
@@ -1033,9 +1041,9 @@ const TaskDetailsPage = ({
               </div>
 
               {documents.length === 0 ? (
-                <div className="text-center py-6 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg">
-                  <FileText className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                <div className="text-center py-6 border-2 border-dashed border-line rounded-lg">
+                  <FileText className="w-8 h-8 text-faint mx-auto mb-2" />
+                  <p className="text-sm text-muted">
                     No documents
                   </p>
                 </div>
@@ -1044,31 +1052,31 @@ const TaskDetailsPage = ({
                   {documents.map((doc) => (
                     <div
                       key={doc.document_id}
-                      className="flex items-center justify-between p-2 border border-gray-200 dark:border-slate-700 rounded"
+                      className="flex items-center justify-between p-2 border border-line rounded"
                     >
                       <div className="flex items-center space-x-2">
                         {getFileIcon(doc.name)}
-                        <span className="text-sm text-gray-900 dark:text-gray-100">
+                        <span className="text-sm text-ink">
                           {doc.name}
                         </span>
                       </div>
                       <div className="flex items-center space-x-1">
                         <button
-                          className="p-1 text-gray-400 hover:text-blue-600"
+                          className="p-1 text-faint hover:text-info"
                           onClick={() => handleViewDocument(doc)}
                           title="View document"
                         >
                           <Eye size={14} />
                         </button>
                         <button
-                          className="p-1 text-gray-400 hover:text-green-600"
+                          className="p-1 text-faint hover:text-success"
                           onClick={() => handleDownloadDocument(doc)}
                           title="Download document"
                         >
                           <Download size={14} />
                         </button>
                         <button
-                          className="p-1 text-gray-400 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="p-1 text-faint hover:text-danger disabled:opacity-50 disabled:cursor-not-allowed"
                           onClick={() => handleDeleteDocument(doc)}
                           disabled={isTaskLocked && !canAccessLocked}
                           title={
@@ -1100,29 +1108,18 @@ const TaskDetailsPage = ({
             onClick={() => setShowProgressModal(false)}
           >
             <div
-              className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl"
-              style={{
-                backgroundColor: isDarkMode
-                  ? "rgba(30, 41, 59, 0.95)"
-                  : "rgba(255, 255, 255, 0.95)",
-                backdropFilter: "blur(20px)",
-                WebkitBackdropFilter: "blur(20px)",
-                border: isDarkMode
-                  ? "1px solid rgba(148, 163, 184, 0.2)"
-                  : "1px solid rgba(255, 255, 255, 0.2)",
-                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-              }}
+              className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mr-4">
-                  <RefreshCw className="w-6 h-6 text-blue-600" />
+                <div className="w-12 h-12 bg-info-soft rounded-full flex items-center justify-center mr-4">
+                  <RefreshCw className="w-6 h-6 text-info" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  <h3 className="text-lg font-semibold text-ink">
                     Update Task
                   </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-muted">
                     {task.name}
                   </p>
                 </div>
@@ -1137,14 +1134,14 @@ const TaskDetailsPage = ({
                 }}
                 className="space-y-4"
               >
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <div className="p-4 bg-info-soft border border-info rounded-lg">
                   <div className="flex items-center space-x-2 mb-2">
-                    <RefreshCw className="w-5 h-5 text-blue-600" />
-                    <span className="font-medium text-blue-900 dark:text-blue-100">
+                    <RefreshCw className="w-5 h-5 text-info" />
+                    <span className="font-medium text-info">
                       Update Task Status
                     </span>
                   </div>
-                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                  <p className="text-sm text-info">
                     You can update the task status and priority. Progress
                     tracking is handled automatically through resource
                     assignments and field data.
@@ -1152,54 +1149,60 @@ const TaskDetailsPage = ({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-ink-3 mb-1">
                     Status
                   </label>
-                  <select
+                  <Dropdown
                     name="status"
                     required
-                    defaultValue={task.status}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="todo">To Do</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                    <option value="on_hold">On Hold</option>
-                  </select>
+                    value={progressStatus}
+                    onChange={setProgressStatus}
+                    ariaLabel="Status"
+                    modal
+                    options={[
+                      { value: "todo", label: "To Do" },
+                      { value: "in_progress", label: "In Progress" },
+                      { value: "completed", label: "Completed" },
+                      { value: "on_hold", label: "On Hold" },
+                    ]}
+                  />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-ink-3 mb-1">
                     Priority
                   </label>
-                  <select
+                  <Dropdown
                     name="priority"
                     required
-                    defaultValue={task.priority}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                  </select>
+                    value={progressPriority}
+                    onChange={setProgressPriority}
+                    ariaLabel="Priority"
+                    modal
+                    options={[
+                      { value: "low", label: "Low" },
+                      { value: "medium", label: "Medium" },
+                      { value: "high", label: "High" },
+                    ]}
+                  />
                 </div>
 
-                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-slate-700">
+                <div className="flex justify-end space-x-3 pt-4 border-t border-line">
                   <button
                     type="button"
                     onClick={() => setShowProgressModal(false)}
                     disabled={isUpdatingProgress}
-                    className="px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                    className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isUpdatingProgress}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center space-x-2"
+                    className="px-4 py-2 bg-info text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 flex items-center space-x-2"
                   >
                     {isUpdatingProgress && (
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                      <Spinner size={16} />
                     )}
                     <Save size={16} />
                     <span>
@@ -1224,29 +1227,18 @@ const TaskDetailsPage = ({
             onClick={() => setShowTimeLogModal(false)}
           >
             <div
-              className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl"
-              style={{
-                backgroundColor: isDarkMode
-                  ? "rgba(30, 41, 59, 0.95)"
-                  : "rgba(255, 255, 255, 0.95)",
-                backdropFilter: "blur(20px)",
-                WebkitBackdropFilter: "blur(20px)",
-                border: isDarkMode
-                  ? "1px solid rgba(148, 163, 184, 0.2)"
-                  : "1px solid rgba(255, 255, 255, 0.2)",
-                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-              }}
+              className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mr-4">
-                  <Clock className="w-6 h-6 text-green-600" />
+                <div className="w-12 h-12 bg-success-soft rounded-full flex items-center justify-center mr-4">
+                  <Clock className="w-6 h-6 text-success" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  <h3 className="text-lg font-semibold text-ink">
                     Log Time
                   </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-muted">
                     Track time spent on this task
                   </p>
                 </div>
@@ -1262,7 +1254,7 @@ const TaskDetailsPage = ({
                 className="space-y-4"
               >
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-ink-3 mb-1">
                     Hours Worked
                   </label>
                   <input
@@ -1272,12 +1264,12 @@ const TaskDetailsPage = ({
                     min="0.5"
                     required
                     placeholder="8.0"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-success focus:border-transparent"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-ink-3 mb-1">
                     Date
                   </label>
                   <input
@@ -1285,12 +1277,12 @@ const TaskDetailsPage = ({
                     type="date"
                     defaultValue={new Date().toISOString().split("T")[0]}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-success focus:border-transparent"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-ink-3 mb-1">
                     Description
                   </label>
                   <textarea
@@ -1298,26 +1290,26 @@ const TaskDetailsPage = ({
                     rows={3}
                     placeholder="What did you work on?"
                     required
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                    className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-success focus:border-transparent resize-none"
                   />
                 </div>
 
-                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-slate-700">
+                <div className="flex justify-end space-x-3 pt-4 border-t border-line">
                   <button
                     type="button"
                     onClick={() => setShowTimeLogModal(false)}
                     disabled={isLoggingTime}
-                    className="px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                    className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isLoggingTime}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center space-x-2"
+                    className="px-4 py-2 bg-success text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 flex items-center space-x-2"
                   >
                     {isLoggingTime && (
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                      <Spinner size={16} />
                     )}
                     <Clock size={16} />
                     <span>{isLoggingTime ? "Logging..." : "Log Time"}</span>
@@ -1383,29 +1375,18 @@ const TaskDetailsPage = ({
             onClick={() => setShowUploadModal(false)}
           >
             <div
-              className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl"
-              style={{
-                backgroundColor: isDarkMode
-                  ? "rgba(30, 41, 59, 0.95)"
-                  : "rgba(255, 255, 255, 0.95)",
-                backdropFilter: "blur(20px)",
-                WebkitBackdropFilter: "blur(20px)",
-                border: isDarkMode
-                  ? "1px solid rgba(148, 163, 184, 0.2)"
-                  : "1px solid rgba(255, 255, 255, 0.2)",
-                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-              }}
+              className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center mr-4">
-                  <Upload className="w-6 h-6 text-orange-600" />
+                <div className="w-12 h-12 bg-bright-soft rounded-full flex items-center justify-center mr-4">
+                  <Upload className="w-6 h-6 text-bright" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  <h3 className="text-lg font-semibold text-ink">
                     Upload Document
                   </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-muted">
                     Upload files to this task
                   </p>
                 </div>
@@ -1414,23 +1395,23 @@ const TaskDetailsPage = ({
               <div className="space-y-4">
                 {/* Selected Files */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-ink-3 mb-2">
                     Selected Files ({uploadFiles.length})
                   </label>
                   <div className="space-y-2 max-h-32 overflow-y-auto">
                     {uploadFiles.map((file, index) => (
                       <div
                         key={index}
-                        className="flex items-center space-x-3 p-2 bg-gray-50 dark:bg-slate-700 rounded-lg"
+                        className="flex items-center space-x-3 p-2 bg-surface-2 rounded-lg"
                       >
-                        <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded flex items-center justify-center">
+                        <div className="w-6 h-6 bg-info-soft rounded flex items-center justify-center">
                           {getFileIcon(file.name)}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                          <p className="text-sm font-medium text-ink truncate">
                             {file.name}
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-muted">
                             {formatFileSize(file.size)}
                           </p>
                         </div>
@@ -1441,7 +1422,7 @@ const TaskDetailsPage = ({
 
                 {/* Description */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-ink-3 mb-1">
                     Description (Optional)
                   </label>
                   <textarea
@@ -1449,12 +1430,12 @@ const TaskDetailsPage = ({
                     onChange={(e) => setUploadDescription(e.target.value)}
                     placeholder="Add a description for these documents..."
                     rows={2}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
+                    className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent resize-none"
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-slate-700 mt-4">
+              <div className="flex justify-end space-x-3 pt-4 border-t border-line mt-4">
                 <button
                   onClick={() => {
                     setShowUploadModal(false);
@@ -1462,17 +1443,17 @@ const TaskDetailsPage = ({
                     setUploadDescription("");
                   }}
                   disabled={isUploading}
-                  className="px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                  className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleUploadDocument}
                   disabled={isUploading || uploadFiles.length === 0}
-                  className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 flex items-center space-x-2"
+                  className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors disabled:opacity-50 flex items-center space-x-2"
                 >
                   {isUploading && (
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    <Spinner size={16} />
                   )}
                   <Upload size={16} />
                   <span>
@@ -1500,48 +1481,37 @@ const TaskDetailsPage = ({
             onClick={() => setShowDeleteDocumentModal(false)}
           >
             <div
-              className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl"
-              style={{
-                backgroundColor: isDarkMode
-                  ? "rgba(30, 41, 59, 0.95)"
-                  : "rgba(255, 255, 255, 0.95)",
-                backdropFilter: "blur(20px)",
-                WebkitBackdropFilter: "blur(20px)",
-                border: isDarkMode
-                  ? "1px solid rgba(148, 163, 184, 0.2)"
-                  : "1px solid rgba(255, 255, 255, 0.2)",
-                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-              }}
+              className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center mr-4">
-                  <Trash2 className="w-6 h-6 text-red-600" />
+                <div className="w-12 h-12 bg-danger-soft rounded-full flex items-center justify-center mr-4">
+                  <Trash2 className="w-6 h-6 text-danger" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  <h3 className="text-lg font-semibold text-ink">
                     Delete Document
                   </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-muted">
                     This action cannot be undone
                   </p>
                 </div>
               </div>
 
               <div className="mb-6">
-                <p className="text-gray-700 dark:text-gray-300 mb-3">
+                <p className="text-ink-3 mb-3">
                   Are you sure you want to delete the following document?
                 </p>
-                <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <div className="p-3 bg-danger-soft border border-danger rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-red-100 dark:bg-red-900 rounded flex items-center justify-center">
+                    <div className="w-8 h-8 bg-danger-soft rounded flex items-center justify-center">
                       {getFileIcon(documentToDelete.name)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-red-900 dark:text-red-100 truncate">
+                      <p className="text-sm font-medium text-danger truncate">
                         {documentToDelete.name}
                       </p>
-                      <p className="text-xs text-red-600 dark:text-red-400">
+                      <p className="text-xs text-danger">
                         {formatFileSize(documentToDelete.size)} • Uploaded{" "}
                         {new Date(
                           documentToDelete.created_at
@@ -1550,24 +1520,24 @@ const TaskDetailsPage = ({
                     </div>
                   </div>
                 </div>
-                <p className="text-sm text-red-600 dark:text-red-400 mt-3 font-medium">
+                <p className="text-sm text-danger mt-3 font-medium">
                   ⚠️ This document will be permanently deleted and cannot be
                   recovered.
                 </p>
               </div>
 
-              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-slate-700">
+              <div className="flex justify-end space-x-3 pt-4 border-t border-line">
                 <button
                   onClick={() => {
                     setShowDeleteDocumentModal(false);
                   }}
-                  className="px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                  className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={confirmDeleteDocument}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2"
+                  className="px-4 py-2 bg-danger text-white rounded-lg hover:opacity-90 transition-colors flex items-center space-x-2"
                 >
                   <Trash2 size={16} />
                   <span>Delete Document</span>

@@ -37,7 +37,6 @@ import {
   Edit,
   Trash2,
   Save,
-  ArrowLeft,
   Play,
   Pause,
   Square,
@@ -45,6 +44,9 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
+import { Spinner } from "@/components/ui/spinner";
+import { FormSection, InfoGrid, StatusBadge } from "@/components/ui/form-shell";
+import { timesheetStatusTone } from "@/lib/status-tone";
 
 interface Timesheet {
   timesheet_id: number;
@@ -662,15 +664,15 @@ export default function TimesheetDetailPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "DRAFT":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300";
+        return "bg-warning-soft text-warning  ";
       case "SUBMITTED":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300";
+        return "bg-info-soft text-info  ";
       case "APPROVED":
-        return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300";
+        return "bg-success-soft text-success  ";
       case "REJECTED":
-        return "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300";
+        return "bg-danger-soft text-danger  ";
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300";
+        return "bg-surface-2 text-ink-2  ";
     }
   };
 
@@ -678,7 +680,7 @@ export default function TimesheetDetailPage() {
     return (
       <DashboardLayout title="Timesheet Details">
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
+          <Spinner size={48} className="text-bright-primary" />
         </div>
       </DashboardLayout>
     );
@@ -688,7 +690,7 @@ export default function TimesheetDetailPage() {
     return (
       <DashboardLayout title="Timesheet Not Found">
         <div className="text-center py-8">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+          <h2 className="text-xl font-semibold text-ink">
             Timesheet not found
           </h2>
           <Button onClick={() => router.push("/timesheet")} className="mt-4">
@@ -701,88 +703,109 @@ export default function TimesheetDetailPage() {
 
   const weekDays = getWeekDays();
 
+  const overviewRows: [string, React.ReactNode][] = [
+    ["Project", timesheet.project.name],
+    [
+      "Period",
+      `${new Date(timesheet.start_date).toLocaleDateString()} – ${new Date(
+        timesheet.end_date,
+      ).toLocaleDateString()}`,
+    ],
+    [
+      "Owner",
+      `${timesheet.user.account.first_name} ${timesheet.user.account.last_name}`,
+    ],
+    ["Role", timesheet.user.role?.name || "—"],
+    ["Department", timesheet.user.account.department || "—"],
+    [
+      "Status",
+      <StatusBadge
+        key="status"
+        label={timesheet.status}
+        tone={timesheetStatusTone(timesheet.status)}
+      />,
+    ],
+    ["Total Hours", `${calculateTotalHours().toFixed(1)}h`],
+    ["Entries", timesheet.time_entries.length],
+  ];
+
   return (
-    <DashboardLayout title="Timesheet Details">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
+    <DashboardLayout
+      title={timesheet.project.name}
+      subtitle={`Week of ${new Date(
+        timesheet.start_date,
+      ).toLocaleDateString()} – ${new Date(
+        timesheet.end_date,
+      ).toLocaleDateString()}`}
+      backHref="/timesheet"
+      backLabel="Back to Timesheets"
+      actions={
+        <>
+          <StatusBadge
+            label={timesheet.status}
+            tone={timesheetStatusTone(timesheet.status)}
+          />
+          <Button
+            variant="outline"
+            onClick={() => router.push(`/timesheet/${timesheetId}/edit`)}
+          >
+            <Edit size={16} className="mr-2" />
+            Edit
+          </Button>
+          {timesheet.status === "DRAFT" && isOwnTimesheet() && (
             <Button
-              variant="outline"
-              onClick={() => router.push("/timesheet")}
-              className="flex items-center space-x-2"
+              onClick={handleSubmitTimesheet}
+              disabled={saving || calculateTotalHours() === 0}
+              className="bg-success hover:opacity-90 text-white"
             >
-              <ArrowLeft size={16} />
-              <span>Back</span>
+              <CheckCircle size={16} className="mr-2" />
+              Submit for Approval
             </Button>
-            <div>
-              <div className="flex items-center space-x-3">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {timesheet.project.name}
-                </h1>
-                {!isOwnTimesheet() && canViewOtherTimesheets() && (
-                  <Badge
-                    variant="secondary"
-                    className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300"
-                  >
-                    Viewing as {currentUser?.role?.name}
-                  </Badge>
-                )}
-              </div>
-              <div className="space-y-1">
-                <p className="text-gray-600 dark:text-gray-400">
-                  Week of {new Date(timesheet.start_date).toLocaleDateString()}{" "}
-                  - {new Date(timesheet.end_date).toLocaleDateString()}
-                </p>
-                {!isOwnTimesheet() && (
-                  <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">
-                    Timesheet Owner: {timesheet.user.account.first_name}{" "}
-                    {timesheet.user.account.last_name}
-                    {timesheet.user.account.department &&
-                      ` • ${timesheet.user.account.department}`}
-                    {timesheet.user.role && ` • ${timesheet.user.role.name}`}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center space-x-3">
-            <Badge className={getStatusColor(timesheet.status)}>
-              {timesheet.status}
-            </Badge>
-            {timesheet.status === "DRAFT" && isOwnTimesheet() && (
-              <Button
-                onClick={handleSubmitTimesheet}
-                disabled={saving || calculateTotalHours() === 0}
-                className="bg-green-600 hover:bg-green-700 text-white"
-              >
-                <CheckCircle size={16} className="mr-2" />
-                Submit for Approval
-              </Button>
+          )}
+        </>
+      }
+      meta={
+        !isOwnTimesheet() ? (
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="font-medium text-ink-2">
+              {timesheet.user.account.first_name}{" "}
+              {timesheet.user.account.last_name}
+            </span>
+            {timesheet.user.account.department && (
+              <span>· {timesheet.user.account.department}</span>
+            )}
+            {timesheet.user.role && <span>· {timesheet.user.role.name}</span>}
+            {canViewOtherTimesheets() && currentUser?.role?.name && (
+              <span className="text-faint">
+                · viewing as {currentUser.role.name}
+              </span>
             )}
           </div>
-        </div>
+        ) : undefined
+      }
+    >
+      <div className="max-w-7xl mx-auto space-y-6">
 
         {/* Timer Widget */}
         {timer.isRunning && (
-          <Card className="border-orange-200 bg-orange-50 dark:bg-orange-900/10">
+          <Card className="border-bright bg-bright-soft">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center space-x-2">
-                    <Clock className="h-5 w-5 text-orange-600" />
-                    <span className="font-semibold text-orange-900 dark:text-orange-100">
+                    <Clock className="h-5 w-5 text-bright" />
+                    <span className="font-semibold text-bright">
                       Timer Running
                     </span>
                   </div>
-                  <div className="text-2xl font-mono font-bold text-orange-600">
+                  <div className="text-2xl font-mono font-bold text-bright">
                     {formatTime(timer.elapsedSeconds)}
                   </div>
                   {timer.taskId &&
                     tasks.find(
                       (t) => t.task_id.toString() === timer.taskId
                     ) && (
-                      <div className="text-sm text-orange-700 dark:text-orange-300">
+                      <div className="text-sm text-bright-deep">
                         Task:{" "}
                         {
                           tasks.find(
@@ -797,7 +820,7 @@ export default function TimesheetDetailPage() {
                     variant="outline"
                     size="sm"
                     onClick={pauseTimer}
-                    className="border-orange-200 text-orange-700 hover:bg-orange-100"
+                    className="border-bright text-bright-deep hover:bg-bright-soft"
                   >
                     <Pause size={16} />
                   </Button>
@@ -805,7 +828,7 @@ export default function TimesheetDetailPage() {
                     variant="outline"
                     size="sm"
                     onClick={stopTimer}
-                    className="border-red-200 text-red-700 hover:bg-red-100"
+                    className="border-danger text-danger hover:bg-danger-soft"
                   >
                     <Square size={16} />
                   </Button>
@@ -820,10 +843,10 @@ export default function TimesheetDetailPage() {
           <Card
             className={`border-2 ${
               timesheet.status === "SUBMITTED"
-                ? "border-blue-200 bg-blue-50 dark:bg-blue-900/10"
+                ? "border-info bg-info-soft "
                 : timesheet.status === "APPROVED"
-                ? "border-green-200 bg-green-50 dark:bg-green-900/10"
-                : "border-red-200 bg-red-50 dark:bg-red-900/10"
+                ? "border-success bg-success-soft "
+                : "border-danger bg-danger-soft "
             }`}
           >
             <CardContent className="p-4">
@@ -831,20 +854,20 @@ export default function TimesheetDetailPage() {
                 <CheckCircle
                   className={`h-5 w-5 ${
                     timesheet.status === "SUBMITTED"
-                      ? "text-blue-600"
+                      ? "text-info"
                       : timesheet.status === "APPROVED"
-                      ? "text-green-600"
-                      : "text-red-600"
+                      ? "text-success"
+                      : "text-danger"
                   }`}
                 />
                 <div>
                   <p
                     className={`font-semibold ${
                       timesheet.status === "SUBMITTED"
-                        ? "text-blue-900 dark:text-blue-100"
+                        ? "text-info "
                         : timesheet.status === "APPROVED"
-                        ? "text-green-900 dark:text-green-100"
-                        : "text-red-900 dark:text-red-100"
+                        ? "text-success "
+                        : "text-danger "
                     }`}
                   >
                     Timesheet{" "}
@@ -855,10 +878,10 @@ export default function TimesheetDetailPage() {
                   <p
                     className={`text-sm ${
                       timesheet.status === "SUBMITTED"
-                        ? "text-blue-700 dark:text-blue-300"
+                        ? "text-info"
                         : timesheet.status === "APPROVED"
-                        ? "text-green-700 dark:text-green-300"
-                        : "text-red-700 dark:text-red-300"
+                        ? "text-success"
+                        : "text-danger"
                     }`}
                   >
                     {timesheet.status === "SUBMITTED"
@@ -873,72 +896,37 @@ export default function TimesheetDetailPage() {
           </Card>
         )}
 
+        {/* Overview — the timesheet's own attributes, as a definition list.
+            Previously these were scattered across the header, the status banner
+            and the approval card, so no single place answered "whose week is
+            this and what state is it in?". */}
+        <FormSection title="Overview">
+          <InfoGrid rows={overviewRows} />
+        </FormSection>
+
         {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2">
-                <Clock className="h-5 w-5 text-orange-600" />
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    Total Hours
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    {calculateTotalHours().toFixed(1)}h
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2">
-                <Calendar className="h-5 w-5 text-blue-600" />
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    Entries
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    {timesheet.time_entries.length}
+        <FormSection title="This Week">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-5 md:grid-cols-4">
+            {(
+              [
+                [Clock, "text-bright", "Total Hours", `${calculateTotalHours().toFixed(1)}h`],
+                [Calendar, "text-info", "Entries", timesheet.time_entries.length],
+                [CheckCircle, "text-success", "Days Logged", getUniqueDaysLogged()],
+                [Play, "text-accent-violet", "Avg/Day", `${calculateAverageHoursPerDay().toFixed(1)}h`],
+              ] as [typeof Clock, string, string, React.ReactNode][]
+            ).map(([Icon, tone, label, value]) => (
+              <div key={label} className="flex items-center gap-2.5">
+                <Icon className={`h-5 w-5 shrink-0 ${tone}`} aria-hidden="true" />
+                <div className="min-w-0">
+                  <p className="text-[12px] text-muted">{label}</p>
+                  <p className="text-[20px] font-semibold tabular-nums text-ink">
+                    {value}
                   </p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    Days Logged
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    {getUniqueDaysLogged()}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2">
-                <Play className="h-5 w-5 text-purple-600" />
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    Avg/Day
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    {calculateAverageHoursPerDay().toFixed(1)}h
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            ))}
+          </div>
+        </FormSection>
 
         {/* Add New Entry Button - owner or Admin/PJM on behalf */}
         {(isOwnTimesheet() || canViewOtherTimesheets()) && (
@@ -949,7 +937,7 @@ export default function TimesheetDetailPage() {
             >
               <DialogTrigger asChild>
                 <Button
-                  className="bg-orange-600 hover:bg-orange-700 text-white"
+                  className="bg-bright hover:bg-bright-deep text-white"
                   disabled={timesheet.status !== "DRAFT"}
                 >
                   <Plus size={16} className="mr-2" />
@@ -1112,7 +1100,7 @@ export default function TimesheetDetailPage() {
                         !newEntry.date ||
                         !newEntry.hours
                       }
-                      className="bg-orange-600 hover:bg-orange-700 text-white"
+                      className="bg-bright hover:bg-bright-deep text-white"
                     >
                       {saving ? "Creating..." : "Create Entry"}
                     </Button>
@@ -1353,7 +1341,7 @@ export default function TimesheetDetailPage() {
                       !editingEntry.date ||
                       !editingEntry.hours_spent
                     }
-                    className="bg-orange-600 hover:bg-orange-700 text-white"
+                    className="bg-bright hover:bg-bright-deep text-white"
                   >
                     {saving ? "Updating..." : "Update Entry"}
                   </Button>
@@ -1379,16 +1367,16 @@ export default function TimesheetDetailPage() {
               </DialogHeader>
 
               <div className="space-y-4">
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div className="p-4 bg-surface-2 rounded-lg">
                   <div className="text-sm">
-                    <div className="font-medium text-gray-900 dark:text-gray-100">
+                    <div className="font-medium text-ink">
                       {deleteConfirmEntry.task.name}
                     </div>
-                    <div className="text-gray-600 dark:text-gray-400 mt-1">
+                    <div className="text-muted mt-1">
                       {deleteConfirmEntry.hours_spent}h on{" "}
                       {new Date(deleteConfirmEntry.date).toLocaleDateString()}
                     </div>
-                    <div className="text-gray-600 dark:text-gray-400">
+                    <div className="text-muted">
                       {new Date(
                         deleteConfirmEntry.start_time
                       ).toLocaleTimeString("en-US", {
@@ -1405,7 +1393,7 @@ export default function TimesheetDetailPage() {
                       )}
                     </div>
                     {deleteConfirmEntry.description && (
-                      <div className="text-gray-500 dark:text-gray-500 mt-2 text-xs">
+                      <div className="text-faint mt-2 text-xs">
                         {deleteConfirmEntry.description}
                       </div>
                     )}
@@ -1463,10 +1451,10 @@ export default function TimesheetDetailPage() {
                     {dayEntries.map((entry) => (
                       <div
                         key={entry.time_entry_id}
-                        className="p-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-xs border"
+                        className="p-2 bg-surface-2 rounded-lg text-xs border"
                       >
                         <div className="flex items-start justify-between mb-1 gap-2">
-                          <span className="font-medium text-gray-900 dark:text-gray-100 text-xs break-words flex-1 min-w-0">
+                          <span className="font-medium text-ink text-xs break-words flex-1 min-w-0">
                             {entry.task.name}
                           </span>
                           <div className="flex items-center space-x-1 flex-shrink-0">
@@ -1484,7 +1472,7 @@ export default function TimesheetDetailPage() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-6 w-6 p-0 text-red-600"
+                                  className="h-6 w-6 p-0 text-danger"
                                   onClick={() => setDeleteConfirmEntry(entry)}
                                   disabled={timesheet.status !== "DRAFT"}
                                 >
@@ -1494,7 +1482,7 @@ export default function TimesheetDetailPage() {
                             )}
                           </div>
                         </div>
-                        <div className="text-gray-600 dark:text-gray-400">
+                        <div className="text-muted">
                           {entry.hours_spent}h (
                           {new Date(entry.start_time).toLocaleTimeString(
                             "en-US",
@@ -1514,7 +1502,7 @@ export default function TimesheetDetailPage() {
                           )
                         </div>
                         {entry.description && (
-                          <div className="text-gray-500 dark:text-gray-500 mt-1 text-xs">
+                          <div className="text-faint mt-1 text-xs">
                             {entry.description}
                           </div>
                         )}
@@ -1522,7 +1510,7 @@ export default function TimesheetDetailPage() {
                     ))}
 
                     {dayEntries.length === 0 && (
-                      <div className="text-center text-gray-500 dark:text-gray-400 py-4 text-xs">
+                      <div className="text-center text-muted py-4 text-xs">
                         No entries
                       </div>
                     )}
@@ -1537,12 +1525,12 @@ export default function TimesheetDetailPage() {
         {!isOwnTimesheet() &&
           canViewOtherTimesheets() &&
           timesheet.status === "SUBMITTED" && (
-            <Card className="border-blue-200 bg-blue-50 dark:bg-blue-900/10">
+            <Card className="border-info bg-info-soft">
               <CardHeader>
-                <CardTitle className="text-blue-900 dark:text-blue-100">
+                <CardTitle className="text-info">
                   Timesheet Approval
                 </CardTitle>
-                <CardDescription className="text-blue-700 dark:text-blue-300">
+                <CardDescription className="text-info">
                   Review and approve/reject this timesheet submission
                 </CardDescription>
               </CardHeader>
@@ -1550,7 +1538,7 @@ export default function TimesheetDetailPage() {
                 <div className="flex items-center space-x-4">
                   <Button
                     onClick={handleApproveTimesheet}
-                    className="bg-green-600 hover:bg-green-700 text-white"
+                    className="bg-success hover:opacity-90 text-white"
                     disabled={saving}
                   >
                     <CheckCircle size={16} className="mr-2" />
@@ -1564,7 +1552,7 @@ export default function TimesheetDetailPage() {
                     {saving ? "Rejecting..." : "Reject Timesheet"}
                   </Button>
                 </div>
-                <p className="text-sm text-blue-600 dark:text-blue-400 mt-3">
+                <p className="text-sm text-info mt-3">
                   Total Hours: {calculateTotalHours().toFixed(1)}h • Submitted
                   by: {timesheet.user.account.first_name}{" "}
                   {timesheet.user.account.last_name}
@@ -1574,14 +1562,11 @@ export default function TimesheetDetailPage() {
           )}
 
         {/* Comments Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Timesheet Comments</CardTitle>
-            <CardDescription>
-              Add any additional notes or comments about this timesheet
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <FormSection
+          title="Comments"
+          description="Any additional notes about this timesheet."
+        >
+          <div>
             <Textarea
               value={timesheet.comments || ""}
               onChange={(e) =>
@@ -1603,8 +1588,8 @@ export default function TimesheetDetailPage() {
                 </Button>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </FormSection>
       </div>
     </DashboardLayout>
   );

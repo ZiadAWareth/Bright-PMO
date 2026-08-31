@@ -27,6 +27,8 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Spinner } from "@/components/ui/spinner";
+import { FormSection } from '@/components/ui/form-shell';
 
 interface CriticalPathTask {
     task_id: number;
@@ -181,19 +183,19 @@ export default function CriticalPathPage({ params }: { params: Promise<{ id: str
 
     const getStatusBadge = (status: string) => {
         const statusColors: { [key: string]: string } = {
-            todo: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
-            'in-progress': 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200',
-            completed: 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-200',
-            blocked: 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-200',
+            todo: 'bg-surface-2 text-ink-2  ',
+            'in-progress': 'bg-info-soft text-info  ',
+            completed: 'bg-success-soft text-success  ',
+            blocked: 'bg-danger-soft text-danger  ',
         };
         return statusColors[status] || statusColors.todo;
     };
 
     const getPriorityBadge = (priority: string) => {
         const priorityColors: { [key: string]: string } = {
-            low: 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-200',
-            medium: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-200',
-            high: 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-200',
+            low: 'bg-success-soft text-success  ',
+            medium: 'bg-warning-soft text-warning  ',
+            high: 'bg-danger-soft text-danger  ',
         };
         return priorityColors[priority] || priorityColors.medium;
     };
@@ -202,7 +204,7 @@ export default function CriticalPathPage({ params }: { params: Promise<{ id: str
         return (
             <DashboardLayout>
                 <div className="flex items-center justify-center min-h-screen">
-                    <Loader2 className="h-8 w-8 animate-spin mr-2" />
+                    <Spinner size={32} className="mr-2 text-bright-primary" />
                     <span>Loading critical path analysis...</span>
                 </div>
             </DashboardLayout>
@@ -210,44 +212,27 @@ export default function CriticalPathPage({ params }: { params: Promise<{ id: str
     }
 
     return (
-        <DashboardLayout>
-            <div className="container mx-auto px-4 py-8">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-8">
-                    <div className="flex items-center space-x-4">
-                        <Button
-                            variant="outline"
-                            onClick={() => router.back()}
-                            className="flex items-center space-x-2"
-                        >
-                            <ArrowLeft size={16} />
-                            <span>Back</span>
-                        </Button>
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                                Critical Path Analysis
-                            </h1>
-                            <p className="text-gray-600 dark:text-gray-400">
-                                {project?.name || 'Project'} - Detailed critical path analysis
-                            </p>
-                        </div>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                        <Button
-                            onClick={calculateCriticalPath}
-                            disabled={calculating}
-                            className="flex items-center space-x-2"
-                        >
-                            {calculating ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                                <RefreshCw className="h-4 w-4" />
-                            )}
-                            <span>{calculating ? 'Calculating...' : 'Recalculate'}</span>
-                        </Button>
-                    </div>
-                </div>
-
+        <DashboardLayout
+            title="Critical Path Analysis"
+            subtitle={`${project?.name || 'Project'} — Detailed critical path analysis`}
+            backHref={projectId ? `/projects/${projectId}` : '/projects'}
+            backLabel={projectId ? 'Back to Project' : 'Back to Projects'}
+            actions={
+                <Button
+                    onClick={calculateCriticalPath}
+                    disabled={calculating}
+                    className="flex items-center space-x-2"
+                >
+                    {calculating ? (
+                        <Spinner size={16} />
+                    ) : (
+                        <RefreshCw className="h-4 w-4" />
+                    )}
+                    <span>{calculating ? 'Calculating...' : 'Recalculate'}</span>
+                </Button>
+            }
+        >
+            <div>
                 {error && (
                     <Alert className="mb-6">
                         <AlertTriangle className="h-4 w-4" />
@@ -255,74 +240,62 @@ export default function CriticalPathPage({ params }: { params: Promise<{ id: str
                     </Alert>
                 )}
 
-                {/* Summary Cards */}
                 {criticalPathData?.calculation_summary && (
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Critical Tasks</CardTitle>
-                                <Activity className="h-4 w-4 text-red-500" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold text-red-600">
-                                    {criticalPathData.calculation_summary.critical_tasks_count}
+                    <FormSection title="Analysis Summary" className="mb-6">
+                        <div className="grid grid-cols-2 gap-x-8 gap-y-6 md:grid-cols-4">
+                            {(
+                                [
+                                    [
+                                        Activity,
+                                        'text-danger',
+                                        'Critical Tasks',
+                                        criticalPathData.calculation_summary.critical_tasks_count,
+                                        `of ${criticalPathData.calculation_summary.total_tasks} total tasks`,
+                                    ],
+                                    [
+                                        Clock,
+                                        'text-info',
+                                        'Project Duration',
+                                        `${criticalPathData.calculation_summary.critical_path_duration} days`,
+                                        'Critical path length',
+                                    ],
+                                    [
+                                        TrendingUp,
+                                        'text-success',
+                                        'Max Float',
+                                        `${criticalPathData.calculation_summary.max_float} days`,
+                                        'Maximum slack time',
+                                    ],
+                                    [
+                                        BarChart3,
+                                        'text-accent-violet',
+                                        'Last Calculated',
+                                        `${criticalPathData.execution_time_ms}ms`,
+                                        'Calculation time',
+                                    ],
+                                ] as [typeof Activity, string, string, React.ReactNode, string][]
+                            ).map(([Icon, tone, label, value, hint]) => (
+                                <div key={label} className="min-w-0">
+                                    <div className="flex items-center gap-2">
+                                        <Icon
+                                            className={`h-4 w-4 shrink-0 ${tone}`}
+                                            aria-hidden="true"
+                                        />
+                                        <p className="text-[12px] text-muted">{label}</p>
+                                    </div>
+                                    <p className="mt-1 text-[20px] font-semibold tabular-nums text-ink">
+                                        {value}
+                                    </p>
+                                    <p className="mt-0.5 text-[11.5px] text-faint">{hint}</p>
                                 </div>
-                                <p className="text-xs text-muted-foreground">
-                                    of {criticalPathData.calculation_summary.total_tasks} total tasks
-                                </p>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Project Duration</CardTitle>
-                                <Clock className="h-4 w-4 text-blue-500" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold text-blue-600">
-                                    {criticalPathData.calculation_summary.critical_path_duration} days
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                    Critical path length
-                                </p>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Max Float</CardTitle>
-                                <TrendingUp className="h-4 w-4 text-green-500" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold text-green-600">
-                                    {criticalPathData.calculation_summary.max_float} days
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                    Maximum slack time
-                                </p>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Last Calculated</CardTitle>
-                                <BarChart3 className="h-4 w-4 text-purple-500" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold text-purple-600">
-                                    {criticalPathData.execution_time_ms}ms
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                    Calculation time
-                                </p>
-                            </CardContent>
-                        </Card>
-                    </div>
+                            ))}
+                        </div>
+                    </FormSection>
                 )}
 
                 {/* Tabs - moved below the cards */}
                 <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'summary' | 'gantt')} className="mb-8">
-                    <TabsList>
+                    <TabsList variant="line">
                         <TabsTrigger value="summary">Summary</TabsTrigger>
                         <TabsTrigger value="gantt">Gantt Chart</TabsTrigger>
                     </TabsList>
@@ -333,7 +306,7 @@ export default function CriticalPathPage({ params }: { params: Promise<{ id: str
                         <Card className="mb-8">
                             <CardHeader>
                                 <CardTitle className="flex items-center space-x-2">
-                                    <Zap className="h-5 w-5 text-red-500" />
+                                    <Zap className="h-5 w-5 text-danger" />
                                     <span>Critical Path Tasks</span>
                                     <Badge variant="destructive">
                                         {criticalPathData?.critical_tasks?.length || 0} tasks
@@ -346,15 +319,15 @@ export default function CriticalPathPage({ params }: { params: Promise<{ id: str
                                         {criticalPathData.critical_tasks.map((task, index) => (
                                             <div 
                                                 key={task.task_id} 
-                                                className="flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                                                className="flex items-center justify-between p-4 bg-danger-soft border border-danger rounded-lg cursor-pointer hover:bg-danger-soft transition-colors"
                                                 onClick={() => router.push(`/projects/${projectId}/tasks/${task.task_id}`)}
                                             >
                                                 <div className="flex items-center space-x-4">
-                                                    <div className="w-10 h-10 bg-red-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                                                    <div className="w-10 h-10 bg-danger text-white rounded-full flex items-center justify-center text-sm font-bold">
                                                         {index + 1}
                                                     </div>
                                                     <div>
-                                                        <h4 className="font-semibold text-gray-900 dark:text-gray-100">{task.name}</h4>
+                                                        <h4 className="font-semibold text-ink">{task.name}</h4>
                                                         <div className="flex items-center space-x-2 mt-1">
                                                             <Badge className={getStatusBadge(task.status)}>
                                                                 {task.status}
@@ -369,7 +342,7 @@ export default function CriticalPathPage({ params }: { params: Promise<{ id: str
                                                     </div>
                                                 </div>
                                                 <div className="text-right">
-                                                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                                                    <div className="text-sm text-muted">
                                                         <div>Duration: {task.duration} days</div>
                                                         <div>Float: {task.total_float || 0} days</div>
                                                         <div>
@@ -386,8 +359,8 @@ export default function CriticalPathPage({ params }: { params: Promise<{ id: str
                                     </div>
                                 ) : (
                                     <div className="text-center py-8">
-                                        <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                                        <p className="text-gray-500">No critical path data available</p>
+                                        <AlertTriangle className="h-12 w-12 text-faint mx-auto mb-4" />
+                                        <p className="text-muted">No critical path data available</p>
                                         <Button onClick={calculateCriticalPath} className="mt-4">
                                             Calculate Critical Path
                                         </Button>
@@ -400,7 +373,7 @@ export default function CriticalPathPage({ params }: { params: Promise<{ id: str
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center space-x-2">
-                                    <Target className="h-5 w-5 text-blue-500" />
+                                    <Target className="h-5 w-5 text-info" />
                                     <span>All Tasks Float Analysis</span>
                                 </CardTitle>
                             </CardHeader>
@@ -412,21 +385,21 @@ export default function CriticalPathPage({ params }: { params: Promise<{ id: str
                                                 key={task.task_id} 
                                                 className={`flex items-center justify-between p-4 rounded-lg border cursor-pointer transition-colors ${
                                                     task.is_critical_path 
-                                                        ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30' 
-                                                        : 'bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-900/30'
+                                                        ? 'bg-danger-soft border-danger  hover:bg-danger-soft ' 
+                                                        : 'bg-surface-2  border-line  hover:bg-surface-2 '
                                                 }`}
                                                 onClick={() => router.push(`/projects/${projectId}/tasks/${task.task_id}`)}
                                             >
                                                 <div className="flex items-center space-x-4">
                                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
                                                         task.is_critical_path 
-                                                            ? 'bg-red-500 text-white' 
-                                                            : 'bg-gray-500 text-white'
+                                                            ? 'bg-danger text-white' 
+                                                            : 'bg-muted text-white'
                                                     }`}>
                                                         {task.is_critical_path ? 'C' : 'N'}
                                                     </div>
                                                     <div>
-                                                        <h4 className="font-medium text-gray-900 dark:text-gray-100">{task.name}</h4>
+                                                        <h4 className="font-medium text-ink">{task.name}</h4>
                                                         <div className="flex items-center space-x-2 mt-1">
                                                             <Badge className={getStatusBadge(task.status)}>
                                                                 {task.status}
@@ -442,7 +415,7 @@ export default function CriticalPathPage({ params }: { params: Promise<{ id: str
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="text-right text-sm text-gray-600 dark:text-gray-400">
+                                                <div className="text-right text-sm text-muted">
                                                     <div>Duration: {task.duration} days</div>
                                                     <div>
                                                         {task.early_start && task.early_finish && (
@@ -457,8 +430,8 @@ export default function CriticalPathPage({ params }: { params: Promise<{ id: str
                                     </div>
                                 ) : (
                                     <div className="text-center py-8">
-                                        <Target className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                                        <p className="text-gray-500">No tasks available</p>
+                                        <Target className="h-12 w-12 text-faint mx-auto mb-4" />
+                                        <p className="text-muted">No tasks available</p>
                                     </div>
                                 )}
                             </CardContent>
@@ -508,8 +481,8 @@ function CriticalPathGanttChart({ tasks, project }: { tasks: any[]; project: any
         return (
             <Card>
                 <CardContent className="text-center py-8">
-                    <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">No critical path tasks to display</p>
+                    <Calendar className="h-12 w-12 text-faint mx-auto mb-4" />
+                    <p className="text-muted">No critical path tasks to display</p>
                 </CardContent>
             </Card>
         );
@@ -588,12 +561,12 @@ function CriticalPathGanttChart({ tasks, project }: { tasks: any[]; project: any
             <CardHeader>
                 <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center space-x-2">
-                        <Calendar className="h-5 w-5 text-blue-500" />
+                        <Calendar className="h-5 w-5 text-info" />
                         <span>Critical Path Gantt Chart</span>
                     </CardTitle>
                     <div className="flex items-center space-x-2">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">Timeline View:</span>
-                        <div className="flex rounded-md border border-gray-200 dark:border-gray-700">
+                        <span className="text-sm text-muted">Timeline View:</span>
+                        <div className="flex rounded-md border border-line">
                             <Button
                                 variant={timelineView === 'days' ? 'default' : 'ghost'}
                                 size="sm"
@@ -626,7 +599,7 @@ function CriticalPathGanttChart({ tasks, project }: { tasks: any[]; project: any
                 <div className="overflow-x-auto">
                     <div className="min-w-max">
                         {/* Timeline Header */}
-                        <div className="flex border-b bg-gray-50 dark:bg-gray-700">
+                        <div className="flex border-b bg-surface-2">
                             <div className="w-64 px-4 py-2 border-r font-semibold">Task</div>
                             {timeline.map((date, idx) => (
                                 <div key={idx} className={`${columnWidth} px-1 py-2 text-xs text-center border-r`}>
@@ -638,10 +611,10 @@ function CriticalPathGanttChart({ tasks, project }: { tasks: any[]; project: any
                         {ganttTasks.map((task) => {
                             const { startIdx, endIdx, width } = getTaskPosition(task);
                             return (
-                                <div key={task.id} className="flex border-b items-center hover:bg-gray-50 dark:hover:bg-gray-800">
+                                <div key={task.id} className="flex border-b items-center hover:bg-surface-2">
                                     <div className="w-64 px-4 py-2 border-r text-sm font-medium">
                                         <div className="truncate" title={task.name}>{task.name}</div>
-                                        <div className="text-xs text-gray-500">{task.duration} days</div>
+                                        <div className="text-xs text-muted">{task.duration} days</div>
                                     </div>
                                     {timeline.map((_, i) => {
                                         if (i < startIdx || i > endIdx) {
@@ -658,7 +631,7 @@ function CriticalPathGanttChart({ tasks, project }: { tasks: any[]; project: any
                                                     style={{ width: barWidth }}
                                                 >
                                                     <div
-                                                        className="h-6 rounded-md bg-gradient-to-r from-red-500 to-orange-400 text-white text-xs font-semibold flex items-center justify-center shadow-sm"
+                                                        className="h-6 rounded-md bg-gradient-to-r from-danger to-bright-deep text-white text-xs font-semibold flex items-center justify-center shadow-sm"
                                                         style={{ width: 'calc(100% - 8px)' }}
                                                         title={`${task.name} (${task.duration} days)`}
                                                     >

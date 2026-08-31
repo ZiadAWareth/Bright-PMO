@@ -11,6 +11,7 @@ import {
   Database,
   Loader2,
 } from 'lucide-react';
+import { Spinner } from "@/components/ui/spinner";
 
 interface HealthStatus {
   status: 'healthy' | 'unhealthy' | 'checking';
@@ -64,8 +65,8 @@ function MetabaseIframe({
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <Loader2 className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-orange-600 mx-auto" />
-          <p className="text-gray-600 dark:text-gray-400 mt-4">Loading dashboard...</p>
+          <Spinner size={32} className="mx-auto text-bright-primary" />
+          <p className="text-muted mt-4">Loading dashboard...</p>
         </div>
       </div>
     );
@@ -75,11 +76,11 @@ function MetabaseIframe({
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <AlertCircle className="w-8 h-8 text-red-600 mx-auto mb-4" />
-          <p className="text-red-600 mb-4">{error || 'Failed to load dashboard'}</p>
+          <AlertCircle className="w-8 h-8 text-danger mx-auto mb-4" />
+          <p className="text-danger mb-4">{error || 'Failed to load dashboard'}</p>
           <button 
             onClick={() => window.location.reload()} 
-            className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors"
+            className="px-4 py-2 bg-bright text-white rounded hover:bg-bright-deep transition-colors"
           >
             Retry
           </button>
@@ -205,12 +206,12 @@ export default function DynamicDashboard() {
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
-            <div className="w-16 h-16 bg-gradient-to-r from-amber-500 to-orange-600 rounded-lg mx-auto mb-4 flex items-center justify-center shadow-lg animate-pulse">
+            <div className="w-16 h-16 bg-gradient-to-r from-warning to-bright-deep rounded-lg mx-auto mb-4 flex items-center justify-center shadow-lg animate-pulse">
               <BarChart3 className="text-white w-8 h-8" />
             </div>
-            <Loader2 className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-orange-600 mx-auto mb-4" />
-            <p className="text-gray-600 dark:text-gray-400 font-medium">Loading dynamic analytics dashboard...</p>
-            <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">Connecting to Metabase...</p>
+            <Spinner size={32} className="mx-auto mb-4 text-bright-primary" />
+            <p className="text-muted font-medium">Loading dynamic analytics dashboard...</p>
+            <p className="text-sm text-faint mt-2">Connecting to Metabase...</p>
           </div>
         </div>
       </DashboardLayout>
@@ -222,13 +223,13 @@ export default function DynamicDashboard() {
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
-            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-lg mx-auto mb-4 flex items-center justify-center">
-              <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
+            <div className="w-16 h-16 bg-danger-soft rounded-lg mx-auto mb-4 flex items-center justify-center">
+              <AlertCircle className="w-8 h-8 text-danger" />
             </div>
-            <p className="text-red-600 dark:text-red-400 text-lg font-semibold mb-2">{error}</p>
+            <p className="text-danger text-lg font-semibold mb-2">{error}</p>
             <button
               onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 mx-auto"
+              className="px-4 py-2 bg-danger text-white rounded-lg hover:opacity-90 transition-colors flex items-center gap-2 mx-auto"
             >
               <RefreshCw className="w-4 h-4" />
               Retry Connection
@@ -244,10 +245,10 @@ export default function DynamicDashboard() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-2xl font-bold text-ink">
               Dynamic Analytics Dashboard
             </h1>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-muted">
               Interactive analytics and insights powered by Metabase
             </p>
           </div>
@@ -255,14 +256,18 @@ export default function DynamicDashboard() {
           <div className="flex gap-3">
             <button
               onClick={refreshDashboard}
-              className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
+              className="px-4 py-2 bg-surface-2 text-ink-3 rounded-lg hover:bg-surface-3 transition-colors flex items-center gap-2"
             >
-              <RefreshCw className={`w-4 h-4 ${healthStatus.status === 'checking' ? 'animate-spin' : ''}`} />
+              {healthStatus.status === 'checking' ? (
+                <Spinner size={16} />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
               Refresh
             </button>
             <button
               onClick={openMetabaseInNewTab}
-              className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2"
+              className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors flex items-center gap-2"
             >
               <ExternalLink className="w-4 h-4" />
               Open in Metabase
@@ -271,16 +276,16 @@ export default function DynamicDashboard() {
         </div>
 
         {metabaseAvailable ? (
-          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
-            <div className="bg-gradient-to-r from-amber-500 to-orange-600 p-6 text-white">
+          <div className="bg-surface border border-line rounded-xl overflow-hidden">
+            <div className="bg-gradient-to-r from-warning to-bright-deep p-6 text-white">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-bold mb-2">Interactive Analytics</h2>
-                  <p className="text-amber-100">Real-time data insights and visualizations</p>
+                  <p className="text-white">Real-time data insights and visualizations</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                  <span className="text-sm text-amber-100">Live Data</span>
+                  <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
+                  <span className="text-sm text-white">Live Data</span>
                 </div>
               </div>
             </div>
@@ -295,27 +300,27 @@ export default function DynamicDashboard() {
             </div>
           </div>
         ) : (
-          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-12 text-center">
-            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-lg mx-auto mb-6 flex items-center justify-center">
-              <Database className="w-8 h-8 text-gray-600 dark:text-gray-400" />
+          <div className="bg-surface border border-line rounded-xl p-12 text-center">
+            <div className="w-16 h-16 bg-surface-2 rounded-lg mx-auto mb-6 flex items-center justify-center">
+              <Database className="w-8 h-8 text-muted" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            <h3 className="text-xl font-semibold text-ink mb-2">
               Metabase Unavailable
             </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
+            <p className="text-muted mb-6 max-w-md mx-auto">
               The analytics dashboard service is currently unavailable. Please check your connection and try again.
             </p>
             <div className="flex gap-3 justify-center">
               <button
                 onClick={refreshDashboard}
-                className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2"
+                className="px-6 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors flex items-center gap-2"
               >
                 <RefreshCw className="w-4 h-4" />
                 Retry Connection
               </button>
               <button
                 onClick={openMetabaseInNewTab}
-                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+                className="px-6 py-2 bg-muted text-white rounded-lg hover:bg-ink-solid-3 transition-colors flex items-center gap-2"
               >
                 <ExternalLink className="w-4 h-4" />
                 Open Direct Link

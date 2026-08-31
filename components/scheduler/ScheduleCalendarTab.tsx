@@ -43,7 +43,6 @@ import {
 import axios from "axios";
 import { toast } from "sonner";
 import { ProjectWithRelations, ProjectSetup, ProjectTask } from "@/types/project";
-import TaskTemplateManager from "@/components/TaskTemplateManager";
 
 interface ScheduleCalendarTabProps {
   currentMonth: Date;
@@ -187,36 +186,36 @@ const ScheduleCalendarTab: React.FC<ScheduleCalendarTabProps> = ({
             let dayBgClass = "";
             if (isToday) {
                 dayBgClass =
-                    "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700";
+                    "bg-info-soft border-info ";
             } else if (isProjectStart || isProjectEnd) {
                 dayBgClass =
-                    "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-700";
+                    "bg-accent-indigo-soft  border-accent-indigo ";
             } else if (milestonesToday.length > 0) {
                 dayBgClass =
-                    "bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-700";
+                    "bg-accent-violet-soft  border-accent-violet ";
             } else if (wbsStartsToday.length > 0 || wbsEndsToday.length > 0) {
                 dayBgClass =
-                    "bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-700";
+                    "bg-bright-2-soft  border-bright-2-soft ";
             } else if (overdueTasks.length > 0) {
                 dayBgClass =
-                    "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700";
+                    "bg-danger-soft border-danger ";
             } else if (criticalTasksToday.length > 0) {
                 dayBgClass =
-                    "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-700";
+                    "bg-bright-soft border-bright ";
             } else if (isWeekend) {
-                dayBgClass = "bg-gray-50 dark:bg-gray-900/50";
+                dayBgClass = "bg-surface-2 ";
             }
 
             calendarDays.push(
                 <div
                     key={day}
-                    className={`h-32 p-1 border border-gray-200 dark:border-gray-700 ${dayBgClass} transition-shadow`}
+                    className={`h-32 p-1 border border-line ${dayBgClass} transition-shadow`}
                 >
                     <div
                         className={`text-sm font-medium mb-1 flex items-center justify-between ${
                             isToday
-                                ? "text-blue-600 dark:text-blue-400"
-                                : "text-gray-900 dark:text-gray-100"
+                                ? "text-info"
+                                : "text-ink"
                         }`}
                     >
                         <span>{day}</span>
@@ -224,23 +223,23 @@ const ScheduleCalendarTab: React.FC<ScheduleCalendarTabProps> = ({
                             {(isProjectStart || isProjectEnd) && (
                                 <Building
                                     size={8}
-                                    className="text-indigo-500"
+                                    className="text-accent-indigo"
                                 />
                             )}
                             {(wbsStartsToday.length > 0 ||
                                 wbsEndsToday.length > 0) && (
-                                <Target size={8} className="text-teal-500" />
+                                <Target size={8} className="text-bright-2" />
                             )}
                             {milestonesToday.length > 0 && (
-                                <Star size={8} className="text-purple-500" />
+                                <Star size={8} className="text-accent-violet" />
                             )}
                             {criticalTasksToday.length > 0 && (
-                                <Zap size={8} className="text-orange-500" />
+                                <Zap size={8} className="text-bright" />
                             )}
                             {overdueTasks.length > 0 && (
                                 <AlertTriangle
                                     size={8}
-                                    className="text-red-500"
+                                    className="text-danger"
                                 />
                             )}
                         </div>
@@ -258,7 +257,7 @@ const ScheduleCalendarTab: React.FC<ScheduleCalendarTabProps> = ({
                                 projectEvents.push(
                                     <div
                                         key="project-start"
-                                        className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-200 p-1 rounded truncate flex items-center"
+                                        className="bg-accent-indigo-soft text-accent-indigo p-1 rounded truncate flex items-center"
                                         title={`Project Start: ${project?.name}`}
                                     >
                                         <Building
@@ -276,7 +275,7 @@ const ScheduleCalendarTab: React.FC<ScheduleCalendarTabProps> = ({
                                 projectEvents.push(
                                     <div
                                         key="project-end"
-                                        className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-200 p-1 rounded truncate flex items-center"
+                                        className="bg-accent-indigo-soft text-accent-indigo p-1 rounded truncate flex items-center"
                                         title={`Project End: ${project?.name}`}
                                     >
                                         <Building
@@ -299,7 +298,7 @@ const ScheduleCalendarTab: React.FC<ScheduleCalendarTabProps> = ({
                                     wbsEvents.push(
                                         <div
                                             key={`wbs-start-${wbs.wbs_id}`}
-                                            className="bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200 p-1 rounded truncate flex items-center"
+                                            className="bg-bright-2-soft text-bright-2 p-1 rounded truncate flex items-center"
                                             title={`WBS Start: ${wbs.name}`}
                                         >
                                             <Target
@@ -319,7 +318,7 @@ const ScheduleCalendarTab: React.FC<ScheduleCalendarTabProps> = ({
                                     wbsEvents.push(
                                         <div
                                             key={`wbs-end-${wbs.wbs_id}`}
-                                            className="bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200 p-1 rounded truncate flex items-center"
+                                            className="bg-bright-2-soft text-bright-2 p-1 rounded truncate flex items-center"
                                             title={`WBS End: ${wbs.name}`}
                                         >
                                             <Target
@@ -340,7 +339,7 @@ const ScheduleCalendarTab: React.FC<ScheduleCalendarTabProps> = ({
                                 .map((milestone) => (
                                     <div
                                         key={`milestone-${milestone.task_id}`}
-                                        className="bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200 p-1 rounded truncate flex items-center"
+                                        className="bg-accent-violet-soft text-accent-violet p-1 rounded truncate flex items-center"
                                         title={`Milestone: ${milestone.name}`}
                                     >
                                         <Flag
@@ -360,7 +359,7 @@ const ScheduleCalendarTab: React.FC<ScheduleCalendarTabProps> = ({
                                 .map((task) => (
                                     <div
                                         key={`start-${task.task_id}`}
-                                        className="bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200 p-1 rounded truncate flex items-center"
+                                        className="bg-success-soft text-success p-1 rounded truncate flex items-center"
                                         title={`Starting: ${task.name}`}
                                     >
                                         <Activity
@@ -380,7 +379,7 @@ const ScheduleCalendarTab: React.FC<ScheduleCalendarTabProps> = ({
                                 .map((task) => (
                                     <div
                                         key={`end-${task.task_id}`}
-                                        className="bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200 p-1 rounded truncate flex items-center"
+                                        className="bg-info-soft text-info p-1 rounded truncate flex items-center"
                                         title={`Ending: ${task.name}`}
                                     >
                                         <CheckCircle
@@ -408,8 +407,8 @@ const ScheduleCalendarTab: React.FC<ScheduleCalendarTabProps> = ({
                                         key={`ongoing-${task.task_id}`}
                                         className={`p-1 rounded truncate flex items-center ${
                                             task.is_critical_path
-                                                ? "bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-200"
-                                                : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                                                ? "bg-bright-soft text-bright  "
+                                                : "bg-surface-2 text-ink-3  "
                                         }`}
                                         title={`Ongoing: ${task.name}`}
                                     >
@@ -448,7 +447,7 @@ const ScheduleCalendarTab: React.FC<ScheduleCalendarTabProps> = ({
                                     {taskEndEvents}
                                     {ongoingEvents}
                                     {remainingTasks > 0 && (
-                                        <div className="text-gray-500 dark:text-gray-400 text-center">
+                                        <div className="text-muted text-center">
                                             +{remainingTasks} more
                                         </div>
                                     )}
@@ -461,7 +460,7 @@ const ScheduleCalendarTab: React.FC<ScheduleCalendarTabProps> = ({
         }
 
         return (
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+            <div className="bg-surface rounded-xl border border-line p-6">
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center space-x-4">
                         <button
@@ -470,13 +469,13 @@ const ScheduleCalendarTab: React.FC<ScheduleCalendarTabProps> = ({
                                 newDate.setMonth(newDate.getMonth() - 1);
                                 setCurrentMonth(newDate);
                             }}
-                            className="p-2 hover:bg-gray-100 rounded-lg"
+                            className="p-2 hover:bg-surface-2 rounded-lg"
                         >
                             <ChevronLeft size={20} />
                         </button>
                         <button
                             onClick={() => setShowMonthYearPicker(true)}
-                            className="text-xl font-semibold hover:bg-gray-100 px-3 py-1 rounded-lg cursor-pointer"
+                            className="text-xl font-semibold hover:bg-surface-2 px-3 py-1 rounded-lg cursor-pointer"
                         >
                             {currentMonth.toLocaleDateString("en-US", {
                                 month: "long",
@@ -489,7 +488,7 @@ const ScheduleCalendarTab: React.FC<ScheduleCalendarTabProps> = ({
                                 newDate.setMonth(newDate.getMonth() + 1);
                                 setCurrentMonth(newDate);
                             }}
-                            className="p-2 hover:bg-gray-100 rounded-lg"
+                            className="p-2 hover:bg-surface-2 rounded-lg"
                         >
                             <ChevronRight size={20} />
                         </button>
@@ -498,7 +497,7 @@ const ScheduleCalendarTab: React.FC<ScheduleCalendarTabProps> = ({
                         {(searchTerm ||
                             filterStatus !== "all" ||
                             filterPriority !== "all") && (
-                            <div className="ml-4 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-sm rounded-full flex items-center">
+                            <div className="ml-4 px-3 py-1 bg-info-soft text-info text-sm rounded-full flex items-center">
                                 <Filter size={14} className="mr-1" />
                                 <span>
                                     {[
@@ -522,14 +521,14 @@ const ScheduleCalendarTab: React.FC<ScheduleCalendarTabProps> = ({
                                     setFilterStatus("all");
                                     setFilterPriority("all");
                                 }}
-                                className="px-3 py-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm"
+                                className="px-3 py-1 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors text-sm"
                             >
                                 Clear Filters
                             </button>
                         )}
                         <button
                             onClick={() => setCurrentMonth(new Date())}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            className="px-4 py-2 bg-info text-white rounded-lg hover:opacity-90 transition-colors"
                         >
                             Today
                         </button>
@@ -542,7 +541,7 @@ const ScheduleCalendarTab: React.FC<ScheduleCalendarTabProps> = ({
                         (day) => (
                             <div
                                 key={day}
-                                className="h-8 flex items-center justify-center text-sm font-medium text-gray-500 dark:text-gray-400"
+                                className="h-8 flex items-center justify-center text-sm font-medium text-muted"
                             >
                                 {day}
                             </div>
@@ -557,32 +556,32 @@ const ScheduleCalendarTab: React.FC<ScheduleCalendarTabProps> = ({
                 {(searchTerm ||
                     filterStatus !== "all" ||
                     filterPriority !== "all") && (
-                    <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <div className="mt-6 p-4 bg-info-soft border border-info rounded-lg">
                         <div className="flex items-center justify-between mb-2">
-                            <h4 className="text-sm font-medium text-blue-900 dark:text-blue-100 flex items-center">
+                            <h4 className="text-sm font-medium text-info flex items-center">
                                 <Filter size={16} className="mr-2" />
                                 Active Filters
                             </h4>
-                            <span className="text-xs text-blue-700 dark:text-blue-300">
+                            <span className="text-xs text-info">
                                 Showing {filteredTasks.length} of {tasks.length}{" "}
                                 tasks
                             </span>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                             {searchTerm && (
-                                <div className="text-xs text-blue-800 dark:text-blue-200">
+                                <div className="text-xs text-info">
                                     <span className="font-medium">Search:</span>{" "}
                                     "{searchTerm}"
                                 </div>
                             )}
                             {filterStatus !== "all" && (
-                                <div className="text-xs text-blue-800 dark:text-blue-200">
+                                <div className="text-xs text-info">
                                     <span className="font-medium">Status:</span>{" "}
                                     {filterStatus.replace("_", " ")}
                                 </div>
                             )}
                             {filterPriority !== "all" && (
-                                <div className="text-xs text-blue-800 dark:text-blue-200">
+                                <div className="text-xs text-info">
                                     <span className="font-medium">
                                         Priority:
                                     </span>{" "}
@@ -594,68 +593,68 @@ const ScheduleCalendarTab: React.FC<ScheduleCalendarTabProps> = ({
                 )}
 
                 {/* Calendar Legend */}
-                <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
+                <div className="mt-6 p-4 bg-surface-2 rounded-lg">
+                    <h4 className="text-sm font-medium text-ink mb-3">
                         Calendar Legend
                     </h4>
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-xs">
                         <div className="flex items-center space-x-2">
-                            <Building size={12} className="text-indigo-500" />
-                            <span className="text-gray-700 dark:text-gray-300">
+                            <Building size={12} className="text-accent-indigo" />
+                            <span className="text-ink-3">
                                 Project Events
                             </span>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <Target size={12} className="text-teal-500" />
-                            <span className="text-gray-700 dark:text-gray-300">
+                            <Target size={12} className="text-bright-2" />
+                            <span className="text-ink-3">
                                 WBS Events
                             </span>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <Flag size={12} className="text-purple-500" />
-                            <span className="text-gray-700 dark:text-gray-300">
+                            <Flag size={12} className="text-accent-violet" />
+                            <span className="text-ink-3">
                                 Milestones
                             </span>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <Activity size={12} className="text-green-500" />
-                            <span className="text-gray-700 dark:text-gray-300">
+                            <Activity size={12} className="text-success" />
+                            <span className="text-ink-3">
                                 Task Starts
                             </span>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <CheckCircle size={12} className="text-blue-500" />
-                            <span className="text-gray-700 dark:text-gray-300">
+                            <CheckCircle size={12} className="text-info" />
+                            <span className="text-ink-3">
                                 Task Ends
                             </span>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <Clock size={12} className="text-gray-500" />
-                            <span className="text-gray-700 dark:text-gray-300">
+                            <Clock size={12} className="text-muted" />
+                            <span className="text-ink-3">
                                 Ongoing
                             </span>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <Zap size={12} className="text-orange-500" />
-                            <span className="text-gray-700 dark:text-gray-300">
+                            <Zap size={12} className="text-bright" />
+                            <span className="text-ink-3">
                                 Critical Path
                             </span>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <AlertTriangle size={12} className="text-red-500" />
-                            <span className="text-gray-700 dark:text-gray-300">
+                            <AlertTriangle size={12} className="text-danger" />
+                            <span className="text-ink-3">
                                 Overdue
                             </span>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <div className="w-3 h-3 bg-blue-100 rounded border"></div>
-                            <span className="text-gray-700 dark:text-gray-300">
+                            <div className="w-3 h-3 bg-info-soft rounded border"></div>
+                            <span className="text-ink-3">
                                 Today
                             </span>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <div className="w-3 h-3 bg-gray-100 rounded border"></div>
-                            <span className="text-gray-700 dark:text-gray-300">
+                            <div className="w-3 h-3 bg-surface-2 rounded border"></div>
+                            <span className="text-ink-3">
                                 Weekend
                             </span>
                         </div>

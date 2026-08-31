@@ -9,8 +9,6 @@ import {
     Users,
     AlertTriangle,
     FileText,
-    Moon,
-    Sun,
     ChevronDown,
     Menu,
     X,
@@ -21,12 +19,16 @@ import {
     Clock,
     Home,
     Database,
+    CalendarClock,
+    ShoppingCart,
 } from "lucide-react";
 import NotificationModal from "../NotificationModal";
-import { useTheme } from "@/hooks/useTheme";
+import { ROUTE_ROLES } from "@/lib/route-access";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useOutsideClick } from "@/hooks/useOutsideClick";
+import { BrightLogo } from "@/components/brand/bright-logo";
 import { clearCachedUser } from "@/lib/current-user-cache";
 import { BRAND } from "@/lib/brand";
 
@@ -44,7 +46,7 @@ interface NavSection {
 }
 
 /** Persisted set of collapsed sidebar group keys. */
-const COLLAPSED_SECTIONS_KEY = "wujha-sidebar-collapsed-sections";
+const COLLAPSED_SECTIONS_KEY = "bright-sidebar-collapsed-sections";
 
 /**
  * Module-scoped mirror of the collapsed groups, so a remount never renders the
@@ -81,6 +83,7 @@ function readCollapsedSections(): Set<string> {
 const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const [sidebarUserMenuOpen, setSidebarUserMenuOpen] = useState(false);
     // On the very first render of a session the cache is empty, so SSR and the
     // first client paint agree; after that a navigation remount reads the cache
     // and renders the correct groups immediately.
@@ -88,11 +91,11 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         () => collapsedSectionsCache ?? new Set()
     );
     const userMenuRef = useRef<HTMLDivElement>(null);
+    const sidebarUserMenuRef = useRef<HTMLDivElement>(null);
     const notificationsRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
     const pathname = usePathname();
 
-    const { isDark, toggleTheme } = useTheme();
     const { fullName, nameAbbreviation, userRole, roleLoading, isClient } =
         useCurrentUser();
     const {
@@ -114,6 +117,10 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     useOutsideClick(
         userMenuRef,
         useCallback(() => setUserMenuOpen(false), [])
+    );
+    useOutsideClick(
+        sidebarUserMenuRef,
+        useCallback(() => setSidebarUserMenuOpen(false), [])
     );
     useOutsideClick(
         notificationsRef,
@@ -163,45 +170,19 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                     label: "Dashboard",
                     href: "/analytics/dashboard",
                     icon: <Home size={20} />,
-                    allowedRoles: [
-                        "PMO",
-                        "PJM",
-                        "ADMIN",
-                        "FIN",
-                        "QAQC",
-                        "IT",
-                        "DIR",
-                        "HR",
-                        "LEGAL",
-                    ],
+                    allowedRoles: ROUTE_ROLES["/analytics/dashboard"],
                 },
                 {
                     label: "Reporting Engine",
                     href: "/analytics/reporting-engine",
                     icon: <Database size={20} />,
-                    allowedRoles: [
-                        "PJM",
-                        "PMO",
-                        "ADMIN",
-                        "FIN",
-                        "QAQC",
-                        "IT",
-                        "DIR",
-                    ],
+                    allowedRoles: ROUTE_ROLES["/analytics/reporting-engine"],
                 },
                 {
                     label: "Reports",
                     href: "/analytics/reports",
                     icon: <FileText size={20} />,
-                    allowedRoles: [
-                        "PJM",
-                        "PMO",
-                        "ADMIN",
-                        "FIN",
-                        "QAQC",
-                        "IT",
-                        "DIR",
-                    ],
+                    allowedRoles: ROUTE_ROLES["/analytics/reports"],
                 },
             ],
         },
@@ -213,37 +194,56 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                     label: "EPS Management",
                     href: "/eps",
                     icon: <BarChart3 size={20} />,
-                    allowedRoles: ["PJM", "PMO", "ADMIN", "FIN", "DIR"],
+                    allowedRoles: ROUTE_ROLES["/eps"],
                 },
                 {
                     label: "Portfolios",
                     href: "/portfolios",
                     icon: <FolderOpen size={20} />,
-                    allowedRoles: ["PMO", "PJM", "ADMIN", "IT", "DIR"],
+                    allowedRoles: ROUTE_ROLES["/portfolios"],
                 },
                 {
                     label: "Projects",
                     href: "/projects",
                     icon: <Briefcase size={20} />,
-                    allowedRoles: ["PJM", "PMO", "ADMIN", "QAQC", "DIR"],
+                    allowedRoles: ROUTE_ROLES["/projects"],
                 },
                 {
                     label: "Resources",
                     href: "/resources",
                     icon: <Users size={20} />,
-                    allowedRoles: ["PJM", "PMO", "ADMIN", "DIR", "HR"],
+                    allowedRoles: ROUTE_ROLES["/resources"],
                 },
                 {
                     label: "User Management",
                     href: "/users",
                     icon: <Users size={20} />,
-                    allowedRoles: ["PMO", "ADMIN", "HR", "DIR"],
+                    allowedRoles: ROUTE_ROLES["/users"],
                 },
                 {
                     label: "Risk Management",
                     href: "/risk",
                     icon: <AlertTriangle size={20} />,
-                    allowedRoles: ["PJM", "PMO", "ADMIN", "DIR"],
+                    allowedRoles: ROUTE_ROLES["/risk"],
+                },
+                {
+                    label: "Scheduler",
+                    href: "/scheduler",
+                    icon: <CalendarClock size={20} />,
+                    allowedRoles: ROUTE_ROLES["/scheduler"],
+                },
+                {
+                    label: "RFQ Management",
+                    href: "/rfq-management",
+                    icon: <ShoppingCart size={20} />,
+                    allowedRoles: ROUTE_ROLES["/rfq-management"],
+                },
+                {
+                    // Everyone logs their own hours, so this carries no role
+                    // restriction; the page hides the all-team tab by itself.
+                    label: "Timesheet",
+                    href: "/timesheet",
+                    icon: <Clock size={20} />,
                 },
             ],
         },
@@ -309,6 +309,41 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         );
     };
 
+    /**
+     * Placeholder navigation shown while the signed-in user's role is still
+     * resolving. It mirrors the real section/item geometry exactly — same
+     * paddings, same 20px icon box, same row height — so the real nav swaps in
+     * without any layout shift, and the sidebar never looks half-built.
+     *
+     * Row counts approximate the real sections (Analytics: 3, Main: 6) purely so
+     * the placeholder has believable proportions; the real items replace them.
+     */
+    const renderNavSkeleton = () => (
+        <div aria-hidden="true" className="animate-pulse">
+            {navSections.map((section, sectionIndex) => (
+                <div className="mb-3 px-3" key={section.key}>
+                    <div className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-1.5">
+                        <span className="h-2.5 w-20 rounded bg-text-secondary/20" />
+                        <span className="h-3.5 w-3.5 shrink-0 rounded bg-text-secondary/10" />
+                    </div>
+                    <div className="mt-1 space-y-0.5">
+                        {Array.from({
+                            length: sectionIndex === 0 ? 3 : 6,
+                        }).map((_, itemIndex) => (
+                            <div
+                                key={itemIndex}
+                                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2"
+                            >
+                                <span className="h-5 w-5 shrink-0 rounded bg-text-secondary/20" />
+                                <span className="h-2.5 flex-1 rounded bg-text-secondary/15" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+
     const renderNavSection = (section: NavSection) => {
         const sectionItems = section.items.filter(hasAccessToNavItem);
         if (sectionItems.length === 0) {
@@ -330,7 +365,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                     onClick={() => toggleSection(section.key)}
                     aria-expanded={!isCollapsed}
                     aria-controls={panelId}
-                    className="group flex w-full items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-text-secondary transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wujha-primary/60"
+                    className="group flex w-full items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-text-secondary transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bright-primary/60"
                 >
                     <span className="truncate">{section.title}</span>
                     <ChevronDown
@@ -365,18 +400,18 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                                             ? "page"
                                             : undefined
                                     }
-                                    className={`group flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-wujha-primary/60 ${
+                                    className={`group flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-bright-primary/60 ${
                                         isActiveRoute(item.href)
-                                            ? "bg-wujha-primary/10 font-semibold text-wujha-primary"
-                                            : "font-medium text-text-primary/85 hover:bg-bg-surface-alt hover:text-wujha-primary"
+                                            ? "bg-bright-primary/10 font-semibold text-bright-primary"
+                                            : "font-medium text-text-primary/85 hover:bg-bg-surface-alt hover:text-bright-primary"
                                     }`}
                                 >
                                     <span
                                         aria-hidden="true"
                                         className={`flex h-5 w-5 shrink-0 items-center justify-center transition-colors ${
                                             isActiveRoute(item.href)
-                                                ? "text-wujha-primary"
-                                                : "text-text-secondary group-hover:text-wujha-primary"
+                                                ? "text-bright-primary"
+                                                : "text-text-secondary group-hover:text-bright-primary"
                                         }`}
                                     >
                                         {item.icon}
@@ -423,17 +458,13 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                     <div className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-border/70 px-4">
                         <button
                             onClick={() => router.push("/")}
-                            className="flex min-w-0 items-center gap-2.5 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-wujha-primary/60"
+                            className="flex min-w-0 items-center gap-2.5 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-bright-primary/60"
                         >
-                            <span
-                                aria-hidden="true"
-                                className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-wujha-primary to-wujha-primary-hover text-base font-bold text-white shadow-md shadow-wujha-primary/25"
-                            >
-                                W
-                            </span>
-                            <span className="truncate text-base font-bold tracking-tight text-text-primary">
-                                WUJHA PMO
-                            </span>
+                            <BrightLogo
+                                className="h-9 shrink-0 px-2"
+                                imgClassName="h-6"
+                                alt={BRAND.productTitle}
+                            />
                         </button>
                         <button
                             onClick={() => setSidebarOpen(false)}
@@ -446,17 +477,82 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
                     <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-3">
                         {roleLoading ? (
-                            <div className="px-5 py-4">
-                                <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-secondary">
-                                    Loading...
-                                </div>
-                                <div className="flex items-center space-x-3 px-3 py-2 text-sm font-medium text-text-secondary">
-                                    <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-wujha-primary"></div>
-                                    <span>Loading navigation...</span>
-                                </div>
-                            </div>
+                            renderNavSkeleton()
                         ) : (
                             <>{navSections.map(renderNavSection)}</>
+                        )}
+                    </div>
+
+                    {/* Account block, pinned to the foot of the sidebar.
+                        The nav list above is `flex-1`, so this sits at the
+                        bottom without absolute positioning and never overlaps
+                        the last nav item. It is the primary account control:
+                        the navbar keeps only the avatar, so the name lives
+                        here where there is room for it to breathe. */}
+                    <div
+                        className="relative shrink-0 border-t border-border/70 p-2"
+                        ref={sidebarUserMenuRef}
+                    >
+                        <button
+                            type="button"
+                            onClick={() =>
+                                setSidebarUserMenuOpen((open) => !open)
+                            }
+                            aria-haspopup="menu"
+                            aria-expanded={sidebarUserMenuOpen}
+                            className="flex w-full items-center gap-2.5 rounded-2xl px-2 py-2 text-left transition-colors hover:bg-bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bright-primary/60"
+                        >
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-bright-primary to-bright-primary-hover text-sm font-semibold text-white">
+                                {isClient ? nameAbbreviation : "U"}
+                            </div>
+                            <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium text-text-primary">
+                                {isClient ? fullName : "User"}
+                            </span>
+                            <ChevronDown
+                                size={16}
+                                className={`shrink-0 text-text-secondary transition-transform ${
+                                    sidebarUserMenuOpen ? "rotate-0" : "rotate-180"
+                                }`}
+                            />
+                        </button>
+
+                        {/* Opens upward: there is nothing below the sidebar
+                            foot to open into. */}
+                        {sidebarUserMenuOpen && (
+                            <div className="absolute bottom-full left-2 right-2 z-50 mb-1 overflow-hidden rounded-2xl border border-border bg-bg-surface shadow-xl">
+                                <div className="p-1.5">
+                                    <button
+                                        onClick={() => {
+                                            router.push("/profile");
+                                            setSidebarUserMenuOpen(false);
+                                        }}
+                                        className="flex w-full items-center rounded-xl px-3 py-2 text-sm text-text-primary transition-colors hover:bg-bg-surface-alt hover:text-bright-primary"
+                                    >
+                                        <User size={16} className="mr-2" />
+                                        <span>Profile</span>
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            router.push("/timesheet");
+                                            setSidebarUserMenuOpen(false);
+                                        }}
+                                        className="flex w-full items-center rounded-xl px-3 py-2 text-sm text-text-primary transition-colors hover:bg-bg-surface-alt hover:text-bright-primary"
+                                    >
+                                        <Clock size={16} className="mr-2" />
+                                        <span>My Timesheet</span>
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            handleLogout();
+                                            setSidebarUserMenuOpen(false);
+                                        }}
+                                        className="flex w-full items-center rounded-xl px-3 py-2 text-sm text-text-primary transition-colors hover:bg-bg-surface-alt hover:text-bright-danger"
+                                    >
+                                        <LogOut size={16} className="mr-2" />
+                                        <span>Logout</span>
+                                    </button>
+                                </div>
+                            </div>
                         )}
                     </div>
                 </nav>
@@ -479,20 +575,14 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                                     <Menu size={20} />
                                 </button>
 
-                                <span
-                                    aria-hidden="true"
-                                    className="grid h-10 w-10 shrink-0 place-items-center rounded-[11px] bg-gradient-to-br from-wujha-primary to-wujha-primary-hover text-[15px] font-bold text-white shadow-sm shadow-wujha-primary/25"
-                                >
-                                    {BRAND.monogram}
-                                </span>
-                                <div className="flex min-w-0 flex-col">
-                                    <p className="truncate text-[15px] font-semibold leading-tight text-text-primary">
-                                        {BRAND.companyName}
-                                    </p>
-                                    <p className="truncate text-[11.5px] leading-tight text-text-secondary">
-                                        {BRAND.suiteName}
-                                    </p>
-                                </div>
+                                <BrightLogo
+                                    className="h-10 shrink-0 px-2"
+                                    imgClassName="h-6"
+                                    alt={BRAND.companyName}
+                                />
+                                <p className="truncate text-[15px] font-medium leading-tight text-text-secondary">
+                                    {BRAND.suiteName}
+                                </p>
                             </div>
 
                             <div className="flex shrink-0 items-center gap-1.5">
@@ -512,7 +602,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                                     >
                                         <Bell size={18} />
                                         {unreadCount > 0 && (
-                                            <span className="notification-badge absolute -right-1 -top-1 rounded-full bg-wujha-danger px-1 text-xs text-white">
+                                            <span className="notification-badge absolute -right-1 -top-1 rounded-full bg-bright-danger px-1 text-xs text-white">
                                                 {unreadCount}
                                             </span>
                                         )}
@@ -537,7 +627,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                                                         className={`flex cursor-pointer items-start gap-2 border-b border-border px-4 py-3 transition-colors hover:bg-bg-surface-alt ${
                                                             n.status ===
                                                             "UNREAD"
-                                                                ? "bg-wujha-primary/5"
+                                                                ? "bg-bright-primary/5"
                                                                 : ""
                                                         }`}
                                                         style={{
@@ -556,7 +646,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                                                                 </span>
                                                                 {n.status ===
                                                                     "UNREAD" && (
-                                                                    <span className="ml-1 inline-block h-2 w-2 animate-pulse-soft rounded-full bg-wujha-primary" />
+                                                                    <span className="ml-1 inline-block h-2 w-2 animate-pulse-soft rounded-full bg-bright-primary" />
                                                                 )}
                                                             </div>
                                                             <span className="text-sm text-text-secondary">
@@ -575,7 +665,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                                                                     n.notification_id
                                                                 )
                                                             }
-                                                            className="rounded-lg p-1 text-text-secondary transition-colors hover:bg-wujha-danger/10 hover:text-wujha-danger"
+                                                            className="rounded-lg p-1 text-text-secondary transition-colors hover:bg-bright-danger/10 hover:text-bright-danger"
                                                             title="Delete notification"
                                                         >
                                                             <Trash2 size={14} />
@@ -588,21 +678,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                                 </div>
 
                                 {/* Dark mode switch button */}
-                                <button
-                                    onClick={toggleTheme}
-                                    aria-label={
-                                        isDark
-                                            ? "Switch to light mode"
-                                            : "Switch to dark mode"
-                                    }
-                                    className="rounded-xl border border-transparent p-2 text-text-secondary transition-colors hover:border-border hover:text-text-primary"
-                                >
-                                    {isDark ? (
-                                        <Sun size={18} />
-                                    ) : (
-                                        <Moon size={18} />
-                                    )}
-                                </button>
+                                <ThemeToggle />
 
                                 <div
                                     className="mx-1.5 h-6 w-px bg-border"
@@ -610,25 +686,30 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                                 />
 
                                 <div className="relative" ref={userMenuRef}>
-                                    <div
+                                    <button
+                                        type="button"
                                         onClick={() =>
                                             setUserMenuOpen(!userMenuOpen)
                                         }
-                                        className="flex cursor-pointer items-center gap-2 rounded-xl px-1.5 py-1 transition-colors hover:bg-bg-surface-alt"
+                                        aria-haspopup="menu"
+                                        aria-expanded={userMenuOpen}
+                                        aria-label={
+                                            isClient && fullName
+                                                ? `Account menu for ${fullName}`
+                                                : "Account menu"
+                                        }
+                                        className="flex cursor-pointer items-center gap-2 rounded-xl px-1.5 py-1 transition-colors hover:bg-bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bright-primary/60"
                                     >
-                                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-wujha-primary to-wujha-primary-hover text-sm font-semibold text-white">
+                                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-bright-primary to-bright-primary-hover text-sm font-semibold text-white">
                                             {isClient ? nameAbbreviation : "U"}
                                         </div>
-                                        <span className="hidden font-medium text-text-primary sm:block">
-                                            {isClient ? fullName : "User"}
-                                        </span>
                                         <ChevronDown
                                             size={16}
                                             className={`text-text-secondary transition-transform ${
                                                 userMenuOpen ? "rotate-180" : ""
                                             }`}
                                         />
-                                    </div>
+                                    </button>
 
                                     {userMenuOpen && (
                                         <div className="absolute right-0 z-50 mt-2 w-48 overflow-hidden rounded-2xl border border-border bg-bg-surface shadow-xl">
@@ -638,7 +719,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                                                         router.push("/profile");
                                                         setUserMenuOpen(false);
                                                     }}
-                                                    className="flex w-full items-center rounded-xl px-3 py-2 text-sm text-text-primary transition-colors hover:bg-bg-surface-alt hover:text-wujha-primary"
+                                                    className="flex w-full items-center rounded-xl px-3 py-2 text-sm text-text-primary transition-colors hover:bg-bg-surface-alt hover:text-bright-primary"
                                                 >
                                                     <User
                                                         size={16}
@@ -653,7 +734,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                                                         );
                                                         setUserMenuOpen(false);
                                                     }}
-                                                    className="flex w-full items-center rounded-xl px-3 py-2 text-sm text-text-primary transition-colors hover:bg-bg-surface-alt hover:text-wujha-primary"
+                                                    className="flex w-full items-center rounded-xl px-3 py-2 text-sm text-text-primary transition-colors hover:bg-bg-surface-alt hover:text-bright-primary"
                                                 >
                                                     <Clock
                                                         size={16}
@@ -666,7 +747,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                                                         handleLogout();
                                                         setUserMenuOpen(false);
                                                     }}
-                                                    className="flex w-full items-center rounded-xl px-3 py-2 text-sm text-text-primary transition-colors hover:bg-bg-surface-alt hover:text-wujha-danger"
+                                                    className="flex w-full items-center rounded-xl px-3 py-2 text-sm text-text-primary transition-colors hover:bg-bg-surface-alt hover:text-bright-danger"
                                                 >
                                                     <LogOut
                                                         size={16}

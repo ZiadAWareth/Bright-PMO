@@ -3,10 +3,9 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { ArrowLeft, DollarSign, X } from "lucide-react";
+import { ArrowLeft, DollarSign } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
-import TaskTemplateManager from "@/components/TaskTemplateManager";
 import CreateTaskModal from "@/components/scheduler/taskmodal";
 import ResourceAssignmentEditModal from "@/components/scheduler/ResourceAssignmentEditModal";
 import CriticalPathManagementModal from "@/components/scheduler/CriticalPathModal";
@@ -14,7 +13,6 @@ import ScheduleCalendarTab from "@/components/scheduler/ScheduleCalendarTab";
 import PhasesTab from "@/components/scheduler/PhasesTab";
 import MilestonesTab from "@/components/scheduler/MilestonesTab";
 import CriticalPathTab from "@/components/scheduler/CriticalPathTab";
-import ConfirmationDialog from "@/components/ConfirmationDialog";
 import ProjectScheduleHeader from "@/components/scheduler/ProjectScheduleHeader";
 import StatCards from "@/components/scheduler/StatCards";
 import ViewTabs from "@/components/scheduler/ViewTabs";
@@ -36,10 +34,13 @@ import {
     getStatusColor,
     getPriorityColor,
 } from "@/components/scheduler/taskHelpers";
+import { Spinner } from "@/components/ui/spinner";
+import { useConfirm } from "@/components/ui/confirm-provider";
 
 const ProjectSchedulePage = () => {
     const params = useParams();
     const router = useRouter();
+    const confirm = useConfirm();
     const projectId = params.id as string;
 
     // View and UI state
@@ -47,7 +48,6 @@ const ProjectSchedulePage = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [filterStatus, setFilterStatus] = useState<string>("all");
     const [filterPriority, setFilterPriority] = useState<string>("all");
-    const [showTaskTemplateManager, setShowTaskTemplateManager] = useState(false);
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [showMonthYearPicker, setShowMonthYearPicker] = useState(false);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -62,21 +62,6 @@ const ProjectSchedulePage = () => {
     const [criticalPathRisks, setCriticalPathRisks] = useState<any[]>([]);
     const [criticalPathActions, setCriticalPathActions] = useState<any[]>([]);
 
-    // Dialog state
-    const [dialog, setDialog] = useState<{
-        open: boolean;
-        title?: string;
-        message?: string;
-        confirmText?: string;
-        cancelText?: string;
-        loading?: boolean;
-        error?: string | null;
-        iconType?: "warning" | "delete" | "success";
-        onConfirm?: () => void;
-        onCancel?: () => void;
-    }>({ open: false });
-    const [deleteDialogLoading, setDeleteDialogLoading] = useState(false);
-    const [deleteDialogError, setDeleteDialogError] = useState<string | null>(null);
 
     // Custom Hooks
     const { user, canEditSchedule, canViewLockedTasks } = usePermissions();
@@ -126,73 +111,46 @@ const ProjectSchedulePage = () => {
         }
     };
 
-    const showConfirmDialog = (options: {
-        title?: string;
-        message?: string;
-        confirmText?: string;
-        cancelText?: string;
-        iconType?: "warning" | "delete" | "success";
-        onConfirm?: () => void;
-        onCancel?: () => void;
-    }) => {
-        setDialog({
-            open: true,
-            ...options,
-            onCancel: () => {
-                setDialog((prev) => ({ ...prev, open: false }));
-                options.onCancel?.();
-            },
-            onConfirm: options.onConfirm,
-        });
-    };
-
-    const handleDeleteTask = (taskId: number, wbsId: number) => {
+    const handleDeleteTask = async (taskId: number, wbsId: number) => {
         if (!canEditSchedule()) {
             toast.error("You don't have permission to delete tasks");
             return;
         }
 
-        showConfirmDialog({
-            title: "Delete Task",
+        const ok = await confirm({
+            title: "Delete task?",
             message:
-                "Are you sure you want to delete this task? This will also delete all its assignments.",
+                "Every resource assignment on this task is deleted as well. This cannot be undone.",
             confirmText: "Delete",
-            cancelText: "Cancel",
-            iconType: "delete",
-            onConfirm: async () => {
-                setDeleteDialogLoading(true);
-                setDeleteDialogError(null);
-                try {
-                    await taskManagement.deleteTaskConfirmed(taskId, wbsId);
-                } catch (error: any) {
-                    setDeleteDialogError(error?.message || "Failed to delete task");
-                    return;
-                } finally {
-                    setDeleteDialogLoading(false);
-                    setDialog((prev) => ({ ...prev, open: false }));
-                }
-            },
-            onCancel: () => {
-                setDialog((prev) => ({ ...prev, open: false }));
-            },
+            tone: "danger",
         });
+        if (!ok) return;
+
+        try {
+            await taskManagement.deleteTaskConfirmed(taskId, wbsId);
+        } catch (error: any) {
+            toast.error(error?.message || "Failed to delete task");
+        }
     };
 
-    const handleDeleteAssignment = (assignmentId: number, taskId: number) => {
+    const handleDeleteAssignment = async (assignmentId: number, taskId: number) => {
         if (!canEditSchedule()) {
             toast.error("You don't have permission to delete assignments");
             return;
         }
-        showConfirmDialog({
-            title: "Delete Resource Assignment",
-            message:
-                "Are you sure you want to delete this resource assignment? This action cannot be undone.",
+        const ok = await confirm({
+            title: "Delete resource assignment?",
+            message: "This assignment is removed from the task permanently.",
             confirmText: "Delete",
-            cancelText: "Cancel",
-            iconType: "delete",
-            onConfirm: () =>
-                resourceManagement.deleteAssignmentConfirmed(assignmentId, taskId),
+            tone: "danger",
         });
+        if (!ok) return;
+
+        try {
+            await resourceManagement.deleteAssignmentConfirmed(assignmentId, taskId);
+        } catch (error: any) {
+            toast.error(error?.message || "Failed to delete assignment");
+        }
     };
 
     const renderTaskAssignments = (taskId: number) => {
@@ -200,7 +158,7 @@ const ProjectSchedulePage = () => {
 
         if (resourceManagement.loadingAssignments) {
             return (
-                <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 italic">
+                <div className="mt-2 text-xs text-muted italic">
                     Loading assignments...
                 </div>
             );
@@ -208,7 +166,7 @@ const ProjectSchedulePage = () => {
 
         if (assignments.length === 0) {
             return (
-                <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 italic">
+                <div className="mt-2 text-xs text-muted italic">
                     No resources assigned
                 </div>
             );
@@ -216,7 +174,7 @@ const ProjectSchedulePage = () => {
 
         return (
             <div className="mt-3 space-y-2">
-                <div className="text-xs font-medium text-gray-600 dark:text-gray-400 flex items-center">
+                <div className="text-xs font-medium text-muted flex items-center">
                     Assigned Resources:
                 </div>
                 <div className="space-y-2">
@@ -237,7 +195,7 @@ const ProjectSchedulePage = () => {
         return (
             <DashboardLayout>
                 <div className="flex items-center justify-center h-screen">
-                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+                    <Spinner size={64} className="text-bright-primary" />
                 </div>
             </DashboardLayout>
         );
@@ -253,7 +211,6 @@ const ProjectSchedulePage = () => {
                     canEditSchedule={canEditSchedule()}
                     onBack={handleBackButton}
                     onCreateTask={() => taskManagement.setShowCreateModal(true)}
-                    onUploadTasks={() => setShowTaskTemplateManager(true)}
                 />
 
                 {/* Stats Cards */}
@@ -383,35 +340,6 @@ const ProjectSchedulePage = () => {
                 />
             )}
 
-            {showTaskTemplateManager && (
-                <div className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
-                        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                                    Task Template Manager
-                                </h2>
-                                <button
-                                    onClick={() => setShowTaskTemplateManager(false)}
-                                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-                                >
-                                    <X size={20} />
-                                </button>
-                            </div>
-                        </div>
-                        <div className="p-6">
-                            <TaskTemplateManager
-                                projectId={parseInt(projectId)}
-                                onTasksCreated={() => {
-                                    setShowTaskTemplateManager(false);
-                                    fetchTasksData();
-                                }}
-                            />
-                        </div>
-                    </div>
-                </div>
-            )}
-
             {resourceManagement.showEditAssignmentModal &&
                 resourceManagement.editingAssignment && (
                     <ResourceAssignmentEditModal
@@ -436,21 +364,6 @@ const ProjectSchedulePage = () => {
                         onSave={resourceManagement.handleUpdateAssignment}
                     />
                 )}
-
-            {dialog?.open && (
-                <ConfirmationDialog
-                    open={dialog.open}
-                    title={dialog.title}
-                    message={dialog.message}
-                    confirmText={dialog.confirmText}
-                    cancelText={dialog.cancelText}
-                    iconType={dialog.iconType}
-                    onConfirm={dialog.onConfirm}
-                    onCancel={dialog.onCancel}
-                    loading={deleteDialogLoading}
-                    error={deleteDialogError}
-                />
-            )}
 
             {showCriticalPathModal && (
                 <CriticalPathManagementModal
@@ -507,7 +420,7 @@ const ProjectSchedulePage = () => {
                 <div className="mt-6 flex justify-between">
                     <button
                         onClick={() => router.push(`/projects/${projectId}/setup`)}
-                        className="flex items-center space-x-2 px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        className="flex items-center space-x-2 px-6 py-3 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors"
                     >
                         <ArrowLeft size={16} />
                         <span>Back to Setup</span>
@@ -534,7 +447,7 @@ const ProjectSchedulePage = () => {
                                 toast.error("Failed to mark schedule as complete.");
                             }
                         }}
-                        className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        className="flex items-center space-x-2 px-6 py-3 bg-info text-white rounded-lg hover:opacity-90 transition-colors"
                     >
                         <span>Next: Review Budget </span>
                         <DollarSign size={18} />
@@ -545,7 +458,7 @@ const ProjectSchedulePage = () => {
             {/* Month/Year Picker Modal */}
             {showMonthYearPicker && (
                 <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-80 shadow-xl">
+                    <div className="bg-surface rounded-lg p-6 w-80 shadow-xl">
                         <h3 className="text-lg font-semibold mb-4">
                             Select Month & Year
                         </h3>
@@ -554,10 +467,10 @@ const ProjectSchedulePage = () => {
                                 <button
                                     key={i}
                                     onClick={() => setSelectedMonth(i)}
-                                    className={`p-2 rounded ${
+                                    className={`rounded p-2 text-[13px] transition-colors ${
                                         selectedMonth === i
-                                            ? "bg-orange-500 text-white"
-                                            : "bg-gray-100 hover:bg-gray-200"
+                                            ? "bg-bright-soft font-semibold text-bright-deep"
+                                            : "bg-surface-2 text-muted hover:bg-surface-3 hover:text-ink"
                                     }`}
                                 >
                                     {new Date(2024, i).toLocaleDateString("en-US", {
@@ -569,14 +482,14 @@ const ProjectSchedulePage = () => {
                         <div className="flex items-center justify-between mb-4">
                             <button
                                 onClick={() => setSelectedYear(selectedYear - 1)}
-                                className="p-2 hover:bg-gray-100 rounded"
+                                className="p-2 hover:bg-surface-2 rounded"
                             >
                                 &lt;
                             </button>
                             <span className="text-lg font-semibold">{selectedYear}</span>
                             <button
                                 onClick={() => setSelectedYear(selectedYear + 1)}
-                                className="p-2 hover:bg-gray-100 rounded"
+                                className="p-2 hover:bg-surface-2 rounded"
                             >
                                 &gt;
                             </button>
@@ -584,7 +497,7 @@ const ProjectSchedulePage = () => {
                         <div className="flex space-x-2">
                             <button
                                 onClick={() => setShowMonthYearPicker(false)}
-                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                                className="flex-1 px-4 py-2 border border-line rounded-lg hover:bg-surface-2"
                             >
                                 Cancel
                             </button>
@@ -593,7 +506,7 @@ const ProjectSchedulePage = () => {
                                     setCurrentMonth(new Date(selectedYear, selectedMonth));
                                     setShowMonthYearPicker(false);
                                 }}
-                                className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
+                                className="flex-1 px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep"
                             >
                                 Apply
                             </button>

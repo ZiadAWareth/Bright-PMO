@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import { X, CheckCircle } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { Dropdown } from "@/components/ui/dropdown";
 
 interface ResourceDetailModalProps {
   assignment: any;
@@ -52,20 +54,20 @@ const ResourceDetailModal = ({
 
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-surface rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              <h2 className="text-xl font-bold text-ink">
                 Resource Assignment Details
               </h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-muted">
                 {resource.name} - {task.name}
               </p>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+              className="p-2 hover:bg-surface-2 rounded-lg"
               disabled={isEditing || isDeleting}
             >
               <X size={20} />
@@ -76,20 +78,20 @@ const ResourceDetailModal = ({
           <div
             className={`mb-6 p-4 border rounded-lg ${
               assignment.actual_hours >= assignment.planned_hours
-                ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
-                : "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
+                ? "bg-success-soft border-success "
+                : "bg-info-soft border-info "
             }`}
           >
             <h3
               className={`text-lg font-semibold mb-3 flex items-center ${
                 assignment.actual_hours >= assignment.planned_hours
-                  ? "text-green-900 dark:text-green-100"
-                  : "text-blue-900 dark:text-blue-100"
+                  ? "text-success "
+                  : "text-info "
               }`}
             >
               Resource Information
               {assignment.actual_hours >= assignment.planned_hours && (
-                <span className="ml-2 px-2 py-1 bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200 text-xs rounded-full">
+                <span className="ml-2 px-2 py-1 bg-success-soft text-success text-xs rounded-full">
                   Completed
                 </span>
               )}
@@ -99,8 +101,8 @@ const ResourceDetailModal = ({
                 <label
                   className={`block font-medium ${
                     assignment.actual_hours >= assignment.planned_hours
-                      ? "text-green-700 dark:text-green-300"
-                      : "text-blue-700 dark:text-blue-300"
+                      ? "text-success"
+                      : "text-info"
                   }`}
                 >
                   Name:
@@ -108,8 +110,8 @@ const ResourceDetailModal = ({
                 <span
                   className={
                     assignment.actual_hours >= assignment.planned_hours
-                      ? "text-green-900 dark:text-green-100"
-                      : "text-blue-900 dark:text-blue-100"
+                      ? "text-success "
+                      : "text-info "
                   }
                 >
                   {resource.name || "N/A"}
@@ -119,8 +121,8 @@ const ResourceDetailModal = ({
                 <label
                   className={`block font-medium ${
                     assignment.actual_hours >= assignment.planned_hours
-                      ? "text-green-700 dark:text-green-300"
-                      : "text-blue-700 dark:text-blue-300"
+                      ? "text-success"
+                      : "text-info"
                   }`}
                 >
                   Role:
@@ -128,8 +130,8 @@ const ResourceDetailModal = ({
                 <span
                   className={
                     assignment.actual_hours >= assignment.planned_hours
-                      ? "text-green-900 dark:text-green-100"
-                      : "text-blue-900 dark:text-blue-100"
+                      ? "text-success "
+                      : "text-info "
                   }
                 >
                   {resource.role || "N/A"}
@@ -139,8 +141,8 @@ const ResourceDetailModal = ({
                 <label
                   className={`block font-medium ${
                     assignment.actual_hours >= assignment.planned_hours
-                      ? "text-green-700 dark:text-green-300"
-                      : "text-blue-700 dark:text-blue-300"
+                      ? "text-success"
+                      : "text-info"
                   }`}
                 >
                   Type:
@@ -148,8 +150,8 @@ const ResourceDetailModal = ({
                 <span
                   className={
                     assignment.actual_hours >= assignment.planned_hours
-                      ? "text-green-900 dark:text-green-100"
-                      : "text-blue-900 dark:text-blue-100"
+                      ? "text-success "
+                      : "text-info "
                   }
                 >
                   {resource.type || "N/A"}
@@ -159,8 +161,8 @@ const ResourceDetailModal = ({
                 <label
                   className={`block font-medium ${
                     assignment.actual_hours >= assignment.planned_hours
-                      ? "text-green-700 dark:text-green-300"
-                      : "text-blue-700 dark:text-blue-300"
+                      ? "text-success"
+                      : "text-info"
                   }`}
                 >
                   Rate:
@@ -168,8 +170,8 @@ const ResourceDetailModal = ({
                 <span
                   className={
                     assignment.actual_hours >= assignment.planned_hours
-                      ? "text-green-900 dark:text-green-100"
-                      : "text-blue-900 dark:text-blue-100"
+                      ? "text-success "
+                      : "text-info "
                   }
                 >
                   ${resource.rate || 0}/hr
@@ -179,8 +181,8 @@ const ResourceDetailModal = ({
                 <label
                   className={`block font-medium ${
                     assignment.actual_hours >= assignment.planned_hours
-                      ? "text-green-700 dark:text-green-300"
-                      : "text-blue-700 dark:text-blue-300"
+                      ? "text-success"
+                      : "text-info"
                   }`}
                 >
                   Department:
@@ -188,8 +190,8 @@ const ResourceDetailModal = ({
                 <span
                   className={
                     assignment.actual_hours >= assignment.planned_hours
-                      ? "text-green-900 dark:text-green-100"
-                      : "text-blue-900 dark:text-blue-100"
+                      ? "text-success "
+                      : "text-info "
                   }
                 >
                   {resource.department || "N/A"}
@@ -199,8 +201,8 @@ const ResourceDetailModal = ({
                 <label
                   className={`block font-medium ${
                     assignment.actual_hours >= assignment.planned_hours
-                      ? "text-green-700 dark:text-green-300"
-                      : "text-blue-700 dark:text-blue-300"
+                      ? "text-success"
+                      : "text-info"
                   }`}
                 >
                   Capacity:
@@ -208,8 +210,8 @@ const ResourceDetailModal = ({
                 <span
                   className={
                     assignment.actual_hours >= assignment.planned_hours
-                      ? "text-green-900 dark:text-green-100"
-                      : "text-blue-900 dark:text-blue-100"
+                      ? "text-success "
+                      : "text-info "
                   }
                 >
                   {resource.capacity || 8}h/day
@@ -217,10 +219,10 @@ const ResourceDetailModal = ({
               </div>
               {resource.skills && (
                 <div className="col-span-2">
-                  <label className="block text-blue-700 dark:text-blue-300 font-medium">
+                  <label className="block text-info font-medium">
                     Skills:
                   </label>
-                  <span className="text-blue-900 dark:text-blue-100">
+                  <span className="text-info">
                     {typeof resource.skills === "object"
                       ? Object.entries(resource.skills)
                           .map(([key, value]) => `${key}: ${value}`)
@@ -234,13 +236,13 @@ const ResourceDetailModal = ({
 
           {/* Assignment Details Form */}
           <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">
+            <h3 className="text-lg font-semibold text-ink mb-3">
               Assignment Details
             </h3>
             <form onSubmit={handleUpdate} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-ink-3 mb-1">
                     Allocation Percentage
                   </label>
                   <input
@@ -254,12 +256,12 @@ const ResourceDetailModal = ({
                         parseInt(e.target.value) || 0
                       )
                     }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-full px-3 py-2 border border-line rounded-lg focus:ring-2 focus:ring-info focus:border-transparent bg-surface text-ink"
                     disabled={isEditing || isDeleting}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-ink-3 mb-1">
                     Planned Hours
                   </label>
                   <input
@@ -273,7 +275,7 @@ const ResourceDetailModal = ({
                         parseFloat(e.target.value) || 0
                       )
                     }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-full px-3 py-2 border border-line rounded-lg focus:ring-2 focus:ring-info focus:border-transparent bg-surface text-ink"
                     disabled={isEditing || isDeleting}
                   />
                 </div>
@@ -281,7 +283,7 @@ const ResourceDetailModal = ({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-ink-3 mb-1">
                     Start Date
                   </label>
                   <input
@@ -290,12 +292,12 @@ const ResourceDetailModal = ({
                     onChange={(e) =>
                       handleInputChange("start_date", e.target.value)
                     }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-full px-3 py-2 border border-line rounded-lg focus:ring-2 focus:ring-info focus:border-transparent bg-surface text-ink"
                     disabled={isEditing || isDeleting}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-ink-3 mb-1">
                     End Date
                   </label>
                   <input
@@ -304,7 +306,7 @@ const ResourceDetailModal = ({
                     onChange={(e) =>
                       handleInputChange("end_date", e.target.value)
                     }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-full px-3 py-2 border border-line rounded-lg focus:ring-2 focus:ring-info focus:border-transparent bg-surface text-ink"
                     disabled={isEditing || isDeleting}
                   />
                 </div>
@@ -312,7 +314,7 @@ const ResourceDetailModal = ({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-ink-3 mb-1">
                     Actual Hours
                   </label>
                   <input
@@ -326,50 +328,50 @@ const ResourceDetailModal = ({
                         parseFloat(e.target.value) || 0
                       )
                     }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-full px-3 py-2 border border-line rounded-lg focus:ring-2 focus:ring-info focus:border-transparent bg-surface text-ink"
                     disabled={isEditing || isDeleting}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-ink-3 mb-1">
                     Task Status
                   </label>
-                  <select
-                    value={task.status || "todo"}
-                    onChange={(e) =>
-                      onTaskStatusUpdate(`task-${task.task_id}`, e.target.value)
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  <Dropdown
+                    value={String(task.status || "todo")}
+                    onChange={(__v: string) =>
+                      onTaskStatusUpdate(`task-${task.task_id}`, __v)}
+                    options={[
+                    { value: String("todo"), label: "To Do" },
+                    { value: String("in_progress"), label: "In Progress" },
+                    { value: String("completed"), label: "Completed" },
+                    { value: String("on_hold"), label: "On Hold" },
+                  ]}
                     disabled={isEditing || isDeleting}
-                  >
-                    <option value="todo">To Do</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                    <option value="on_hold">On Hold</option>
-                  </select>
+                    modal
+                  />
                 </div>
               </div>
 
               {/* Cost Information */}
               {resource.rate && formData.planned_hours > 0 && (
-                <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                  <h4 className="text-sm font-medium text-green-900 dark:text-green-100 mb-1">
+                <div className="p-3 bg-success-soft border border-success rounded-lg">
+                  <h4 className="text-sm font-medium text-success mb-1">
                     Cost Information
                   </h4>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="text-green-700 dark:text-green-300">
+                      <span className="text-success">
                         Planned Cost:
                       </span>
-                      <span className="ml-2 text-green-900 dark:text-green-100">
+                      <span className="ml-2 text-success">
                         OMR {(resource.rate * formData.planned_hours).toFixed(2)}
                       </span>
                     </div>
                     <div>
-                      <span className="text-green-700 dark:text-green-300">
+                      <span className="text-success">
                         Actual Cost:
                       </span>
-                      <span className="ml-2 text-green-900 dark:text-green-100">
+                      <span className="ml-2 text-success">
                         OMR {(resource.rate * formData.actual_hours).toFixed(2)}
                       </span>
                     </div>
@@ -378,16 +380,16 @@ const ResourceDetailModal = ({
               )}
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between pt-6 border-t border-line">
                 <button
                   type="button"
                   onClick={handleDelete}
                   disabled={isEditing || isDeleting}
-                  className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center space-x-2 px-4 py-2 bg-danger text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {isDeleting ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <Spinner size={16} />
                       <span>Deleting...</span>
                     </>
                   ) : (
@@ -402,7 +404,7 @@ const ResourceDetailModal = ({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                    className="px-4 py-2 text-ink-3 hover:bg-surface-2 rounded-lg transition-colors"
                     disabled={isEditing || isDeleting}
                   >
                     Cancel
@@ -410,11 +412,11 @@ const ResourceDetailModal = ({
                   <button
                     type="submit"
                     disabled={isEditing || isDeleting}
-                    className="flex items-center space-x-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="flex items-center space-x-2 px-6 py-2 bg-info text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     {isEditing ? (
                       <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <Spinner size={16} />
                         <span>Updating...</span>
                       </>
                     ) : (

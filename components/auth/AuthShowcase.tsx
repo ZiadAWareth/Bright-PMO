@@ -31,11 +31,11 @@ function MiniPackage({
         {name}
       </div>
       <div className="mt-2 flex items-center justify-between">
-        <span className="text-[11px] font-semibold tabular-nums text-wujha-primary">
+        <span className="text-[11px] font-semibold tabular-nums text-bright-primary">
           {metric}
         </span>
         <span
-          className="grid h-[18px] w-[18px] place-items-center rounded-full text-[8px] font-bold text-[#0b1220]"
+          className="grid h-[18px] w-[18px] place-items-center rounded-full text-[8px] font-bold text-brand-navy"
           style={{ background: tone }}
         >
           {initials}
@@ -43,7 +43,7 @@ function MiniPackage({
       </div>
       <div className="mt-2 h-[3px] overflow-hidden rounded-full bg-white/10">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-wujha-primary to-wujha-primary-hover"
+          className="h-full rounded-full bg-gradient-to-r from-bright-primary to-bright-primary-hover"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -61,26 +61,27 @@ function MiniPackage({
  */
 export function AuthShowcase() {
   return (
-    <aside className="relative hidden overflow-hidden rounded-[28px] bg-[#0b1220] text-white lg:flex lg:flex-col">
+    <aside className="relative hidden overflow-hidden rounded-[28px] bg-brand-navy text-white lg:flex lg:flex-col">
       {/* Ambient aurora */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -left-28 -top-28 h-[460px] w-[460px] animate-aurora-a rounded-full bg-wujha-primary/30 blur-[130px]"
+        className="pointer-events-none absolute -left-28 -top-28 h-[460px] w-[460px] animate-aurora-a rounded-full bg-bright-primary/30 blur-[130px]"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -bottom-36 right-0 h-[420px] w-[420px] animate-aurora-b rounded-full bg-wujha-primary-hover/25 blur-[130px]"
+        className="pointer-events-none absolute -bottom-36 right-0 h-[420px] w-[420px] animate-aurora-b rounded-full bg-bright-primary-hover/25 blur-[130px]"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-1/3 h-[300px] w-[300px] -translate-x-1/2 rounded-full bg-wujha-secondary/10 blur-[120px]"
+        className="pointer-events-none absolute left-1/2 top-1/3 h-[300px] w-[300px] -translate-x-1/2 rounded-full bg-bright-secondary/10 blur-[120px]"
       />
       {/* Dot grid + top sheen */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 opacity-[0.05]"
         style={{
-          backgroundImage: "radial-gradient(#fff 1px, transparent 1px)",
+          backgroundImage:
+            "radial-gradient(var(--on-brand) 1px, transparent 1px)",
           backgroundSize: "24px 24px",
         }}
       />
@@ -99,7 +100,7 @@ export function AuthShowcase() {
         <div>
           <h1 className="max-w-md text-[32px] font-semibold leading-[1.12] tracking-tight xl:text-[38px]">
             Every project, in{" "}
-            <span className="text-wujha-primary">one clear</span> console.
+            <span className="text-bright-primary">one clear</span> console.
           </h1>
 
           {/* Fixed geometry: the cards float ±14px, so the layers are sized to
@@ -114,7 +115,7 @@ export function AuthShowcase() {
                   On-time delivery
                 </span>
                 <TrendingUp
-                  className="h-3.5 w-3.5 text-emerald-300"
+                  className="h-3.5 w-3.5 text-white"
                   aria-hidden="true"
                 />
               </div>
@@ -124,7 +125,7 @@ export function AuthShowcase() {
               {/* `currentColor` keeps the sparkline on the themed brand colour. */}
               <svg
                 viewBox="0 0 140 40"
-                className="mt-1.5 h-9 w-full text-wujha-primary"
+                className="mt-1.5 h-9 w-full text-bright-primary"
                 preserveAspectRatio="none"
                 aria-hidden="true"
               >
@@ -170,7 +171,7 @@ export function AuthShowcase() {
               <div className="grid grid-cols-2 gap-2.5">
                 <div>
                   <div className="mb-1.5 flex items-center gap-1.5 px-0.5 text-[9px] font-semibold text-white/55">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />{" "}
+                    <span className="h-1.5 w-1.5 rounded-full bg-success" />{" "}
                     Complete
                   </div>
                   <div className="space-y-2">
@@ -180,13 +181,13 @@ export function AuthShowcase() {
                       metric="100%"
                       progress={100}
                       initials="SA"
-                      tone="#F2A93B"
+                      tone="var(--brand-gold)"
                     />
                   </div>
                 </div>
                 <div>
                   <div className="mb-1.5 flex items-center gap-1.5 px-0.5 text-[9px] font-semibold text-white/55">
-                    <span className="h-1.5 w-1.5 rounded-full bg-wujha-primary" />{" "}
+                    <span className="h-1.5 w-1.5 rounded-full bg-bright-primary" />{" "}
                     In progress
                   </div>
                   <div className="space-y-2">
@@ -196,7 +197,7 @@ export function AuthShowcase() {
                       metric="62%"
                       progress={62}
                       initials="HD"
-                      tone="#F2A93B"
+                      tone="var(--brand-gold)"
                     />
                     <MiniPackage
                       module="PROC"
@@ -204,7 +205,7 @@ export function AuthShowcase() {
                       metric="45%"
                       progress={45}
                       initials="MK"
-                      tone="#5EC8A0"
+                      tone="var(--brand-mint)"
                     />
                   </div>
                 </div>
@@ -215,14 +216,14 @@ export function AuthShowcase() {
                 collage. The board is 264px wide and ~283px tall here, and every
                 card floats ±14px, so anchoring right of it is the only position
                 that cannot end up clipping a card figure. */}
-            <div className="absolute bottom-0 right-2 z-20 animate-float-slow rounded-[18px] border border-white/[0.12] bg-[#0b1220]/70 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+            <div className="absolute bottom-0 right-2 z-20 animate-float-slow rounded-[18px] border border-white/[0.12] bg-brand-navy/70 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,0.45)] backdrop-blur-xl">
               <div className="text-[9px] font-semibold uppercase tracking-wider text-white/45">
                 Portfolio value
               </div>
               <div className="mt-0.5 text-[19px] font-semibold tracking-tight tabular-nums">
                 SAR 312M
               </div>
-              <div className="mt-0.5 inline-flex items-center gap-1 text-[9.5px] font-semibold text-emerald-300">
+              <div className="mt-0.5 inline-flex items-center gap-1 text-[9.5px] font-semibold text-white">
                 <ArrowUpRight className="h-3 w-3" aria-hidden="true" /> 48 active
                 projects
               </div>
@@ -236,7 +237,7 @@ export function AuthShowcase() {
             &copy; {new Date().getFullYear()} {BRAND.productTitle}
           </span>
           <span className="hidden items-center gap-1.5 xl:inline-flex">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> All
+            <span className="h-1.5 w-1.5 rounded-full bg-success" /> All
             baselines approved
           </span>
         </div>

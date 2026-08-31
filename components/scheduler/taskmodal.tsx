@@ -9,6 +9,7 @@ import { FormFieldWrapper } from "@/components/form/FormFieldWrapper";
 import { DynamicInput } from "@/components/form/DynamicInput";
 import { DependencyConfigCard } from "@/components/form/DependencyConfigCard";
 import { getTaskFieldConfig } from "@/components/scheduler/taskFieldConfig";
+import { Spinner } from "@/components/ui/spinner";
 
 interface TaskModalProps {
   mode?: 'create' | 'edit';
@@ -132,14 +133,14 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     if (!selectedWBS || (!selectedWBS.start_date && !selectedWBS.end_date)) return null;
 
     return (
-      <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+      <div className="mt-2 p-3 bg-info-soft border border-info rounded-lg">
         <div className="flex items-center space-x-2 mb-1">
-          <Calendar size={14} className="text-blue-600 dark:text-blue-400" />
-          <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+          <Calendar size={14} className="text-info" />
+          <span className="text-sm font-medium text-info">
             WBS Date Constraints
           </span>
         </div>
-        <div className="text-xs text-blue-700 dark:text-blue-300">
+        <div className="text-xs text-info">
           {selectedWBS.start_date && (
             <div>• Task must start on or after: {new Date(selectedWBS.start_date).toLocaleDateString("en-GB")}</div>
           )}
@@ -153,16 +154,16 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-surface rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+            <h2 className="text-xl font-bold text-ink">
               {mode === 'edit' ? 'Edit Task' : 'Create New Task'}
             </h2>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+              className="p-2 hover:bg-surface-2 rounded-lg"
               disabled={creating}
             >
               <Plus size={20} className="rotate-45" />
@@ -372,7 +373,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
             {/* Task Dependencies Section */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-ink-3 mb-2">
                 Task Dependencies
               </label>
               
@@ -399,7 +400,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 placeholder="Search tasks to add as dependency..."
                 disabled={creating || availableTasksForDependency.length === 0}
               />
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-xs text-muted mt-1">
                 Search and select tasks that must be completed before this task can start.
               </p>
 
@@ -407,16 +408,16 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               {dependencies.selectedPredecessors.length > 0 && (
                 <div className="mt-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <h4 className="text-sm font-medium text-ink-3">
                       Configure Dependencies
                     </h4>
                     {mode === 'edit' && (
-                      <label className="flex items-center space-x-2 text-xs text-gray-600 dark:text-gray-400">
+                      <label className="flex items-center space-x-2 text-xs text-muted">
                         <input
                           type="checkbox"
                           checked={autoRecalculateDates}
                           onChange={(e) => setAutoRecalculateDates(e.target.checked)}
-                          className="w-3 h-3 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                          className="w-3 h-3 text-info bg-surface-2 border-line rounded focus:ring-info"
                         />
                         <span>Auto-recalculate dates</span>
                       </label>
@@ -449,11 +450,11 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             </div>
 
             {/* Form Actions */}
-            <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-end space-x-3 pt-6 border-t border-line">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                className="px-4 py-2 text-ink-3 hover:bg-surface-2 rounded-lg transition-colors"
                 disabled={creating}
               >
                 Cancel
@@ -461,11 +462,11 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               <button
                 type="submit"
                 disabled={creating}
-                className="flex items-center space-x-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center space-x-2 px-6 py-2 bg-info text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {creating ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <Spinner size={16} />
                     <span>{mode === 'edit' ? 'Updating...' : 'Creating...'}</span>
                   </>
                 ) : (

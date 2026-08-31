@@ -13,24 +13,32 @@ import {
 } from "@/components/dashboard/charts/ChartPrimitives";
 import type { ChartsResponse } from "./types";
 
-const COMPLETED_COLOR = "#16A34A";
-const DUE_COLOR = "#EA580C";
-const PLANNED_COLOR = "#2563EB";
-const ACTUAL_COLOR = "#EA580C";
+const COMPLETED_COLOR = "var(--success)";
+const DUE_COLOR = "var(--bright)";
+const PLANNED_COLOR = "var(--info)";
+const ACTUAL_COLOR = "var(--bright)";
 
 /** Project status → colour, so the mix donut reads the same on every screen. */
 const STATUS_COLORS: Record<string, string> = {
-  planning: "#0EA5E9",
-  approved: "#6366F1",
-  execution: "#EA580C",
-  on_hold: "#F59E0B",
-  completed: "#16A34A",
-  closed: "#64748B",
-  pending_approval: "#A855F7",
-  rejected: "#EF4444",
+  planning: "var(--chart-6)",
+  approved: "var(--accent-indigo)",
+  execution: "var(--bright)",
+  on_hold: "var(--warning)",
+  completed: "var(--success)",
+  closed: "var(--faint)",
+  pending_approval: "var(--accent-violet)",
+  rejected: "var(--danger)",
 };
 
-const RISK_PALETTE = ["#EF4444", "#F97316", "#F59E0B", "#EAB308", "#84CC16"];
+/* Severity ramp: red through amber to green, so a risk row reads by position
+   in the ramp as well as by hue. */
+const RISK_PALETTE = [
+  "var(--danger)",
+  "var(--chart-1)",
+  "var(--warning)",
+  "var(--chart-5)",
+  "var(--success)",
+];
 
 export function DashboardCharts({
   data,
@@ -191,7 +199,7 @@ export function DashboardCharts({
             value: r.allocationPct,
             sub: `${r.assigned}/${r.total} assigned`,
             // Over 100% is over-allocation, and should read as a warning.
-            color: r.allocationPct > 100 ? "#EF4444" : "#8B5CF6",
+            color: r.allocationPct > 100 ? "var(--danger)" : "var(--accent-violet)",
           }))}
           formatValue={(v) => `${Math.round(v)}%`}
         />

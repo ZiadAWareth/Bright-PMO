@@ -58,7 +58,7 @@ export function ListPagination({
   const numBtn =
     "grid h-9 w-9 place-items-center rounded-full text-[13px] font-semibold tabular-nums transition-colors";
   const chevBtn =
-    "grid h-9 w-9 place-items-center rounded-full border border-border text-text-secondary transition-colors hover:bg-bg-surface-alt hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40";
+    "grid h-9 w-9 place-items-center rounded-full border border-line text-muted transition-colors hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40";
 
   return (
     <div
@@ -69,27 +69,27 @@ export function ListPagination({
       role="navigation"
       aria-label="Pagination"
     >
-      <div className="text-[12.5px] text-text-secondary">
+      <div className="text-[12.5px] text-muted">
         {total === 0 ? (
           `No ${noun}s`
         ) : (
           <>
             Showing{" "}
-            <span className="font-semibold tabular-nums text-text-primary">
+            <span className="font-semibold tabular-nums text-ink">
               {from.toLocaleString()}
             </span>
             –
-            <span className="font-semibold tabular-nums text-text-primary">
+            <span className="font-semibold tabular-nums text-ink">
               {to.toLocaleString()}
             </span>{" "}
             of{" "}
-            <span className="font-semibold tabular-nums text-text-primary">
+            <span className="font-semibold tabular-nums text-ink">
               {total.toLocaleString()}
             </span>
           </>
         )}
         {isFetching && (
-          <span className="ml-2 text-text-secondary/70">· updating…</span>
+          <span className="ml-2 text-faint">· updating…</span>
         )}
       </div>
 
@@ -109,7 +109,7 @@ export function ListPagination({
             p === "gap" ? (
               <span
                 key={`gap-${i}`}
-                className="grid h-9 w-9 place-items-center text-[13px] text-text-secondary/70"
+                className="grid h-9 w-9 place-items-center text-[13px] text-faint"
               >
                 …
               </span>
@@ -123,8 +123,8 @@ export function ListPagination({
                 className={cn(
                   numBtn,
                   p === clamped
-                    ? "bg-wujha-primary text-white shadow-card"
-                    : "text-text-secondary hover:bg-bg-surface-alt hover:text-text-primary",
+                    ? "bg-bright text-white shadow-card"
+                    : "text-muted hover:bg-surface-2 hover:text-ink",
                 )}
               >
                 {p + 1}

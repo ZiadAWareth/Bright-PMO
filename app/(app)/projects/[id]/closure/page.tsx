@@ -26,6 +26,9 @@ import { ProjectWithRelations } from "@/types/project";
 import axios from "axios";
 import { toast } from "sonner";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import { Spinner } from "@/components/ui/spinner";
+import { useConfirm } from "@/components/ui/confirm-provider";
+import { Dropdown } from "@/components/ui/dropdown";
 
 const ProjectClosurePage = ({
     params,
@@ -33,6 +36,7 @@ const ProjectClosurePage = ({
     params: Promise<{ id: string }>;
 }) => {
     const router = useRouter();
+    const confirm = useConfirm();
     const [project, setProject] = useState<ProjectWithRelations | null>(null);
     const [loading, setLoading] = useState(true);
     const [projectId, setProjectId] = useState<string>("");
@@ -97,9 +101,6 @@ const ProjectClosurePage = ({
     const [uploadingDocumentItemId, setUploadingDocumentItemId] = useState<number | null>(null);
     const [bulkUploading, setBulkUploading] = useState(false);
 
-    const isDarkMode =
-        typeof window !== "undefined" &&
-        document.documentElement.classList.contains("dark");
 
     // Helper function to check if a step is accessible
     const isStepAccessible = (stepType: string) => {
@@ -518,9 +519,13 @@ const ProjectClosurePage = ({
     };
 
     const handleDeletePunchItem = async (itemId: number) => {
-        if (!confirm("Are you sure you want to delete this punch list item?")) {
-            return;
-        }
+        const ok = await confirm({
+            title: "Delete punch list item?",
+            message: "This removes the item from the punch list permanently.",
+            confirmText: "Delete",
+            tone: "danger",
+        });
+        if (!ok) return;
 
         try {
             const response = await axios.delete(
@@ -995,7 +1000,7 @@ const ProjectClosurePage = ({
             <ProtectedRoute>
                 <DashboardLayout>
                     <div className="flex items-center justify-center h-64">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+                        <Spinner size={32} className="text-bright-primary" />
                     </div>
                 </DashboardLayout>
             </ProtectedRoute>
@@ -1007,12 +1012,12 @@ const ProjectClosurePage = ({
             <ProtectedRoute>
                 <DashboardLayout>
                     <div className="text-center py-12">
-                        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                        <h1 className="text-2xl font-semibold text-ink mb-4">
                             Project Not Found
                         </h1>
                         <button
                             onClick={() => router.push("/projects")}
-                            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                            className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors"
                         >
                             Back to Projects
                         </button>
@@ -1031,15 +1036,15 @@ const ProjectClosurePage = ({
                         <div className="flex items-center space-x-4">
                             <button
                                 onClick={() => router.back()}
-                                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700"
+                                className="p-2 text-faint hover:text-muted rounded-full hover:bg-surface-2"
                             >
                                 <ArrowLeft size={20} />
                             </button>
                             <div>
-                                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                                <h1 className="text-2xl font-bold text-ink">
                                     Project Closure Management
                                 </h1>
-                                <p className="text-gray-600 dark:text-gray-400">
+                                <p className="text-muted">
                                     {project.name} • {project.project_code}
                                 </p>
                             </div>
@@ -1047,8 +1052,8 @@ const ProjectClosurePage = ({
                         <div className="flex items-center space-x-3">
                             <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                                 project.status === 'completed' 
-                                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                                    ? 'bg-success-soft text-success  '
+                                    : 'bg-surface-2 text-ink-2  '
                             }`}>
                                 {project.status === 'completed' ? 'Project Completed' : project.status === 'closed' ? 'Project Closed' : 'In progress' }
                             </span>
@@ -1058,48 +1063,48 @@ const ProjectClosurePage = ({
 
                 {/* Overview Cards - Always Visible */}
                 {project.status === 'completed' && project.closure_checklists && project.closure_checklists.length > 0 && (
-                    <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6 mb-6">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
+                    <div className="bg-surface border border-line rounded-xl p-6 mb-6">
+                        <h3 className="text-lg font-semibold text-ink mb-6">
                             Closure Progress Overview
                         </h3>
                         
                         {/* Progress Card - Only Checklist Items */}
-                        <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-6 mb-6">
+                        <div className="bg-success-soft rounded-lg p-6 mb-6">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm text-green-600 dark:text-green-400 font-medium">
+                                    <p className="text-sm text-success font-medium">
                                         Checklist Progress
                                     </p>
-                                    <p className="text-3xl font-bold text-green-900 dark:text-green-100">
+                                    <p className="text-3xl font-bold text-success">
                                         {project.closure_checklists?.filter(item => item.status === 'complete').length || 0}
-                                        <span className="text-lg text-green-600 dark:text-green-400 font-normal">
+                                        <span className="text-lg text-success font-normal">
                                             /{project.closure_checklists?.length || 0}
                                         </span>
                                     </p>
-                                    <p className="text-xs text-green-600 dark:text-green-400">
+                                    <p className="text-xs text-success">
                                         Completed / Total Items
                                     </p>
                                 </div>
-                                <CheckCircle className="w-12 h-12 text-green-500" />
+                                <CheckCircle className="w-12 h-12 text-success" />
                             </div>
                         </div>
 
                         {/* Overall Progress */}
-                        <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-6">
+                        <div className="bg-surface-2 rounded-lg p-6">
                             <div className="flex items-center justify-between mb-4">
-                                <h4 className="font-semibold text-gray-900 dark:text-gray-100">
+                                <h4 className="font-semibold text-ink">
                                     Overall Closure Progress
                                 </h4>
-                                <span className="text-2xl font-bold text-green-600">
+                                <span className="text-2xl font-bold text-success">
                                     {Math.round(
                                         (project.closure_checklists?.filter(item => item.status === 'complete').length || 0) /
                                         (project.closure_checklists?.length || 1) * 100
                                     ) || 0}%
                                 </span>
                             </div>
-                            <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-4">
+                            <div className="w-full bg-surface-3 rounded-full h-4">
                                 <div
-                                    className="bg-gradient-to-r from-green-500 to-green-600 h-4 rounded-full transition-all duration-300"
+                                    className="bg-gradient-to-r from-success to-success h-4 rounded-full transition-all duration-300"
                                     style={{
                                         width: `${Math.round(
                                             (project.closure_checklists?.filter(item => item.status === 'complete').length || 0) /
@@ -1113,7 +1118,7 @@ const ProjectClosurePage = ({
                 )}
 
                 {/* Navigation Tabs */}
-                <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl mb-6">
+                <div className="bg-surface border border-line rounded-xl mb-6">
                     <div className="flex items-center space-x-1 p-1 overflow-x-auto whitespace-nowrap">
                         {[
                             { id: "checklist", label: "Overview", icon: <CheckCircle size={16} />, type: null, order: 0 },
@@ -1164,13 +1169,13 @@ const ProjectClosurePage = ({
                                     onClick={() => setActiveSection(tab.id)}
                                     className={`flex items-center space-x-2 px-4 py-3 rounded-lg text-sm font-medium transition-colors relative ${
                                         activeSection === tab.id
-                                            ? "bg-orange-600 text-white"
-                                            : "text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20"
+                                            ? "bg-bright text-white"
+                                            : "text-bright hover:text-bright-deep  hover:bg-bright-soft "
                                     }`}
                                 >
                                     {/* Current step indicator */}
                                     {tab.id !== 'checklist' && (
-                                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full animate-pulse"></div>
+                                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-bright rounded-full animate-pulse"></div>
                                     )}
                                     
                                     {tab.icon}
@@ -1199,27 +1204,27 @@ const ProjectClosurePage = ({
                         if (stepType && !isStepAccessible(stepType) && activeSection !== 'checklist') {
                             const nextStep = getNextRequiredStep();
                             return (
-                                <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-8">
+                                <div className="bg-surface border border-line rounded-xl p-8">
                                     <div className="text-center">
-                                        <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                                            <AlertTriangle className="w-8 h-8 text-gray-400" />
+                                        <div className="w-16 h-16 bg-surface-2 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <AlertTriangle className="w-8 h-8 text-faint" />
                                         </div>
-                                        <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                                        <h3 className="text-xl font-semibold text-ink mb-2">
                                             Section Locked
                                         </h3>
-                                        <p className="text-gray-600 dark:text-gray-400 mb-4">
+                                        <p className="text-muted mb-4">
                                             This section is not yet accessible. Please complete the previous steps in order.
                                         </p>
                                         {nextStep && (
-                                            <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 mb-4">
-                                                <p className="text-sm text-orange-800 dark:text-orange-200">
+                                            <div className="bg-bright-soft rounded-lg p-4 mb-4">
+                                                <p className="text-sm text-bright">
                                                     <strong>Next Required Step:</strong> {nextStep.label}
                                                 </p>
                                             </div>
                                         )}
                                         <button
                                             onClick={() => setActiveSection('checklist')}
-                                            className="flex items-center space-x-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors mx-auto"
+                                            className="flex items-center space-x-2 px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors mx-auto"
                                         >
                                             <CheckCircle size={16} />
                                             <span>View Checklist Overview</span>
@@ -1241,59 +1246,59 @@ const ProjectClosurePage = ({
                     <>
                     {/* Check if project is closed */}
                     {project.status === 'closed' ? (
-                        <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-8">
+                        <div className="bg-surface border border-line rounded-xl p-8">
                             <div className="text-center">
-                                <div className="w-20 h-20 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                                    <CheckCircle className="w-12 h-12 text-green-600 dark:text-green-400" />
+                                <div className="w-20 h-20 bg-success-soft rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <CheckCircle className="w-12 h-12 text-success" />
                                 </div>
-                                <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+                                <h3 className="text-2xl font-bold text-ink mb-4">
                                     Project Successfully Closed
                                 </h3>
-                                <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-2xl mx-auto">
+                                <p className="text-muted mb-6 max-w-2xl mx-auto">
                                     This project has been officially closed and all closure activities have been completed. 
                                     All deliverables have been handed over, documentation has been finalized, and the project is now archived.
                                 </p>
                                 
                                 {/* Closure Summary */}
-                                <div className="bg-green-50 dark:bg-green-900/10 rounded-lg p-6 mb-6">
-                                    <h4 className="font-semibold text-green-900 dark:text-green-100 mb-4">
+                                <div className="bg-success-soft rounded-lg p-6 mb-6">
+                                    <h4 className="font-semibold text-success mb-4">
                                         Closure Summary
                                     </h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                         {project.closure_approved_at && (
                                             <div>
-                                                <span className="text-green-600 dark:text-green-400 font-medium">Closed Date: </span>
-                                                <span className="text-green-900 dark:text-green-100">
+                                                <span className="text-success font-medium">Closed Date: </span>
+                                                <span className="text-success">
                                                     {new Date(project.closure_approved_at).toLocaleDateString()}
                                                 </span>
                                             </div>
                                         )}
                                         {project.closure_approved_user && (
                                             <div>
-                                                <span className="text-green-600 dark:text-green-400 font-medium">Closed By: </span>
-                                                <span className="text-green-900 dark:text-green-100">
+                                                <span className="text-success font-medium">Closed By: </span>
+                                                <span className="text-success">
                                                     {project.closure_approved_user.account?.first_name} {project.closure_approved_user.account?.last_name}
                                                 </span>
                                             </div>
                                         )}
                                         <div>
-                                            <span className="text-green-600 dark:text-green-400 font-medium">Total Checklist Items: </span>
-                                            <span className="text-green-900 dark:text-green-100">
+                                            <span className="text-success font-medium">Total Checklist Items: </span>
+                                            <span className="text-success">
                                                 {project.closure_checklists?.length || 0} (All Completed)
                                             </span>
                                         </div>
                                         <div>
-                                            <span className="text-green-600 dark:text-green-400 font-medium">Project Duration: </span>
-                                            <span className="text-green-900 dark:text-green-100">
+                                            <span className="text-success font-medium">Project Duration: </span>
+                                            <span className="text-success">
                                                 {Math.ceil((new Date(project.actual_end_date || new Date()).getTime() - new Date(project.start_date).getTime()) / (1000 * 60 * 60 * 24))} days
                                             </span>
                                         </div>
                                     </div>
                                     
                                     {project.closure_notes && (
-                                        <div className="mt-4 pt-4 border-t border-green-200 dark:border-green-700">
-                                            <span className="text-green-600 dark:text-green-400 font-medium text-sm">Closure Notes: </span>
-                                            <p className="text-green-900 dark:text-green-100 text-sm mt-1">
+                                        <div className="mt-4 pt-4 border-t border-success">
+                                            <span className="text-success font-medium text-sm">Closure Notes: </span>
+                                            <p className="text-success text-sm mt-1">
                                                 {project.closure_notes}
                                             </p>
                                         </div>
@@ -1304,7 +1309,7 @@ const ProjectClosurePage = ({
                                 <div className="flex justify-center space-x-4">
                                     <button
                                         onClick={() => router.push("/projects")}
-                                        className="flex items-center space-x-2 px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                                        className="flex items-center space-x-2 px-6 py-3 bg-muted text-white rounded-lg hover:bg-ink-solid-3 transition-colors"
                                     >
                                         <ArrowLeft size={16} />
                                         <span>Back to Projects</span>
@@ -1312,11 +1317,11 @@ const ProjectClosurePage = ({
                                     <button
                                         onClick={handleDownloadPDFReport}
                                         disabled={isGeneratingPDF}
-                                        className="flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="flex items-center space-x-2 px-6 py-3 bg-success text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {isGeneratingPDF ? (
                                             <>
-                                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                                                <Spinner size={16} />
                                                 <span>Generating...</span>
                                             </>
                                         ) : (
@@ -1331,74 +1336,74 @@ const ProjectClosurePage = ({
                                 {/* Completion Status Grid */}
                                 <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
                                     <div className="text-center">
-                                        <div className="w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-2">
-                                            <Eye className="w-6 h-6 text-green-600 dark:text-green-400" />
+                                        <div className="w-12 h-12 bg-success-soft rounded-full flex items-center justify-center mx-auto mb-2">
+                                            <Eye className="w-6 h-6 text-success" />
                                         </div>
-                                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Inspection</p>
-                                        <p className="text-xs text-green-600 dark:text-green-400">Completed</p>
+                                        <p className="text-sm font-medium text-ink">Inspection</p>
+                                        <p className="text-xs text-success">Completed</p>
                                     </div>
                                     <div className="text-center">
-                                        <div className="w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-2">
-                                            <FileText className="w-6 h-6 text-green-600 dark:text-green-400" />
+                                        <div className="w-12 h-12 bg-success-soft rounded-full flex items-center justify-center mx-auto mb-2">
+                                            <FileText className="w-6 h-6 text-success" />
                                         </div>
-                                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Documents</p>
-                                        <p className="text-xs text-green-600 dark:text-green-400">Submitted</p>
+                                        <p className="text-sm font-medium text-ink">Documents</p>
+                                        <p className="text-xs text-success">Submitted</p>
                                     </div>
                                     <div className="text-center">
-                                        <div className="w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-2">
-                                            <User className="w-6 h-6 text-green-600 dark:text-green-400" />
+                                        <div className="w-12 h-12 bg-success-soft rounded-full flex items-center justify-center mx-auto mb-2">
+                                            <User className="w-6 h-6 text-success" />
                                         </div>
-                                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Handover</p>
-                                        <p className="text-xs text-green-600 dark:text-green-400">Completed</p>
+                                        <p className="text-sm font-medium text-ink">Handover</p>
+                                        <p className="text-xs text-success">Completed</p>
                                     </div>
                                     <div className="text-center">
-                                        <div className="w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-2">
-                                            <Download className="w-6 h-6 text-green-600 dark:text-green-400" />
+                                        <div className="w-12 h-12 bg-success-soft rounded-full flex items-center justify-center mx-auto mb-2">
+                                            <Download className="w-6 h-6 text-success" />
                                         </div>
-                                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Report</p>
-                                        <p className="text-xs text-green-600 dark:text-green-400">Generated</p>
+                                        <p className="text-sm font-medium text-ink">Report</p>
+                                        <p className="text-xs text-success">Generated</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     ) : project.status !== 'completed' ? (
-                        <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-8">
+                        <div className="bg-surface border border-line rounded-xl p-8">
                             <div className="text-center">
-                                <Clock className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                                <Clock className="w-16 h-16 text-faint mx-auto mb-4" />
+                                <h3 className="text-xl font-semibold text-ink mb-2">
                                     Project Still in Execution Phase
                                 </h3>
-                                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                                <p className="text-muted mb-6">
                                     The closure process can only be initiated once the project status is set to "Completed".
                                 </p>
                                 <span className={`px-4 py-2 rounded-full text-sm font-medium ${
                                     project.status === 'execution' 
-                                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                        ? 'bg-info-soft text-info  '
                                         : project.status === 'planning'
-                                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                                        : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                                        ? 'bg-warning-soft text-warning  '
+                                        : 'bg-surface-2 text-ink-2  '
                                 }`}>
                                     Current Status: {project.status.replace('_', ' ').toUpperCase()}
                                 </span>
                             </div>
                         </div>
                     ) : !project.closure_checklists || project.closure_checklists.length === 0 ? (
-                        <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-8">
+                        <div className="bg-surface border border-line rounded-xl p-8">
                             <div className="text-center">
-                                <CheckCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                                <CheckCircle className="w-16 h-16 text-faint mx-auto mb-4" />
+                                <h3 className="text-xl font-semibold text-ink mb-2">
                                     Project Closure Not Started
                                 </h3>
-                                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                                <p className="text-muted mb-6">
                                     Start the closure process to manage completion documents, checklists, and punch list items.
                                 </p>
                                 <button
                                     onClick={startClosureProcess}
                                     disabled={isStartingClosure}
-                                    className="inline-flex items-center space-x-2 px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="inline-flex items-center space-x-2 px-6 py-3 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isStartingClosure ? (
-                                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                                        <Spinner size={20} />
                                     ) : (
                                         <CheckCircle size={20} />
                                     )}
@@ -1411,16 +1416,16 @@ const ProjectClosurePage = ({
 
                             {/* Documents Section */}
                             {activeSection === "documents" && (
-                                <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6">
+                                <div className="bg-surface border border-line rounded-xl p-6">
                                     <div className="flex items-center justify-between mb-6">
-                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                        <h3 className="text-lg font-semibold text-ink">
                                             Closure Documents
                                         </h3>
                                         
                                         {/* Bulk Upload Button */}
-                                        <label className={`inline-flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${bulkUploading ? 'bg-orange-500 cursor-not-allowed opacity-90' : 'bg-orange-600 hover:bg-orange-700 cursor-pointer'}`}>
+                                        <label className={`inline-flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${bulkUploading ? 'bg-bright cursor-not-allowed opacity-90' : 'bg-bright hover:bg-bright-deep cursor-pointer'}`}>
                                             {bulkUploading ? (
-                                                <Loader2 size={16} className="animate-spin" />
+                                                <Spinner size={16} />
                                             ) : (
                                                 <Upload size={16} />
                                             )}
@@ -1440,21 +1445,21 @@ const ProjectClosurePage = ({
                                         {project.closure_documents?.map((docItem) => (
                                             <div
                                                 key={docItem.id}
-                                                className="border border-gray-200 dark:border-slate-700 rounded-lg p-4"
+                                                className="border border-line rounded-lg p-4"
                                             >
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center space-x-4">
-                                                        <FileText className="w-8 h-8 text-blue-500" />
+                                                        <FileText className="w-8 h-8 text-info" />
                                                         <div>
-                                                            <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                                                            <h4 className="font-medium text-ink">
                                                                 {docItem.document?.name || `${docItem.type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())} Document`}
                                                             </h4>
-                                                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                                                            <p className="text-sm text-muted">
                                                                 Type: {docItem.type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
                                                                 {docItem.required && ' (Required)'}
                                                             </p>
                                                             {docItem.notes && (
-                                                                <p className="text-xs text-gray-500 mt-1">
+                                                                <p className="text-xs text-muted mt-1">
                                                                     {docItem.notes}
                                                                 </p>
                                                             )}
@@ -1463,21 +1468,21 @@ const ProjectClosurePage = ({
                                                     <div className="flex items-center space-x-3">
                                                         <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                                                             !docItem.document
-                                                                ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                                                ? 'bg-danger-soft text-danger  '
                                                                 : docItem.approved
-                                                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                                                ? 'bg-success-soft text-success  '
                                                                 : docItem.submitted
-                                                                ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                                                                : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                                                                ? 'bg-warning-soft text-warning  '
+                                                                : 'bg-surface-2 text-ink-2  '
                                                         }`}>
                                                             {!docItem.document ? 'Not Uploaded' :
                                                              docItem.approved ? 'Approved' : 
                                                              docItem.submitted ? 'Under Review' : 'Draft'}
                                                         </span>
                                                         {!docItem.document ? (
-                                                            <label className={`inline-flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${uploadingDocumentItemId === docItem.id ? 'bg-orange-500 cursor-not-allowed opacity-90' : 'bg-orange-600 hover:bg-orange-700 cursor-pointer'}`}>
+                                                            <label className={`inline-flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${uploadingDocumentItemId === docItem.id ? 'bg-bright cursor-not-allowed opacity-90' : 'bg-bright hover:bg-bright-deep cursor-pointer'}`}>
                                                                 {uploadingDocumentItemId === docItem.id ? (
-                                                                    <Loader2 size={16} className="animate-spin" />
+                                                                    <Spinner size={16} />
                                                                 ) : (
                                                                     <Upload size={16} />
                                                                 )}
@@ -1495,7 +1500,7 @@ const ProjectClosurePage = ({
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => docItem.document?.document_id && window.open(`/api/documents/download?documentId=${docItem.document.document_id}`, "_blank")}
-                                                                    className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                                                    className="p-2 text-info hover:bg-info-soft rounded-lg transition-colors"
                                                                     title="View document"
                                                                 >
                                                                     <Eye size={16} />
@@ -1513,7 +1518,7 @@ const ProjectClosurePage = ({
                                                                         a.click();
                                                                         document.body.removeChild(a);
                                                                     }}
-                                                                    className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                                                                    className="p-2 text-success hover:bg-success-soft rounded-lg transition-colors"
                                                                     title="Download document"
                                                                 >
                                                                     <Download size={16} />
@@ -1528,11 +1533,11 @@ const ProjectClosurePage = ({
                                         {/* No documents message */}
                                         {(!project.closure_documents || project.closure_documents.length === 0) && (
                                             <div className="text-center py-8">
-                                                <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                                                <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                                                <FileText className="w-16 h-16 text-faint mx-auto mb-4" />
+                                                <h4 className="text-lg font-medium text-ink mb-2">
                                                     No Closure Documents Found
                                                 </h4>
-                                                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                                                <p className="text-muted mb-4">
                                                     Use the bulk upload button above to upload multiple closure documents at once.
                                                 </p>
                                             </div>
@@ -1543,8 +1548,8 @@ const ProjectClosurePage = ({
 
                             {/* Checklist Section */}
                             {activeSection === "checklist" && (
-                                <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6">
-                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
+                                <div className="bg-surface border border-line rounded-xl p-6">
+                                    <h3 className="text-lg font-semibold text-ink mb-6">
                                         Closure Checklist
                                     </h3>
                                     
@@ -1552,32 +1557,32 @@ const ProjectClosurePage = ({
                                     {(() => {
                                         const nextStep = getNextRequiredStep();
                                         return nextStep ? (
-                                            <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 mb-6">
+                                            <div className="bg-bright-soft rounded-lg p-4 mb-6">
                                                 <div className="flex items-center space-x-3">
-                                                    <div className="w-8 h-8 bg-orange-100 dark:bg-orange-900/40 rounded-full flex items-center justify-center">
-                                                        <AlertTriangle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                                                    <div className="w-8 h-8 bg-bright-soft rounded-full flex items-center justify-center">
+                                                        <AlertTriangle className="w-4 h-4 text-bright" />
                                                     </div>
                                                     <div>
-                                                        <h4 className="font-medium text-orange-900 dark:text-orange-100">
+                                                        <h4 className="font-medium text-bright">
                                                             Current Step: {nextStep.label}
                                                         </h4>
-                                                        <p className="text-sm text-orange-700 dark:text-orange-300">
+                                                        <p className="text-sm text-bright-deep">
                                                             Complete this step to proceed with the closure process.
                                                         </p>
                                                     </div>
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 mb-6">
+                                            <div className="bg-success-soft rounded-lg p-4 mb-6">
                                                 <div className="flex items-center space-x-3">
-                                                    <div className="w-8 h-8 bg-green-100 dark:bg-green-900/40 rounded-full flex items-center justify-center">
-                                                        <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+                                                    <div className="w-8 h-8 bg-success-soft rounded-full flex items-center justify-center">
+                                                        <CheckCircle className="w-4 h-4 text-success" />
                                                     </div>
                                                     <div>
-                                                        <h4 className="font-medium text-green-900 dark:text-green-100">
+                                                        <h4 className="font-medium text-success">
                                                             All Steps Completed!
                                                         </h4>
-                                                        <p className="text-sm text-green-700 dark:text-green-300">
+                                                        <p className="text-sm text-success">
                                                             The project closure process is ready for finalization.
                                                         </p>
                                                     </div>
@@ -1590,7 +1595,7 @@ const ProjectClosurePage = ({
                                         {project.closure_checklists?.map((item) => (
                                             <div
                                                 key={item.id}
-                                                className="flex items-center justify-between p-4 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                                                className="flex items-center justify-between p-4 border border-line rounded-lg hover:bg-surface-2 transition-colors"
                                             >
                                                 <div className="flex items-center space-x-4">
                                                     <button
@@ -1598,21 +1603,21 @@ const ProjectClosurePage = ({
                                                         disabled={item.auto_checked}
                                                         className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
                                                             item.status === 'complete' 
-                                                                ? 'bg-green-500 text-white' 
-                                                                : 'bg-gray-200 dark:bg-slate-600 hover:bg-gray-300 dark:hover:bg-slate-500'
+                                                                ? 'bg-success text-white' 
+                                                                : 'bg-surface-3 hover:bg-surface-3 '
                                                         } ${item.auto_checked ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'}`}
                                                     >
                                                         {item.status === 'complete' && <CheckCircle size={16} />}
                                                     </button>
                                                     <div>
-                                                        <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                                                        <h4 className="font-medium text-ink">
                                                             {item.title}
                                                         </h4>
-                                                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                                                        <p className="text-sm text-muted">
                                                             Type: {item.type} {item.auto_checked && '(Auto-checked)'}
                                                         </p>
                                                         {item.completed_at && (
-                                                            <p className="text-xs text-gray-500 mt-1">
+                                                            <p className="text-xs text-muted mt-1">
                                                                 Completed on {new Date(item.completed_at).toLocaleDateString()}
                                                                 {item.completedBy && ` by ${item.completedBy.account.first_name} ${item.completedBy.account.last_name}`}
                                                             </p>
@@ -1623,7 +1628,7 @@ const ProjectClosurePage = ({
                                                     {item.type === 'inspection' && item.status === 'pending' && !project.final_inspection && (
                                                         <button
                                                             onClick={() => setShowScheduleInspectionModal(true)}
-                                                            className="flex items-center space-x-2 px-3 py-1 bg-orange-600 text-white text-sm rounded hover:bg-orange-700 transition-colors"
+                                                            className="flex items-center space-x-2 px-3 py-1 bg-bright text-white text-sm rounded hover:bg-bright-deep transition-colors"
                                                         >
                                                             <Calendar size={14} />
                                                             <span>Schedule</span>
@@ -1631,8 +1636,8 @@ const ProjectClosurePage = ({
                                                     )}
                                                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                                                         item.status === 'complete'
-                                                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                                            ? 'bg-success-soft text-success  '
+                                                            : 'bg-warning-soft text-warning  '
                                                     }`}>
                                                         {item.status === 'complete' ? 'Complete' : 'Pending'}
                                                     </span>
@@ -1645,14 +1650,14 @@ const ProjectClosurePage = ({
 
                             {/* Create Punch Items Section */}
                             {activeSection === "punch-create" && (
-                                <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6">
+                                <div className="bg-surface border border-line rounded-xl p-6">
                                     <div className="flex items-center justify-between mb-6">
-                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                        <h3 className="text-lg font-semibold text-ink">
                                             Create Punch List Items
                                         </h3>
                                         <button
                                             onClick={() => setShowAddPunchItemModal(true)}
-                                            className="flex items-center space-x-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                                            className="flex items-center space-x-2 px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors"
                                         >
                                             <Plus size={16} />
                                             <span>Add New Item</span>
@@ -1663,18 +1668,18 @@ const ProjectClosurePage = ({
                                         {project.punch_list_items?.filter(item => item.status === 'open').map((item) => (
                                             <div
                                                 key={item.id}
-                                                className="border border-gray-200 dark:border-slate-700 rounded-lg p-4"
+                                                className="border border-line rounded-lg p-4"
                                             >
                                                 <div className="flex items-start justify-between">
                                                     <div className="flex items-start space-x-4">
-                                                        <div className="w-6 h-6 rounded-full flex items-center justify-center mt-1 bg-red-500 text-white">
+                                                        <div className="w-6 h-6 rounded-full flex items-center justify-center mt-1 bg-danger text-white">
                                                             <AlertTriangle size={12} />
                                                         </div>
                                                         <div className="flex-1">
-                                                            <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                                                            <h4 className="font-medium text-ink">
                                                                 {item.title}
                                                             </h4>
-                                                            <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
+                                                            <div className="flex items-center space-x-4 mt-2 text-sm text-muted">
                                                                 {item.assignee && (
                                                                     <div className="flex items-center space-x-1">
                                                                         <User size={14} />
@@ -1690,7 +1695,7 @@ const ProjectClosurePage = ({
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center space-x-2">
-                                                        <span className="px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                                                        <span className="px-3 py-1 rounded-full text-sm font-medium bg-danger-soft text-danger">
                                                             Open
                                                         </span>
                                                         <button
@@ -1702,14 +1707,14 @@ const ProjectClosurePage = ({
                                                                 });
                                                                 setShowEditPunchItemModal(true);
                                                             }}
-                                                            className="p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                                                            className="p-1 text-info hover:bg-info-soft rounded transition-colors"
                                                             title="Edit item"
                                                         >
                                                             <Edit size={16} />
                                                         </button>
                                                         <button
                                                             onClick={() => handleDeletePunchItem(item.id)}
-                                                            className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                                            className="p-1 text-danger hover:bg-danger-soft rounded transition-colors"
                                                             title="Delete item"
                                                         >
                                                             <Trash2 size={16} />
@@ -1719,14 +1724,14 @@ const ProjectClosurePage = ({
                                             </div>
                                         ))}
                                         {(!project.punch_list_items?.filter(item => item.status === 'open').length) && (
-                                            <div className="text-center py-8 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg">
-                                                <Plus className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                                                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                                            <div className="text-center py-8 border-2 border-dashed border-line rounded-lg">
+                                                <Plus className="w-12 h-12 text-faint mx-auto mb-3" />
+                                                <p className="text-muted mb-4">
                                                     No open punch list items. Create new items that need to be addressed before project closure.
                                                 </p>
                                                 <button
                                                     onClick={() => setShowAddPunchItemModal(true)}
-                                                    className="flex items-center space-x-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors mx-auto"
+                                                    className="flex items-center space-x-2 px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors mx-auto"
                                                 >
                                                     <Plus size={16} />
                                                     <span>Create First Item</span>
@@ -1738,19 +1743,19 @@ const ProjectClosurePage = ({
                                     {/* Submit Button for Punch List Creation */}
                                     {(project.punch_list_items?.filter(item => item.status === 'open').length || 0) > 0 && 
                                      !project.closure_checklists?.find(item => item.type === 'punch_list' && item.status === 'complete') && (
-                                        <div className="mt-6 pt-6 border-t border-gray-200 dark:border-slate-700">
+                                        <div className="mt-6 pt-6 border-t border-line">
                                             <div className="flex items-center justify-between">
                                                 <div>
-                                                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                                                    <p className="text-sm text-muted">
                                                         Ready to submit punch list creation? This will mark the punch list checklist item as complete.
                                                     </p>
-                                                    <p className="text-xs text-gray-500 mt-1">
+                                                    <p className="text-xs text-muted mt-1">
                                                         You can still add more items later if needed.
                                                     </p>
                                                 </div>
                                                 <button
                                                     onClick={handleCompletePunchListCreation}
-                                                    className="flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                                    className="flex items-center space-x-2 px-6 py-3 bg-success text-white rounded-lg hover:opacity-90 transition-colors"
                                                 >
                                                     <CheckCircle size={16} />
                                                     <span>Complete Punch List Creation</span>
@@ -1763,16 +1768,16 @@ const ProjectClosurePage = ({
 
                             {/* Resolve Punch Items Section */}
                             {activeSection === "punch-resolve" && (
-                                <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6">
+                                <div className="bg-surface border border-line rounded-xl p-6">
                                     <div className="flex items-center justify-between mb-6">
-                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                        <h3 className="text-lg font-semibold text-ink">
                                             Resolve Punch List Items
                                         </h3>
                                         <div className="flex items-center space-x-4 text-sm">
-                                            <span className="text-gray-600 dark:text-gray-400">
+                                            <span className="text-muted">
                                                 Total: {project.punch_list_items?.length || 0}
                                             </span>
-                                            <span className="text-green-600 dark:text-green-400">
+                                            <span className="text-success">
                                                 Resolved: {project.punch_list_items?.filter(item => item.status === 'resolved').length || 0}
                                             </span>
                                         </div>
@@ -1782,23 +1787,23 @@ const ProjectClosurePage = ({
                                         {project.punch_list_items?.filter(item => item.status !== 'open').map((item) => (
                                             <div
                                                 key={item.id}
-                                                className="border border-gray-200 dark:border-slate-700 rounded-lg p-4"
+                                                className="border border-line rounded-lg p-4"
                                             >
                                                 <div className="flex items-start justify-between">
                                                     <div className="flex items-start space-x-4">
                                                         <div className={`w-6 h-6 rounded-full flex items-center justify-center mt-1 ${
                                                             item.status === 'resolved' 
-                                                                ? 'bg-green-500 text-white' 
-                                                                : 'bg-blue-500 text-white'
+                                                                ? 'bg-success text-white' 
+                                                                : 'bg-info text-white'
                                                         }`}>
                                                             {item.status === 'resolved' && <CheckCircle size={12} />}
                                                             {item.status === 'in_progress' && <Clock size={12} />}
                                                         </div>
                                                         <div className="flex-1">
-                                                            <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                                                            <h4 className="font-medium text-ink">
                                                                 {item.title}
                                                             </h4>
-                                                            <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
+                                                            <div className="flex items-center space-x-4 mt-2 text-sm text-muted">
                                                                 {item.assignee && (
                                                                     <div className="flex items-center space-x-1">
                                                                         <User size={14} />
@@ -1822,25 +1827,25 @@ const ProjectClosurePage = ({
                                                     <div className="flex items-center space-x-2">
                                                         <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                                                             item.status === 'resolved'
-                                                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                                                : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                                                ? 'bg-success-soft text-success  '
+                                                                : 'bg-info-soft text-info  '
                                                         }`}>
                                                             {item.status === 'resolved' ? 'Resolved' : 'In Progress'}
                                                         </span>
                                                         {item.status !== 'resolved' && (
-                                                            <select
-                                                                value={item.status}
-                                                                onChange={(e) => handleUpdatePunchItem(item.id, e.target.value)}
-                                                                className="px-2 py-1 text-sm border border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                                                            >
-                                                                <option value="in_progress">In Progress</option>
-                                                                <option value="resolved">Mark as Resolved</option>
-                                                            </select>
+                                                            <Dropdown
+                                                              value={String(item.status ?? '')}
+                                                              onChange={(__v: string) => handleUpdatePunchItem(item.id, __v)}
+                                                              options={[
+                                                              { value: String("in_progress"), label: "In Progress" },
+                                                              { value: String("resolved"), label: "Mark as Resolved" },
+                                                            ]}
+                                                            />
                                                         )}
                                                         {item.status === 'resolved' && (
                                                             <button
                                                                 onClick={() => handleDeletePunchItem(item.id)}
-                                                                className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                                                className="p-1 text-danger hover:bg-danger-soft rounded transition-colors"
                                                                 title="Delete resolved item"
                                                             >
                                                                 <Trash2 size={16} />
@@ -1855,18 +1860,18 @@ const ProjectClosurePage = ({
                                         {project.punch_list_items?.filter(item => item.status === 'open').map((item) => (
                                             <div
                                                 key={item.id}
-                                                className="border border-orange-200 dark:border-orange-700 rounded-lg p-4 bg-orange-50 dark:bg-orange-900/20"
+                                                className="border border-bright rounded-lg p-4 bg-bright-soft"
                                             >
                                                 <div className="flex items-start justify-between">
                                                     <div className="flex items-start space-x-4">
-                                                        <div className="w-6 h-6 rounded-full flex items-center justify-center mt-1 bg-orange-500 text-white">
+                                                        <div className="w-6 h-6 rounded-full flex items-center justify-center mt-1 bg-bright text-white">
                                                             <AlertTriangle size={12} />
                                                         </div>
                                                         <div className="flex-1">
-                                                            <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                                                            <h4 className="font-medium text-ink">
                                                                 {item.title}
                                                             </h4>
-                                                            <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
+                                                            <div className="flex items-center space-x-4 mt-2 text-sm text-muted">
                                                                 {item.assignee && (
                                                                     <div className="flex items-center space-x-1">
                                                                         <User size={14} />
@@ -1881,12 +1886,12 @@ const ProjectClosurePage = ({
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center space-x-2">
-                                                        <span className="px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+                                                        <span className="px-3 py-1 rounded-full text-sm font-medium bg-bright-soft text-bright">
                                                             Ready to Start
                                                         </span>
                                                         <button
                                                             onClick={() => handleUpdatePunchItem(item.id, 'in_progress')}
-                                                            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                                                            className="px-3 py-1 text-sm bg-info text-white rounded hover:opacity-90 transition-colors"
                                                         >
                                                             Start Working
                                                         </button>
@@ -1896,9 +1901,9 @@ const ProjectClosurePage = ({
                                         ))}
 
                                         {(!project.punch_list_items || project.punch_list_items.length === 0) && (
-                                            <div className="text-center py-8 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg">
-                                                <AlertTriangle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                                                <p className="text-gray-600 dark:text-gray-400">
+                                            <div className="text-center py-8 border-2 border-dashed border-line rounded-lg">
+                                                <AlertTriangle className="w-12 h-12 text-faint mx-auto mb-3" />
+                                                <p className="text-muted">
                                                     No punch list items to resolve yet. Create items in the "Create Punch Items" tab first.
                                                 </p>
                                             </div>
@@ -1909,20 +1914,20 @@ const ProjectClosurePage = ({
 
                             {/* Inspection Section */}
                             {activeSection === "inspection" && (
-                                <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6">
-                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
+                                <div className="bg-surface border border-line rounded-xl p-6">
+                                    <h3 className="text-lg font-semibold text-ink mb-6">
                                         Final Inspection
                                     </h3>
                                     
                                     {!project.final_inspection ? (
-                                        <div className="text-center py-8 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg">
-                                            <Eye className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                                            <p className="text-gray-600 dark:text-gray-400 mb-4">
+                                        <div className="text-center py-8 border-2 border-dashed border-line rounded-lg">
+                                            <Eye className="w-12 h-12 text-faint mx-auto mb-3" />
+                                            <p className="text-muted mb-4">
                                                 No inspection scheduled yet. Schedule the final inspection to proceed with the closure process.
                                             </p>
                                             <button
                                                 onClick={() => setShowScheduleInspectionModal(true)}
-                                                className="flex items-center space-x-2 px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors mx-auto"
+                                                className="flex items-center space-x-2 px-6 py-3 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors mx-auto"
                                             >
                                                 <Calendar size={16} />
                                                 <span>Schedule Inspection</span>
@@ -1931,17 +1936,17 @@ const ProjectClosurePage = ({
                                     ) : (
                                         <div className="space-y-6">
                                             {/* Inspection Details */}
-                                            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                                            <div className="bg-info-soft rounded-lg p-4">
                                                 <div className="flex items-center justify-between mb-4">
-                                                    <h4 className="font-semibold text-blue-900 dark:text-blue-100">
+                                                    <h4 className="font-semibold text-info">
                                                         Inspection Details
                                                     </h4>
                                                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                                                         project.final_inspection.status === 'completed'
-                                                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                                            ? 'bg-success-soft text-success  '
                                                             : project.final_inspection.status === 'in_progress'
-                                                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                                                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                                            ? 'bg-info-soft text-info  '
+                                                            : 'bg-warning-soft text-warning  '
                                                     }`}>
                                                         {project.final_inspection.status === 'completed' ? 'Completed' : 
                                                          project.final_inspection.status === 'in_progress' ? 'In Progress' : 'Scheduled'}
@@ -1949,29 +1954,29 @@ const ProjectClosurePage = ({
                                                 </div>
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <div>
-                                                        <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">Scheduled Date</p>
-                                                        <p className="text-blue-900 dark:text-blue-100">
+                                                        <p className="text-sm text-info font-medium">Scheduled Date</p>
+                                                        <p className="text-info">
                                                             {new Date(project.final_inspection.scheduled_date).toLocaleDateString()}
                                                         </p>
                                                     </div>
                                                     <div>
-                                                        <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">Scheduled Time</p>
-                                                        <p className="text-blue-900 dark:text-blue-100">
+                                                        <p className="text-sm text-info font-medium">Scheduled Time</p>
+                                                        <p className="text-info">
                                                             {project.final_inspection.scheduled_time}
                                                         </p>
                                                     </div>
                                                     {project.final_inspection.inspector && (
                                                         <div>
-                                                            <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">Inspector</p>
-                                                            <p className="text-blue-900 dark:text-blue-100">
+                                                            <p className="text-sm text-info font-medium">Inspector</p>
+                                                            <p className="text-info">
                                                                 {project.final_inspection.inspector.account?.first_name} {project.final_inspection.inspector.account?.last_name}
                                                             </p>
                                                         </div>
                                                     )}
                                                     {project.final_inspection.submitted_at && (
                                                         <div>
-                                                            <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">Submitted</p>
-                                                            <p className="text-blue-900 dark:text-blue-100">
+                                                            <p className="text-sm text-info font-medium">Submitted</p>
+                                                            <p className="text-info">
                                                                 {new Date(project.final_inspection.submitted_at).toLocaleDateString()}
                                                             </p>
                                                         </div>
@@ -1981,11 +1986,11 @@ const ProjectClosurePage = ({
 
                                             {/* Inspection Notes */}
                                             {project.final_inspection.notes && (
-                                                <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
-                                                    <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                                                <div className="bg-surface-2 rounded-lg p-4">
+                                                    <h4 className="font-semibold text-ink mb-2">
                                                         Inspection Notes
                                                     </h4>
-                                                    <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                                                    <p className="text-ink-3 whitespace-pre-wrap">
                                                         {project.final_inspection.notes}
                                                     </p>
                                                 </div>
@@ -1993,16 +1998,16 @@ const ProjectClosurePage = ({
 
                                             {/* Inspection Documents */}
                                             {project.final_inspection.documents && (
-                                                <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
-                                                    <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                                                <div className="bg-surface-2 rounded-lg p-4">
+                                                    <h4 className="font-semibold text-ink mb-2">
                                                         Inspection Documents
                                                     </h4>
                                                     <div className="space-y-2">
                                                         {JSON.parse(project.final_inspection.documents).map((doc: any, index: number) => (
-                                                            <div key={index} className="flex items-center space-x-2 p-2 bg-white dark:bg-slate-800 rounded border">
-                                                                <FileText size={16} className="text-blue-500" />
-                                                                <span className="text-sm text-gray-700 dark:text-gray-300">{doc.name}</span>
-                                                                <button className="ml-auto p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded">
+                                                            <div key={index} className="flex items-center space-x-2 p-2 bg-surface rounded border">
+                                                                <FileText size={16} className="text-info" />
+                                                                <span className="text-sm text-ink-3">{doc.name}</span>
+                                                                <button className="ml-auto p-1 text-info hover:bg-info-soft rounded">
                                                                     <Download size={14} />
                                                                 </button>
                                                             </div>
@@ -2016,7 +2021,7 @@ const ProjectClosurePage = ({
                                                 <div className="flex justify-end space-x-3">
                                                     <button
                                                         onClick={() => setShowInspectionDetailsModal(true)}
-                                                        className="flex items-center space-x-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                                                        className="flex items-center space-x-2 px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors"
                                                     >
                                                         <Edit size={16} />
                                                         <span>Add Notes & Documents</span>
@@ -2030,20 +2035,20 @@ const ProjectClosurePage = ({
 
                             {/* Handover Section */}
                             {activeSection === "handover" && (
-                                <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6">
-                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
+                                <div className="bg-surface border border-line rounded-xl p-6">
+                                    <h3 className="text-lg font-semibold text-ink mb-6">
                                         Project Handover
                                     </h3>
                                     
                                     {!project.handover ? (
-                                        <div className="text-center py-8 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg">
-                                            <User className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                                            <p className="text-gray-600 dark:text-gray-400 mb-4">
+                                        <div className="text-center py-8 border-2 border-dashed border-line rounded-lg">
+                                            <User className="w-12 h-12 text-faint mx-auto mb-3" />
+                                            <p className="text-muted mb-4">
                                                 No handover scheduled yet. Schedule the project handover to transfer ownership and complete the closure process.
                                             </p>
                                             <button
                                                 onClick={() => setShowScheduleHandoverModal(true)}
-                                                className="flex items-center space-x-2 px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors mx-auto"
+                                                className="flex items-center space-x-2 px-6 py-3 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors mx-auto"
                                             >
                                                 <Calendar size={16} />
                                                 <span>Schedule Handover</span>
@@ -2052,48 +2057,48 @@ const ProjectClosurePage = ({
                                     ) : (
                                         <div className="space-y-6">
                                             {/* Handover Details */}
-                                            <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
+                                            <div className="bg-accent-violet-soft rounded-lg p-4">
                                                 <div className="flex items-center justify-between mb-4">
-                                                    <h4 className="font-semibold text-purple-900 dark:text-purple-100">
+                                                    <h4 className="font-semibold text-accent-violet">
                                                         Handover Details
                                                     </h4>
                                                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                                                         project.handover.status === 'completed'
-                                                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                                            ? 'bg-success-soft text-success  '
+                                                            : 'bg-warning-soft text-warning  '
                                                     }`}>
                                                         {project.handover.status === 'completed' ? 'Completed' : 'Scheduled'}
                                                     </span>
                                                 </div>
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <div>
-                                                        <p className="text-sm text-purple-600 dark:text-purple-400 font-medium">Handover Date</p>
-                                                        <p className="text-purple-900 dark:text-purple-100">
+                                                        <p className="text-sm text-accent-violet font-medium">Handover Date</p>
+                                                        <p className="text-accent-violet">
                                                             {new Date(project.handover.handover_date).toLocaleDateString()}
                                                         </p>
                                                     </div>
                                                     <div>
-                                                        <p className="text-sm text-purple-600 dark:text-purple-400 font-medium">Handover Time</p>
-                                                        <p className="text-purple-900 dark:text-purple-100">
+                                                        <p className="text-sm text-accent-violet font-medium">Handover Time</p>
+                                                        <p className="text-accent-violet">
                                                             {project.handover.handover_time}
                                                         </p>
                                                     </div>
                                                     <div>
-                                                        <p className="text-sm text-purple-600 dark:text-purple-400 font-medium">Handed Over By</p>
-                                                        <p className="text-purple-900 dark:text-purple-100">
+                                                        <p className="text-sm text-accent-violet font-medium">Handed Over By</p>
+                                                        <p className="text-accent-violet">
                                                             {project.handover.handover_user?.account?.first_name} {project.handover.handover_user?.account?.last_name}
                                                         </p>
                                                     </div>
                                                     <div>
-                                                        <p className="text-sm text-purple-600 dark:text-purple-400 font-medium">Handed Over To</p>
-                                                        <p className="text-purple-900 dark:text-purple-100">
+                                                        <p className="text-sm text-accent-violet font-medium">Handed Over To</p>
+                                                        <p className="text-accent-violet">
                                                             {project.handover.handed_over_to}
                                                         </p>
                                                     </div>
                                                     {project.handover.submitted_at && (
                                                         <div>
-                                                            <p className="text-sm text-purple-600 dark:text-purple-400 font-medium">Completed At</p>
-                                                            <p className="text-purple-900 dark:text-purple-100">
+                                                            <p className="text-sm text-accent-violet font-medium">Completed At</p>
+                                                            <p className="text-accent-violet">
                                                                 {new Date(project.handover.submitted_at).toLocaleDateString()}
                                                             </p>
                                                         </div>
@@ -2103,11 +2108,11 @@ const ProjectClosurePage = ({
 
                                             {/* Handover Notes */}
                                             {project.handover.notes && (
-                                                <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
-                                                    <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                                                <div className="bg-surface-2 rounded-lg p-4">
+                                                    <h4 className="font-semibold text-ink mb-2">
                                                         Handover Notes
                                                     </h4>
-                                                    <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                                                    <p className="text-ink-3 whitespace-pre-wrap">
                                                         {project.handover.notes}
                                                     </p>
                                                 </div>
@@ -2115,16 +2120,16 @@ const ProjectClosurePage = ({
 
                                             {/* Handover Receipt */}
                                             {project.handover.handover_receipt && (
-                                                <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
-                                                    <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                                                <div className="bg-surface-2 rounded-lg p-4">
+                                                    <h4 className="font-semibold text-ink mb-2">
                                                         Handover Receipt
                                                     </h4>
-                                                    <div className="flex items-center space-x-2 p-2 bg-white dark:bg-slate-800 rounded border">
-                                                        <FileText size={16} className="text-purple-500" />
-                                                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                                                    <div className="flex items-center space-x-2 p-2 bg-surface rounded border">
+                                                        <FileText size={16} className="text-accent-violet" />
+                                                        <span className="text-sm text-ink-3">
                                                             {project.handover.handover_receipt.name}
                                                         </span>
-                                                        <button className="ml-auto p-1 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded">
+                                                        <button className="ml-auto p-1 text-accent-violet hover:bg-accent-violet-soft rounded">
                                                             <Download size={14} />
                                                         </button>
                                                     </div>
@@ -2137,7 +2142,7 @@ const ProjectClosurePage = ({
                                                     {project.handover.status !== 'completed' && (
                                                         <button
                                                             onClick={() => setShowHandoverDetailsModal(true)}
-                                                            className="flex items-center space-x-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                                                            className="flex items-center space-x-2 px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors"
                                                         >
                                                             <Edit size={16} />
                                                             <span>Complete Handover</span>
@@ -2156,7 +2161,7 @@ const ProjectClosurePage = ({
                                                         />
                                                         <label
                                                             htmlFor="handover-receipt-upload"
-                                                            className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors cursor-pointer"
+                                                            className="flex items-center space-x-2 px-4 py-2 bg-accent-violet text-white rounded-lg hover:opacity-90 transition-colors cursor-pointer"
                                                         >
                                                             <Upload size={16} />
                                                             <span>Upload Receipt</span>
@@ -2164,7 +2169,7 @@ const ProjectClosurePage = ({
                                                         {handoverReceiptFile && (
                                                             <button
                                                                 onClick={handleUploadHandoverReceipt}
-                                                                className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                                                className="flex items-center space-x-2 px-4 py-2 bg-success text-white rounded-lg hover:opacity-90 transition-colors"
                                                             >
                                                                 <CheckCircle size={16} />
                                                                 <span>Submit Receipt</span>
@@ -2175,11 +2180,11 @@ const ProjectClosurePage = ({
                                             </div>
 
                                             {handoverReceiptFile && (
-                                                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
-                                                    <p className="text-sm text-blue-600 dark:text-blue-400 mb-1">Selected file:</p>
+                                                <div className="bg-info-soft rounded-lg p-3">
+                                                    <p className="text-sm text-info mb-1">Selected file:</p>
                                                     <div className="flex items-center justify-between">
-                                                        <span className="text-sm text-blue-900 dark:text-blue-100">{handoverReceiptFile.name}</span>
-                                                        <span className="text-xs text-blue-600 dark:text-blue-400">
+                                                        <span className="text-sm text-info">{handoverReceiptFile.name}</span>
+                                                        <span className="text-xs text-info">
                                                             {(handoverReceiptFile.size / 1024).toFixed(1)}KB
                                                         </span>
                                                     </div>
@@ -2192,22 +2197,22 @@ const ProjectClosurePage = ({
 
                             {/* Approvals Section */}
                             {activeSection === "approvals" && (
-                                <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6">
-                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
+                                <div className="bg-surface border border-line rounded-xl p-6">
+                                    <h3 className="text-lg font-semibold text-ink mb-6">
                                         Project Closure Approvals
                                     </h3>
                                     
                                     <div className="space-y-6">
                                         {/* Final Inspection Approval */}
-                                        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6">
+                                        <div className="bg-info-soft rounded-lg p-6">
                                             <div className="flex items-center justify-between mb-4">
                                                 <div className="flex items-center space-x-3">
-                                                    <Eye className="w-6 h-6 text-blue-500" />
+                                                    <Eye className="w-6 h-6 text-info" />
                                                     <div>
-                                                        <h4 className="font-semibold text-blue-900 dark:text-blue-100">
+                                                        <h4 className="font-semibold text-info">
                                                             Final Inspection Approval
                                                         </h4>
-                                                        <p className="text-sm text-blue-600 dark:text-blue-400">
+                                                        <p className="text-sm text-info">
                                                             Review and approve the final inspection results
                                                         </p>
                                                     </div>
@@ -2217,10 +2222,10 @@ const ProjectClosurePage = ({
                                                         <>
                                                             <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                                                                 project.final_inspection.approved
-                                                                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                                                    ? 'bg-success-soft text-success  '
                                                                     : project.final_inspection.submitted_at
-                                                                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                                                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                                                                    ? 'bg-warning-soft text-warning  '
+                                                                    : 'bg-surface-2 text-ink-2  '
                                                             }`}>
                                                                 {project.final_inspection.approved 
                                                                     ? 'Approved' 
@@ -2231,7 +2236,7 @@ const ProjectClosurePage = ({
                                                             {project.final_inspection.submitted_at && !project.final_inspection.approved && (
                                                                 <button
                                                                     onClick={() => openApprovalModal('inspection')}
-                                                                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                                                    className="flex items-center space-x-2 px-4 py-2 bg-info text-white rounded-lg hover:opacity-90 transition-colors"
                                                                 >
                                                                     <CheckCircle size={16} />
                                                                     <span>Review & Approve</span>
@@ -2239,7 +2244,7 @@ const ProjectClosurePage = ({
                                                             )}
                                                         </>
                                                     ) : (
-                                                        <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
+                                                        <span className="px-3 py-1 rounded-full text-sm font-medium bg-surface-2 text-ink-2">
                                                             No Inspection Scheduled
                                                         </span>
                                                     )}
@@ -2247,25 +2252,25 @@ const ProjectClosurePage = ({
                                             </div>
                                             
                                             {project.final_inspection?.approved && project.final_inspection.approver && (
-                                                <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-700">
+                                                <div className="mt-4 pt-4 border-t border-info">
                                                     <div className="flex items-center justify-between text-sm">
                                                         <div>
-                                                            <span className="text-blue-600 dark:text-blue-400">Approved by: </span>
-                                                            <span className="text-blue-900 dark:text-blue-100">
+                                                            <span className="text-info">Approved by: </span>
+                                                            <span className="text-info">
                                                                 {project.final_inspection.approver.account?.first_name} {project.final_inspection.approver.account?.last_name}
                                                             </span>
                                                         </div>
                                                         <div>
-                                                            <span className="text-blue-600 dark:text-blue-400">Approved on: </span>
-                                                            <span className="text-blue-900 dark:text-blue-100">
+                                                            <span className="text-info">Approved on: </span>
+                                                            <span className="text-info">
                                                                 {new Date(project.final_inspection.approved_at!).toLocaleDateString()}
                                                             </span>
                                                         </div>
                                                     </div>
                                                     {project.final_inspection.approval_notes && (
                                                         <div className="mt-2">
-                                                            <span className="text-blue-600 dark:text-blue-400 text-sm">Notes: </span>
-                                                            <span className="text-blue-900 dark:text-blue-100 text-sm">
+                                                            <span className="text-info text-sm">Notes: </span>
+                                                            <span className="text-info text-sm">
                                                                 {project.final_inspection.approval_notes}
                                                             </span>
                                                         </div>
@@ -2275,15 +2280,15 @@ const ProjectClosurePage = ({
                                         </div>
 
                                         {/* Handover Approval */}
-                                        <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-6">
+                                        <div className="bg-accent-violet-soft rounded-lg p-6">
                                             <div className="flex items-center justify-between mb-4">
                                                 <div className="flex items-center space-x-3">
-                                                    <User className="w-6 h-6 text-purple-500" />
+                                                    <User className="w-6 h-6 text-accent-violet" />
                                                     <div>
-                                                        <h4 className="font-semibold text-purple-900 dark:text-purple-100">
+                                                        <h4 className="font-semibold text-accent-violet">
                                                             Handover Approval
                                                         </h4>
-                                                        <p className="text-sm text-purple-600 dark:text-purple-400">
+                                                        <p className="text-sm text-accent-violet">
                                                             Review and approve the project handover
                                                         </p>
                                                     </div>
@@ -2293,10 +2298,10 @@ const ProjectClosurePage = ({
                                                         <>
                                                             <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                                                                 project.handover.approved_at
-                                                                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                                                    ? 'bg-success-soft text-success  '
                                                                     : project.handover.submitted_at
-                                                                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                                                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                                                                    ? 'bg-warning-soft text-warning  '
+                                                                    : 'bg-surface-2 text-ink-2  '
                                                             }`}>
                                                                 {project.handover.approved_at 
                                                                     ? 'Approved' 
@@ -2307,7 +2312,7 @@ const ProjectClosurePage = ({
                                                             {project.handover.submitted_at && !project.handover.approved_at && (
                                                                 <button
                                                                     onClick={() => openApprovalModal('handover')}
-                                                                    className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                                                                    className="flex items-center space-x-2 px-4 py-2 bg-accent-violet text-white rounded-lg hover:opacity-90 transition-colors"
                                                                 >
                                                                     <CheckCircle size={16} />
                                                                     <span>Review & Approve</span>
@@ -2315,7 +2320,7 @@ const ProjectClosurePage = ({
                                                             )}
                                                         </>
                                                     ) : (
-                                                        <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
+                                                        <span className="px-3 py-1 rounded-full text-sm font-medium bg-surface-2 text-ink-2">
                                                             No Handover Scheduled
                                                         </span>
                                                     )}
@@ -2323,17 +2328,17 @@ const ProjectClosurePage = ({
                                             </div>
                                             
                                             {project.handover?.approved_at && project.handover.approver && (
-                                                <div className="mt-4 pt-4 border-t border-purple-200 dark:border-purple-700">
+                                                <div className="mt-4 pt-4 border-t border-accent-violet">
                                                     <div className="flex items-center justify-between text-sm">
                                                         <div>
-                                                            <span className="text-purple-600 dark:text-purple-400">Approved by: </span>
-                                                            <span className="text-purple-900 dark:text-purple-100">
+                                                            <span className="text-accent-violet">Approved by: </span>
+                                                            <span className="text-accent-violet">
                                                                 {project.handover.approver.account?.first_name} {project.handover.approver.account?.last_name}
                                                             </span>
                                                         </div>
                                                         <div>
-                                                            <span className="text-purple-600 dark:text-purple-400">Approved on: </span>
-                                                            <span className="text-purple-900 dark:text-purple-100">
+                                                            <span className="text-accent-violet">Approved on: </span>
+                                                            <span className="text-accent-violet">
                                                                 {new Date(project.handover.approved_at).toLocaleDateString()}
                                                             </span>
                                                         </div>
@@ -2343,15 +2348,15 @@ const ProjectClosurePage = ({
                                         </div>
 
                                         {/* Project Closure Approval */}
-                                        <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-6">
+                                        <div className="bg-success-soft rounded-lg p-6">
                                             <div className="flex items-center justify-between mb-4">
                                                 <div className="flex items-center space-x-3">
-                                                    <CheckCircle className="w-6 h-6 text-green-500" />
+                                                    <CheckCircle className="w-6 h-6 text-success" />
                                                     <div>
-                                                        <h4 className="font-semibold text-green-900 dark:text-green-100">
+                                                        <h4 className="font-semibold text-success">
                                                             Project Closure Approval
                                                         </h4>
-                                                        <p className="text-sm text-green-600 dark:text-green-400">
+                                                        <p className="text-sm text-success">
                                                             Final approval to officially close the project
                                                         </p>
                                                     </div>
@@ -2362,15 +2367,15 @@ const ProjectClosurePage = ({
                                                         <>
                                                             <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                                                                 project.closure_approved_at
-                                                                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                                                    : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                                                    ? 'bg-success-soft text-success  '
+                                                                    : 'bg-warning-soft text-warning  '
                                                             }`}>
                                                                 {project.closure_approved_at ? 'Project Closed' : 'Ready for Closure'}
                                                             </span>
                                                             {!project.closure_approved_at && (
                                                                 <button
                                                                     onClick={() => openApprovalModal('closeout')}
-                                                                    className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                                                    className="flex items-center space-x-2 px-4 py-2 bg-success text-white rounded-lg hover:opacity-90 transition-colors"
                                                                 >
                                                                     <CheckCircle size={16} />
                                                                     <span>Close Project</span>
@@ -2379,10 +2384,10 @@ const ProjectClosurePage = ({
                                                         </>
                                                     ) : (
                                                         <div className="text-center">
-                                                            <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
+                                                            <span className="px-3 py-1 rounded-full text-sm font-medium bg-surface-2 text-ink-2">
                                                                 Prerequisites Not Met
                                                             </span>
-                                                            <p className="text-xs text-gray-500 mt-1">
+                                                            <p className="text-xs text-muted mt-1">
                                                                 Inspection and handover must be approved first
                                                             </p>
                                                         </div>
@@ -2391,24 +2396,24 @@ const ProjectClosurePage = ({
                                             </div>
                                             
                                             {project.closure_approved_at && project.closure_approved_by && (
-                                                <div className="mt-4 pt-4 border-t border-green-200 dark:border-green-700">
+                                                <div className="mt-4 pt-4 border-t border-success">
                                                     <div className="flex items-center justify-between text-sm">
-                                                        <div>                                            <span className="text-green-600 dark:text-green-400">Closed by: </span>
-                                            <span className="text-green-900 dark:text-green-100">
+                                                        <div>                                            <span className="text-success">Closed by: </span>
+                                            <span className="text-success">
                                                 {project.closure_approved_user?.account?.first_name} {project.closure_approved_user?.account?.last_name}
                                             </span>
                                                         </div>
                                                         <div>
-                                                            <span className="text-green-600 dark:text-green-400">Closed on: </span>
-                                                            <span className="text-green-900 dark:text-green-100">
+                                                            <span className="text-success">Closed on: </span>
+                                                            <span className="text-success">
                                                                 {new Date(project.closure_approved_at).toLocaleDateString()}
                                                             </span>
                                                         </div>
                                                     </div>
                                                     {project.closure_notes && (
                                                         <div className="mt-2">
-                                                            <span className="text-green-600 dark:text-green-400 text-sm">Notes: </span>
-                                                            <span className="text-green-900 dark:text-green-100 text-sm">
+                                                            <span className="text-success text-sm">Notes: </span>
+                                                            <span className="text-success text-sm">
                                                                 {project.closure_notes}
                                                             </span>
                                                         </div>
@@ -2418,47 +2423,47 @@ const ProjectClosurePage = ({
                                         </div>
 
                                         {/* Overall Progress Summary */}
-                                        <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-6">
-                                            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                                        <div className="bg-surface-2 rounded-lg p-6">
+                                            <h4 className="font-semibold text-ink mb-4">
                                                 Closure Progress Summary
                                             </h4>
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                 <div className="text-center">
                                                     <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-2 ${
                                                         project.final_inspection?.approved 
-                                                            ? 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300'
-                                                            : 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500'
+                                                            ? 'bg-success-soft text-success  '
+                                                            : 'bg-surface-2 text-faint  '
                                                     }`}>
                                                         <Eye size={24} />
                                                     </div>
-                                                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Inspection</p>
-                                                    <p className="text-xs text-gray-500">
+                                                    <p className="text-sm font-medium text-ink">Inspection</p>
+                                                    <p className="text-xs text-muted">
                                                         {project.final_inspection?.approved ? 'Approved' : 'Pending'}
                                                     </p>
                                                 </div>
                                                 <div className="text-center">
                                                     <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-2 ${
                                                         project.handover?.approved_at 
-                                                            ? 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300'
-                                                            : 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500'
+                                                            ? 'bg-success-soft text-success  '
+                                                            : 'bg-surface-2 text-faint  '
                                                     }`}>
                                                         <User size={24} />
                                                     </div>
-                                                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Handover</p>
-                                                    <p className="text-xs text-gray-500">
+                                                    <p className="text-sm font-medium text-ink">Handover</p>
+                                                    <p className="text-xs text-muted">
                                                         {project.handover?.approved_at ? 'Approved' : 'Pending'}
                                                     </p>
                                                 </div>
                                                 <div className="text-center">
                                                     <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-2 ${
                                                         project.closure_approved_at 
-                                                            ? 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300'
-                                                            : 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500'
+                                                            ? 'bg-success-soft text-success  '
+                                                            : 'bg-surface-2 text-faint  '
                                                     }`}>
                                                         <CheckCircle size={24} />
                                                     </div>
-                                                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Closure</p>
-                                                    <p className="text-xs text-gray-500">
+                                                    <p className="text-sm font-medium text-ink">Closure</p>
+                                                    <p className="text-xs text-muted">
                                                         {project.closure_approved_at ? 'Closed' : 'Pending'}
                                                     </p>
                                                 </div>
@@ -2470,22 +2475,22 @@ const ProjectClosurePage = ({
 
                             {/* Reports Section */}
                             {activeSection === "reports" && (
-                                <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6">
-                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
+                                <div className="bg-surface border border-line rounded-xl p-6">
+                                    <h3 className="text-lg font-semibold text-ink mb-6">
                                         Project Closure Reports
                                     </h3>
                                     
                                     <div className="space-y-6">
                                         {/* PDF Closure Report */}
-                                        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6">
+                                        <div className="bg-info-soft rounded-lg p-6">
                                             <div className="flex items-center justify-between mb-4">
                                                 <div className="flex items-center space-x-3">
-                                                    <FileText className="w-6 h-6 text-blue-500" />
+                                                    <FileText className="w-6 h-6 text-info" />
                                                     <div>
-                                                        <h4 className="font-semibold text-blue-900 dark:text-blue-100">
+                                                        <h4 className="font-semibold text-info">
                                                             Comprehensive Closure Report
                                                         </h4>
-                                                        <p className="text-sm text-blue-600 dark:text-blue-400">
+                                                        <p className="text-sm text-info">
                                                             Generate and download a complete project closure report
                                                         </p>
                                                     </div>
@@ -2497,7 +2502,7 @@ const ProjectClosurePage = ({
                                                             item => item.type === 'manual' && item.title.includes('Final Report')
                                                         );
                                                         return reportChecklistItem?.status === 'complete' ? (
-                                                            <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                                            <span className="px-3 py-1 rounded-full text-sm font-medium bg-success-soft text-success">
                                                                 Downloaded
                                                             </span>
                                                         ) : null;
@@ -2505,11 +2510,11 @@ const ProjectClosurePage = ({
                                                     <button
                                                         onClick={handleDownloadPDFReport}
                                                         disabled={isGeneratingPDF}
-                                                        className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        className="flex items-center space-x-2 px-4 py-2 bg-info text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                     >
                                                         {isGeneratingPDF ? (
                                                             <>
-                                                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                                                                <Spinner size={16} />
                                                                 <span>Generating...</span>
                                                             </>
                                                         ) : (
@@ -2522,11 +2527,11 @@ const ProjectClosurePage = ({
                                                 </div>
                                             </div>
                                             
-                                            <div className="bg-blue-100 dark:bg-blue-800/20 rounded-lg p-4">
-                                                <h5 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
+                                            <div className="bg-info-soft rounded-lg p-4">
+                                                <h5 className="font-medium text-info mb-2">
                                                     Report Contents:
                                                 </h5>
-                                                <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+                                                <ul className="text-sm text-info space-y-1">
                                                     <li>• Project overview and basic information</li>
                                                     <li>• Team composition and roles</li>
                                                     <li>• Work Breakdown Structure (WBS) and tasks</li>
@@ -2550,8 +2555,8 @@ const ProjectClosurePage = ({
                                                     item => item.type === 'manual' && item.title.includes('Final Report')
                                                 );
                                                 return reportChecklistItem?.status === 'complete' && reportChecklistItem.completed_at ? (
-                                                    <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-700">
-                                                        <div className="flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400">
+                                                    <div className="mt-4 pt-4 border-t border-info">
+                                                        <div className="flex items-center space-x-2 text-sm text-info">
                                                             <CheckCircle size={16} />
                                                             <span>Report downloaded on {new Date(reportChecklistItem.completed_at).toLocaleDateString()}</span>
                                                             {reportChecklistItem.completedBy && (
@@ -2560,8 +2565,8 @@ const ProjectClosurePage = ({
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-700">
-                                                        <div className="flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400">
+                                                    <div className="mt-4 pt-4 border-t border-info">
+                                                        <div className="flex items-center space-x-2 text-sm text-info">
                                                             <Clock size={16} />
                                                             <span>Click "Download PDF" to generate and download the report. This will mark the checklist item as complete.</span>
                                                         </div>
@@ -2570,8 +2575,8 @@ const ProjectClosurePage = ({
                                             })()}
 
                                             {project.closure_approved_at && (
-                                                <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-700">
-                                                    <div className="flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400">
+                                                <div className="mt-4 pt-4 border-t border-info">
+                                                    <div className="flex items-center space-x-2 text-sm text-info">
                                                         <CheckCircle size={16} />
                                                         <span>Project officially closed on {new Date(project.closure_approved_at).toLocaleDateString()}</span>
                                                     </div>
@@ -2580,38 +2585,38 @@ const ProjectClosurePage = ({
                                         </div>
 
                                         {/* Additional Reports Section */}
-                                        <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-6">
-                                            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                                        <div className="bg-surface-2 rounded-lg p-6">
+                                            <h4 className="font-semibold text-ink mb-4">
                                                 Additional Reports
                                             </h4>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-gray-200 dark:border-slate-600">
+                                                <div className="bg-surface rounded-lg p-4 border border-line">
                                                     <div className="flex items-center space-x-3 mb-2">
-                                                        <FileText className="w-5 h-5 text-gray-500" />
-                                                        <h5 className="font-medium text-gray-900 dark:text-gray-100">
+                                                        <FileText className="w-5 h-5 text-muted" />
+                                                        <h5 className="font-medium text-ink">
                                                             Checklist Summary
                                                         </h5>
                                                     </div>
-                                                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                                                    <p className="text-sm text-muted">
                                                         Complete checklist status report
                                                     </p>
-                                                    <div className="mt-3 text-xs text-gray-500">
+                                                    <div className="mt-3 text-xs text-muted">
                                                         {project.closure_checklists?.filter(item => item.status === 'complete').length || 0}/
                                                         {project.closure_checklists?.length || 0} items completed
                                                     </div>
                                                 </div>
 
-                                                <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-gray-200 dark:border-slate-600">
+                                                <div className="bg-surface rounded-lg p-4 border border-line">
                                                     <div className="flex items-center space-x-3 mb-2">
-                                                        <AlertTriangle className="w-5 h-5 text-yellow-500" />
-                                                        <h5 className="font-medium text-gray-900 dark:text-gray-100">
+                                                        <AlertTriangle className="w-5 h-5 text-warning" />
+                                                        <h5 className="font-medium text-ink">
                                                             Punch List Report
                                                         </h5>
                                                     </div>
-                                                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                                                    <p className="text-sm text-muted">
                                                         Summary of punch list items
                                                     </p>
-                                                    <div className="mt-3 text-xs text-gray-500">
+                                                    <div className="mt-3 text-xs text-muted">
                                                         {project.punch_list_items?.filter(item => item.status === 'resolved').length || 0}/
                                                         {project.punch_list_items?.length || 0} items resolved
                                                     </div>
@@ -2639,27 +2644,16 @@ const ProjectClosurePage = ({
                         onClick={() => setShowAddPunchItemModal(false)}
                     >
                         <div
-                            className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl"
-                            style={{
-                                backgroundColor: isDarkMode
-                                    ? "rgba(30, 41, 59, 0.95)"
-                                    : "rgba(255, 255, 255, 0.95)",
-                                backdropFilter: "blur(20px)",
-                                WebkitBackdropFilter: "blur(20px)",
-                                border: isDarkMode
-                                    ? "1px solid rgba(148, 163, 184, 0.2)"
-                                    : "1px solid rgba(255, 255, 255, 0.2)",
-                                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-                            }}
+                            className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                                <h3 className="text-xl font-semibold text-ink">
                                     Add Punch List Item
                                 </h3>
                                 <button
                                     onClick={() => setShowAddPunchItemModal(false)}
-                                    className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700"
+                                    className="p-2 text-faint hover:text-muted rounded-full hover:bg-surface-2"
                                 >
                                     <X size={20} />
                                 </button>
@@ -2673,7 +2667,7 @@ const ProjectClosurePage = ({
                                 className="space-y-4"
                             >
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label className="block text-sm font-medium text-ink-3 mb-1">
                                         Title *
                                     </label>
                                     <input
@@ -2681,40 +2675,36 @@ const ProjectClosurePage = ({
                                         required
                                         value={punchItemForm.title}
                                         onChange={(e) => setPunchItemForm(prev => ({ ...prev, title: e.target.value }))}
-                                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                        className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
                                         placeholder="Enter punch item title"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label className="block text-sm font-medium text-ink-3 mb-1">
                                         Assignee
                                     </label>
-                                    <select
-                                        value={punchItemForm.assignee_id}
-                                        onChange={(e) => setPunchItemForm(prev => ({ ...prev, assignee_id: e.target.value }))}
-                                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                                    >
-                                        <option value="">Select assignee (optional)</option>
-                                        {project.team_members?.map((member) => (
-                                            <option key={member.user.user_id} value={member.user.user_id}>
-                                                {member.user.account.first_name} {member.user.account.last_name}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    <Dropdown
+                                      value={String(punchItemForm.assignee_id ?? '')}
+                                      onChange={(__v: string) => setPunchItemForm(prev => ({ ...prev, assignee_id: __v }))}
+                                      options={[
+                                      { value: String(""), label: "Select assignee (optional)" },
+                                      ...(project.team_members?.map((member) => ({ value: String(member.user.user_id), label: `${member.user.account.first_name} ${member.user.account.last_name}` })) ?? []),
+                                    ]}
+                                    />
                                 </div>
 
-                                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-slate-700">
+                                <div className="flex justify-end space-x-3 pt-4 border-t border-line">
                                     <button
                                         type="button"
                                         onClick={() => setShowAddPunchItemModal(false)}
-                                        className="px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                                        className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         type="submit"
-                                        className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                                        className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors"
                                     >
                                         Add Item
                                     </button>
@@ -2736,27 +2726,16 @@ const ProjectClosurePage = ({
                         onClick={() => setShowEditPunchItemModal(false)}
                     >
                         <div
-                            className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl"
-                            style={{
-                                backgroundColor: isDarkMode
-                                    ? "rgba(30, 41, 59, 0.95)"
-                                    : "rgba(255, 255, 255, 0.95)",
-                                backdropFilter: "blur(20px)",
-                                WebkitBackdropFilter: "blur(20px)",
-                                border: isDarkMode
-                                    ? "1px solid rgba(148, 163, 184, 0.2)"
-                                    : "1px solid rgba(255, 255, 255, 0.2)",
-                                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-                            }}
+                            className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                                <h3 className="text-xl font-semibold text-ink">
                                     Edit Punch List Item
                                 </h3>
                                 <button
                                     onClick={() => setShowEditPunchItemModal(false)}
-                                    className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700"
+                                    className="p-2 text-faint hover:text-muted rounded-full hover:bg-surface-2"
                                 >
                                     <X size={20} />
                                 </button>
@@ -2770,7 +2749,7 @@ const ProjectClosurePage = ({
                                 className="space-y-4"
                             >
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label className="block text-sm font-medium text-ink-3 mb-1">
                                         Title
                                     </label>
                                     <input
@@ -2778,40 +2757,36 @@ const ProjectClosurePage = ({
                                         required
                                         value={punchItemForm.title}
                                         onChange={(e) => setPunchItemForm(prev => ({ ...prev, title: e.target.value }))}
-                                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                        className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
                                         placeholder="Enter punch item title"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label className="block text-sm font-medium text-ink-3 mb-1">
                                         Assignee
                                     </label>
-                                    <select
-                                        value={punchItemForm.assignee_id}
-                                        onChange={(e) => setPunchItemForm(prev => ({ ...prev, assignee_id: e.target.value }))}
-                                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                                    >
-                                        <option value="">Select assignee (optional)</option>
-                                        {project.team_members?.map((member) => (
-                                            <option key={member.user.user_id} value={member.user.user_id}>
-                                                {member.user.account.first_name} {member.user.account.last_name}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    <Dropdown
+                                      value={String(punchItemForm.assignee_id ?? '')}
+                                      onChange={(__v: string) => setPunchItemForm(prev => ({ ...prev, assignee_id: __v }))}
+                                      options={[
+                                      { value: String(""), label: "Select assignee (optional)" },
+                                      ...(project.team_members?.map((member) => ({ value: String(member.user.user_id), label: `${member.user.account.first_name} ${member.user.account.last_name}` })) ?? []),
+                                    ]}
+                                    />
                                 </div>
 
-                                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-slate-700">
+                                <div className="flex justify-end space-x-3 pt-4 border-t border-line">
                                     <button
                                         type="button"
                                         onClick={() => setShowEditPunchItemModal(false)}
-                                        className="px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                                        className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         type="submit"
-                                        className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                                        className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors"
                                     >
                                         Update Item
                                     </button>
@@ -2833,27 +2808,16 @@ const ProjectClosurePage = ({
                         onClick={() => setShowScheduleInspectionModal(false)}
                     >
                         <div
-                            className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl"
-                            style={{
-                                backgroundColor: isDarkMode
-                                    ? "rgba(30, 41, 59, 0.95)"
-                                    : "rgba(255, 255, 255, 0.95)",
-                                backdropFilter: "blur(20px)",
-                                WebkitBackdropFilter: "blur(20px)",
-                                border: isDarkMode
-                                    ? "1px solid rgba(148, 163, 184, 0.2)"
-                                    : "1px solid rgba(255, 255, 255, 0.2)",
-                                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-                            }}
+                            className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                                <h3 className="text-xl font-semibold text-ink">
                                     Schedule Final Inspection
                                 </h3>
                                 <button
                                     onClick={() => setShowScheduleInspectionModal(false)}
-                                    className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700"
+                                    className="p-2 text-faint hover:text-muted rounded-full hover:bg-surface-2"
                                 >
                                     <X size={20} />
                                 </button>
@@ -2867,7 +2831,7 @@ const ProjectClosurePage = ({
                                 className="space-y-4"
                             >
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label className="block text-sm font-medium text-ink-3 mb-1">
                                         Scheduled Date *
                                     </label>
                                     <input
@@ -2875,12 +2839,12 @@ const ProjectClosurePage = ({
                                         required
                                         value={inspectionForm.scheduled_date}
                                         onChange={(e) => setInspectionForm(prev => ({ ...prev, scheduled_date: e.target.value }))}
-                                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                        className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label className="block text-sm font-medium text-ink-3 mb-1">
                                         Scheduled Time *
                                     </label>
                                     <input
@@ -2888,16 +2852,16 @@ const ProjectClosurePage = ({
                                         required
                                         value={inspectionForm.scheduled_time}
                                         onChange={(e) => setInspectionForm(prev => ({ ...prev, scheduled_time: e.target.value }))}
-                                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                        className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
                                     />
                                 </div>
 
                                 <div ref={inspectorDropdownRef} className="relative">
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label className="block text-sm font-medium text-ink-3 mb-1">
                                         Inspector *
                                     </label>
                                     <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-faint pointer-events-none" />
                                         <input
                                             type="text"
                                             value={
@@ -2915,11 +2879,11 @@ const ProjectClosurePage = ({
                                             }}
                                             onFocus={() => setInspectorDropdownOpen(true)}
                                             placeholder="Search by name..."
-                                            className="w-full pl-9 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                            className="w-full pl-9 pr-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
                                         />
                                     </div>
                                     {inspectorDropdownOpen && project?.team_members && (
-                                        <ul className="absolute z-10 mt-1 w-full max-h-48 overflow-auto rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-lg py-1">
+                                        <ul className="absolute z-10 mt-1 w-full max-h-48 overflow-auto rounded-lg border border-line bg-surface shadow-lg py-1">
                                             {project.team_members
                                                 .filter(
                                                     (member) =>
@@ -2932,7 +2896,7 @@ const ProjectClosurePage = ({
                                                     <li
                                                         key={member.user.user_id}
                                                         role="option"
-                                                        className="px-3 py-2 text-sm cursor-pointer hover:bg-orange-50 dark:hover:bg-slate-600 text-gray-900 dark:text-gray-100"
+                                                        className="px-3 py-2 text-sm cursor-pointer hover:bg-bright-soft text-ink"
                                                         onClick={() => {
                                                             setInspectionForm((prev) => ({ ...prev, inspector_id: String(member.user.user_id) }));
                                                             setInspectorSearchQuery("");
@@ -2949,29 +2913,29 @@ const ProjectClosurePage = ({
                                                         .toLowerCase()
                                                         .includes(inspectorSearchQuery.trim().toLowerCase())
                                             ).length === 0 && (
-                                                <li className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">No matching inspector</li>
+                                                <li className="px-3 py-2 text-sm text-muted">No matching inspector</li>
                                             )}
                                         </ul>
                                     )}
                                 </div>
 
-                                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-slate-700">
+                                <div className="flex justify-end space-x-3 pt-4 border-t border-line">
                                     <button
                                         type="button"
                                         onClick={() => setShowScheduleInspectionModal(false)}
                                         disabled={scheduleInspectionSubmitting}
-                                        className="px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                                        className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={scheduleInspectionSubmitting}
-                                        className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2 min-w-[160px]"
+                                        className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2 min-w-[160px]"
                                     >
                                         {scheduleInspectionSubmitting ? (
                                             <>
-                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                <Spinner size={16} />
                                                 Scheduling...
                                             </>
                                         ) : (
@@ -2996,27 +2960,16 @@ const ProjectClosurePage = ({
                         onClick={() => setShowInspectionDetailsModal(false)}
                     >
                         <div
-                            className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl"
-                            style={{
-                                backgroundColor: isDarkMode
-                                    ? "rgba(30, 41, 59, 0.95)"
-                                    : "rgba(255, 255, 255, 0.95)",
-                                backdropFilter: "blur(20px)",
-                                WebkitBackdropFilter: "blur(20px)",
-                                border: isDarkMode
-                                    ? "1px solid rgba(148, 163, 184, 0.2)"
-                                    : "1px solid rgba(255, 255, 255, 0.2)",
-                                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-                            }}
+                            className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                                <h3 className="text-xl font-semibold text-ink">
                                     Complete Inspection
                                 </h3>
                                 <button
                                     onClick={() => setShowInspectionDetailsModal(false)}
-                                    className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700"
+                                    className="p-2 text-faint hover:text-muted rounded-full hover:bg-surface-2"
                                 >
                                     <X size={20} />
                                 </button>
@@ -3030,20 +2983,20 @@ const ProjectClosurePage = ({
                                 className="space-y-4"
                             >
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label className="block text-sm font-medium text-ink-3 mb-1">
                                         Inspection Notes
                                     </label>
                                     <textarea
                                         value={inspectionNotes}
                                         onChange={(e) => setInspectionNotes(e.target.value)}
                                         rows={4}
-                                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                        className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
                                         placeholder="Enter inspection notes and observations..."
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label className="block text-sm font-medium text-ink-3 mb-1">
                                         Inspection Documents
                                     </label>
                                     <input
@@ -3051,46 +3004,46 @@ const ProjectClosurePage = ({
                                         multiple
                                         accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                                         onChange={(e) => setInspectionDocuments(Array.from(e.target.files || []))}
-                                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                        className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
                                     />
-                                    <p className="text-xs text-gray-500 mt-1">
+                                    <p className="text-xs text-muted mt-1">
                                         Upload photos, documents, or reports from the inspection
                                     </p>
                                 </div>
 
                                 {inspectionDocuments.length > 0 && (
-                                    <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-3">
-                                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    <div className="bg-surface-2 rounded-lg p-3">
+                                        <h4 className="text-sm font-medium text-ink-3 mb-2">
                                             Selected Files:
                                         </h4>
                                         <div className="space-y-1">
                                             {inspectionDocuments.map((file, index) => (
                                                 <div key={index} className="flex items-center justify-between text-sm">
-                                                    <span className="text-gray-600 dark:text-gray-400">{file.name}</span>
-                                                    <span className="text-gray-400">{(file.size / 1024).toFixed(1)}KB</span>
+                                                    <span className="text-muted">{file.name}</span>
+                                                    <span className="text-faint">{(file.size / 1024).toFixed(1)}KB</span>
                                                 </div>
                                             ))}
                                         </div>
                                     </div>
                                 )}
 
-                                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-slate-700">
+                                <div className="flex justify-end space-x-3 pt-4 border-t border-line">
                                     <button
                                         type="button"
                                         onClick={() => setShowInspectionDetailsModal(false)}
                                         disabled={inspectionSubmitting}
-                                        className="px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                                        className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={inspectionSubmitting}
-                                        className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2 min-w-[180px]"
+                                        className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2 min-w-[180px]"
                                     >
                                         {inspectionSubmitting ? (
                                             <>
-                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                <Spinner size={16} />
                                                 Submitting...
                                             </>
                                         ) : (
@@ -3115,27 +3068,16 @@ const ProjectClosurePage = ({
                         onClick={() => setShowScheduleHandoverModal(false)}
                     >
                         <div
-                            className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl"
-                            style={{
-                                backgroundColor: isDarkMode
-                                    ? "rgba(30, 41, 59, 0.95)"
-                                    : "rgba(255, 255, 255, 0.95)",
-                                backdropFilter: "blur(20px)",
-                                WebkitBackdropFilter: "blur(20px)",
-                                border: isDarkMode
-                                    ? "1px solid rgba(148, 163, 184, 0.2)"
-                                    : "1px solid rgba(255, 255, 255, 0.2)",
-                                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-                            }}
+                            className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                                <h3 className="text-xl font-semibold text-ink">
                                     Schedule Project Handover
                                 </h3>
                                 <button
                                     onClick={() => setShowScheduleHandoverModal(false)}
-                                    className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700"
+                                    className="p-2 text-faint hover:text-muted rounded-full hover:bg-surface-2"
                                 >
                                     <X size={20} />
                                 </button>
@@ -3149,7 +3091,7 @@ const ProjectClosurePage = ({
                                 className="space-y-4"
                             >
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label className="block text-sm font-medium text-ink-3 mb-1">
                                         Handover Date *
                                     </label>
                                     <input
@@ -3157,12 +3099,12 @@ const ProjectClosurePage = ({
                                         required
                                         value={handoverForm.handover_date}
                                         onChange={(e) => setHandoverForm(prev => ({ ...prev, handover_date: e.target.value }))}
-                                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                        className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label className="block text-sm font-medium text-ink-3 mb-1">
                                         Handover Time *
                                     </label>
                                     <input
@@ -3170,16 +3112,16 @@ const ProjectClosurePage = ({
                                         required
                                         value={handoverForm.handover_time}
                                         onChange={(e) => setHandoverForm(prev => ({ ...prev, handover_time: e.target.value }))}
-                                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                        className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
                                     />
                                 </div>
 
                                 <div ref={handoverDropdownRef} className="relative">
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label className="block text-sm font-medium text-ink-3 mb-1">
                                         Handed Over By *
                                     </label>
                                     <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-faint pointer-events-none" />
                                         <input
                                             type="text"
                                             value={
@@ -3197,11 +3139,11 @@ const ProjectClosurePage = ({
                                             }}
                                             onFocus={() => setHandoverDropdownOpen(true)}
                                             placeholder="Search by name..."
-                                            className="w-full pl-9 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                            className="w-full pl-9 pr-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
                                         />
                                     </div>
                                     {handoverDropdownOpen && project?.team_members && (
-                                        <ul className="absolute z-10 mt-1 w-full max-h-48 overflow-auto rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-lg py-1">
+                                        <ul className="absolute z-10 mt-1 w-full max-h-48 overflow-auto rounded-lg border border-line bg-surface shadow-lg py-1">
                                             {project.team_members
                                                 .filter(
                                                     (member) =>
@@ -3214,7 +3156,7 @@ const ProjectClosurePage = ({
                                                     <li
                                                         key={member.user.user_id}
                                                         role="option"
-                                                        className="px-3 py-2 text-sm cursor-pointer hover:bg-orange-50 dark:hover:bg-slate-600 text-gray-900 dark:text-gray-100"
+                                                        className="px-3 py-2 text-sm cursor-pointer hover:bg-bright-soft text-ink"
                                                         onClick={() => {
                                                             setHandoverForm((prev) => ({ ...prev, handed_over_by: String(member.user.user_id) }));
                                                             setHandoverSearchQuery("");
@@ -3231,14 +3173,14 @@ const ProjectClosurePage = ({
                                                         .toLowerCase()
                                                         .includes(handoverSearchQuery.trim().toLowerCase())
                                             ).length === 0 && (
-                                                <li className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">No matching team member</li>
+                                                <li className="px-3 py-2 text-sm text-muted">No matching team member</li>
                                             )}
                                         </ul>
                                     )}
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label className="block text-sm font-medium text-ink-3 mb-1">
                                         Handed Over To *
                                     </label>
                                     <input
@@ -3246,41 +3188,41 @@ const ProjectClosurePage = ({
                                         required
                                         value={handoverForm.handed_over_to}
                                         onChange={(e) => setHandoverForm(prev => ({ ...prev, handed_over_to: e.target.value }))}
-                                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                        className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
                                         placeholder="Enter name of person receiving the project"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label className="block text-sm font-medium text-ink-3 mb-1">
                                         Initial Notes (Optional)
                                     </label>
                                     <textarea
                                         value={handoverForm.notes}
                                         onChange={(e) => setHandoverForm(prev => ({ ...prev, notes: e.target.value }))}
                                         rows={3}
-                                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                        className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
                                         placeholder="Enter any initial notes for the handover..."
                                     />
                                 </div>
 
-                                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-slate-700">
+                                <div className="flex justify-end space-x-3 pt-4 border-t border-line">
                                     <button
                                         type="button"
                                         onClick={() => setShowScheduleHandoverModal(false)}
                                         disabled={scheduleHandoverSubmitting}
-                                        className="px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                                        className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={scheduleHandoverSubmitting}
-                                        className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2 min-w-[180px]"
+                                        className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2 min-w-[180px]"
                                     >
                                         {scheduleHandoverSubmitting ? (
                                             <>
-                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                <Spinner size={16} />
                                                 Scheduling...
                                             </>
                                         ) : (
@@ -3305,27 +3247,16 @@ const ProjectClosurePage = ({
                         onClick={() => setShowHandoverDetailsModal(false)}
                     >
                         <div
-                            className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl"
-                            style={{
-                                backgroundColor: isDarkMode
-                                    ? "rgba(30, 41, 59, 0.95)"
-                                    : "rgba(255, 255, 255, 0.95)",
-                                backdropFilter: "blur(20px)",
-                                WebkitBackdropFilter: "blur(20px)",
-                                border: isDarkMode
-                                    ? "1px solid rgba(148, 163, 184, 0.2)"
-                                    : "1px solid rgba(255, 255, 255, 0.2)",
-                                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-                            }}
+                            className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                                <h3 className="text-xl font-semibold text-ink">
                                     Complete Handover
                                 </h3>
                                 <button
                                     onClick={() => setShowHandoverDetailsModal(false)}
-                                    className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700"
+                                    className="p-2 text-faint hover:text-muted rounded-full hover:bg-surface-2"
                                 >
                                     <X size={20} />
                                 </button>
@@ -3339,22 +3270,22 @@ const ProjectClosurePage = ({
                                 className="space-y-4"
                             >
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label className="block text-sm font-medium text-ink-3 mb-1">
                                         Handover Completion Notes
                                     </label>
                                     <textarea
                                         value={handoverNotes}
                                         onChange={(e) => setHandoverNotes(e.target.value)}
                                         rows={4}
-                                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                        className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
                                         placeholder="Enter notes about the handover completion, any issues, or additional information..."
                                     />
                                 </div>
 
-                                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+                                <div className="bg-info-soft rounded-lg p-3">
                                     <div className="flex items-start space-x-2">
-                                        <ExternalLink className="w-4 h-4 text-blue-500 mt-0.5" />
-                                        <div className="text-sm text-blue-700 dark:text-blue-300">
+                                        <ExternalLink className="w-4 h-4 text-info mt-0.5" />
+                                        <div className="text-sm text-info">
                                             <p className="font-medium mb-1">After completing the handover:</p>
                                             <ul className="list-disc list-inside space-y-1 text-xs">
                                                 <li>The handover will be marked as completed</li>
@@ -3365,17 +3296,17 @@ const ProjectClosurePage = ({
                                     </div>
                                 </div>
 
-                                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-slate-700">
+                                <div className="flex justify-end space-x-3 pt-4 border-t border-line">
                                     <button
                                         type="button"
                                         onClick={() => setShowHandoverDetailsModal(false)}
-                                        className="px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                                        className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         type="submit"
-                                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                        className="px-4 py-2 bg-success text-white rounded-lg hover:opacity-90 transition-colors"
                                     >
                                         Complete Handover
                                     </button>
@@ -3397,29 +3328,18 @@ const ProjectClosurePage = ({
                         onClick={() => setShowApprovalModal(false)}
                     >
                         <div
-                            className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl"
-                            style={{
-                                backgroundColor: isDarkMode
-                                    ? "rgba(30, 41, 59, 0.95)"
-                                    : "rgba(255, 255, 255, 0.95)",
-                                backdropFilter: "blur(20px)",
-                                WebkitBackdropFilter: "blur(20px)",
-                                border: isDarkMode
-                                    ? "1px solid rgba(148, 163, 184, 0.2)"
-                                    : "1px solid rgba(255, 255, 255, 0.2)",
-                                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-                            }}
+                            className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                                <h3 className="text-xl font-semibold text-ink">
                                     {approvalType === 'inspection' && 'Approve Inspection'}
                                     {approvalType === 'handover' && 'Approve Handover'}
                                     {approvalType === 'closeout' && 'Close Project'}
                                 </h3>
                                 <button
                                     onClick={() => setShowApprovalModal(false)}
-                                    className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700"
+                                    className="p-2 text-faint hover:text-muted rounded-full hover:bg-surface-2"
                                 >
                                     <X size={20} />
                                 </button>
@@ -3433,7 +3353,7 @@ const ProjectClosurePage = ({
                                 className="space-y-4"
                             >
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label className="block text-sm font-medium text-ink-3 mb-1">
                                         Decision
                                     </label>
                                     <div className="flex space-x-4">
@@ -3444,9 +3364,9 @@ const ProjectClosurePage = ({
                                                 value="approve"
                                                 checked={approvalDecision === 'approve'}
                                                 onChange={(e) => setApprovalDecision(e.target.value as 'approve' | 'reject')}
-                                                className="mr-2 text-green-600 focus:ring-green-500"
+                                                className="mr-2 text-success focus:ring-success"
                                             />
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">Approve</span>
+                                            <span className="text-sm text-ink-3">Approve</span>
                                         </label>
                                         <label className="flex items-center">
                                             <input
@@ -3455,15 +3375,15 @@ const ProjectClosurePage = ({
                                                 value="reject"
                                                 checked={approvalDecision === 'reject'}
                                                 onChange={(e) => setApprovalDecision(e.target.value as 'approve' | 'reject')}
-                                                className="mr-2 text-red-600 focus:ring-red-500"
+                                                className="mr-2 text-danger focus:ring-danger"
                                             />
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">Reject</span>
+                                            <span className="text-sm text-ink-3">Reject</span>
                                         </label>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label className="block text-sm font-medium text-ink-3 mb-1">
                                         Notes {approvalDecision === 'reject' && '(Required for rejection)'}
                                     </label>
                                     <textarea
@@ -3471,7 +3391,7 @@ const ProjectClosurePage = ({
                                         onChange={(e) => setApprovalNotes(e.target.value)}
                                         rows={4}
                                         required={approvalDecision === 'reject'}
-                                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                        className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
                                         placeholder={
                                             approvalType === 'inspection' 
                                                 ? "Enter notes about the inspection approval..."
@@ -3483,10 +3403,10 @@ const ProjectClosurePage = ({
                                 </div>
 
                                 {approvalType === 'closeout' && (
-                                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+                                    <div className="bg-info-soft rounded-lg p-3">
                                         <div className="flex items-start space-x-2">
-                                            <ExternalLink className="w-4 h-4 text-blue-500 mt-0.5" />
-                                            <div className="text-sm text-blue-700 dark:text-blue-300">
+                                            <ExternalLink className="w-4 h-4 text-info mt-0.5" />
+                                            <div className="text-sm text-info">
                                                 <p className="font-medium mb-1">This action will:</p>
                                                 <ul className="list-disc list-inside space-y-1 text-xs">
                                                     <li>Officially close the project</li>
@@ -3499,11 +3419,11 @@ const ProjectClosurePage = ({
                                     </div>
                                 )}
 
-                                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-slate-700">
+                                <div className="flex justify-end space-x-3 pt-4 border-t border-line">
                                     <button
                                         type="button"
                                         onClick={() => setShowApprovalModal(false)}
-                                        className="px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                                        className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors"
                                     >
                                         Cancel
                                     </button>
@@ -3511,8 +3431,8 @@ const ProjectClosurePage = ({
                                         type="submit"
                                         className={`px-4 py-2 text-white rounded-lg transition-colors ${
                                             approvalDecision === 'approve'
-                                                ? 'bg-green-600 hover:bg-green-700'
-                                                : 'bg-red-600 hover:bg-red-700'
+                                                ? 'bg-success hover:opacity-90'
+                                                : 'bg-danger hover:opacity-90'
                                         }`}
                                     >
                                         {approvalDecision === 'approve' ? 'Approve' : 'Reject'}

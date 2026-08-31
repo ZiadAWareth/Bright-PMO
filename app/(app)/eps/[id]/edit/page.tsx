@@ -3,16 +3,24 @@
 import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import {
-  ArrowLeft,
-  Save,
-  X,
-  Pencil,
-  AlertCircle,
-} from "lucide-react";
+import { Save, AlertCircle } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import { Spinner } from "@/components/ui/spinner";
+import { Dropdown } from "@/components/ui/dropdown";
+import {
+  CancelButton,
+  Field,
+  FieldGrid,
+  FormError,
+  FormFooter,
+  FormSection,
+  PageHeader,
+  SubmitButton,
+  inputClass,
+  textareaClass,
+} from "@/components/ui/form-shell";
 
 interface EPS {
   eps_id: number;
@@ -306,11 +314,21 @@ const EPSEditPage = () => {
   if (loading) {
     return (
       <ProtectedRoute>
-        <DashboardLayout title="Edit EPS">
-          <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-              <span className="ml-3 text-gray-600 dark:text-gray-400">Loading EPS data...</span>
+        <DashboardLayout hideHeader>
+          <div className="space-y-6">
+            <PageHeader
+              title="Edit EPS"
+              subtitle="Update this node in the enterprise project structure"
+              backHref="/eps"
+              backLabel="Back to EPS"
+            />
+            <div className="flex items-center justify-center py-24">
+              <Spinner size={32} className="text-bright" />
+              <span className="ml-3 text-[13.5px] text-muted">
+                Loading EPS data…
+              </span>
             </div>
+          </div>
         </DashboardLayout>
       </ProtectedRoute>
     );
@@ -319,22 +337,32 @@ const EPSEditPage = () => {
   if (!eps) {
     return (
       <ProtectedRoute>
-        <DashboardLayout title="Edit EPS">
-          <div className="text-center py-12">
-              <AlertCircle size={48} className="mx-auto text-red-500 mb-4" />
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                EPS Not Found
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
-                The EPS you're trying to edit could not be found.
-              </p>
-              <button
-                onClick={() => router.push("/eps")}
-                className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-              >
-                Back to EPS List
-              </button>
-            </div>
+        <DashboardLayout hideHeader>
+          <div className="space-y-6">
+            <PageHeader
+              title="Edit EPS"
+              backHref="/eps"
+              backLabel="Back to EPS"
+            />
+            <FormSection>
+              <div className="py-10 text-center">
+                <AlertCircle
+                  size={40}
+                  className="mx-auto mb-4 text-faint"
+                  aria-hidden="true"
+                />
+                <h2 className="text-[15px] font-semibold text-ink">
+                  EPS not found
+                </h2>
+                <p className="mt-1 text-[13.5px] text-muted">
+                  The EPS you are trying to edit could not be found.
+                </p>
+                <div className="mt-5 flex justify-center">
+                  <CancelButton href="/eps">Back to EPS list</CancelButton>
+                </div>
+              </div>
+            </FormSection>
+          </div>
         </DashboardLayout>
       </ProtectedRoute>
     );
@@ -342,173 +370,149 @@ const EPSEditPage = () => {
 
   return (
     <ProtectedRoute>
-      <DashboardLayout title="Edit EPS">
-        <div className="max-w-4xl mx-auto">
-          {/* Header */}
-          <div className="mb-8">
-                         <div className="flex items-center gap-4 mb-4">
-               <button
-                 onClick={handleCancel}
-                 className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
-               >
-                 <ArrowLeft size={20} />
-                 Back to EPS List
-               </button>
-             </div>
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
-                <Pencil size={24} className="text-orange-600 dark:text-orange-400" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  Edit EPS
-                </h1>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Modify EPS: {eps.name} ({eps.eps_code})
-                </p>
-              </div>
-            </div>
-          </div>
+      <DashboardLayout hideHeader>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <PageHeader
+            title="Edit EPS"
+            subtitle={`${eps.name} (${eps.eps_code})`}
+            backHref="/eps"
+            backLabel="Back to EPS"
+          />
 
-          {/* Form */}
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-8">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* EPS Code (Read-only) */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  EPS Code
-                </label>
+          <FormError>{formError}</FormError>
+
+          <FormSection
+            title="Details"
+            description="Name and describe this level of the structure."
+          >
+            <FieldGrid>
+              <Field
+                label="EPS Code"
+                htmlFor="eps-code"
+                hint="Generated when the node was created and cannot be changed."
+              >
                 <input
+                  id="eps-code"
                   type="text"
                   value={eps.eps_code}
                   disabled
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400"
+                  className={inputClass}
                 />
-              </div>
+              </Field>
 
-              {/* Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Name *
-                </label>
+              <Field label="Name" required htmlFor="eps-name">
                 <input
+                  id="eps-name"
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  placeholder="Enter EPS name"
+                  placeholder="e.g. Infrastructure Programme"
+                  disabled={isSubmitting}
+                  className={inputClass}
                 />
-              </div>
+              </Field>
 
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Description
-                </label>
+              <Field label="Description" htmlFor="eps-description" full>
                 <textarea
+                  id="eps-description"
                   name="description"
+                  rows={4}
                   value={formData.description}
                   onChange={handleChange}
-                  rows={4}
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  placeholder="Enter EPS description"
+                  placeholder="What sits under this node?"
+                  disabled={isSubmitting}
+                  className={textareaClass}
                 />
-              </div>
+              </Field>
+            </FieldGrid>
+          </FormSection>
 
-              {/* Level */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Level *
-                </label>
-                <select
+          <FormSection
+            title="Placement"
+            description="Where this node sits in the hierarchy."
+          >
+            <FieldGrid>
+              <Field
+                label="Level"
+                required
+                htmlFor="eps-level"
+                hint="Level 1 is a root node."
+              >
+                <Dropdown
+                  id="eps-level"
+                  value={String(formData.level ?? "")}
+                  onChange={(__v: string) =>
+                    handleChange({
+                      target: { name: "level", value: __v },
+                    } as React.ChangeEvent<HTMLSelectElement>)
+                  }
+                  options={[1, 2, 3, 4, 5].map((level) => ({
+                    value: String(level),
+                    label: `Level ${level}`,
+                  }))}
                   name="level"
-                  value={formData.level}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                >
-                  {[1, 2, 3, 4, 5].map((level) => (
-                    <option key={level} value={level}>
-                      Level {level}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  disabled={isSubmitting}
+                />
+              </Field>
 
-              {/* Parent EPS */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Parent EPS
-                </label>
-                <select
+              <Field
+                label="Parent EPS"
+                required={formData.level > 1}
+                htmlFor="eps-parent"
+                hint={
+                  formData.level === 1
+                    ? "Root nodes have no parent."
+                    : filteredParentEpsList.length === 0
+                      ? `No level ${formData.level - 1} EPS exists yet.`
+                      : `Showing level ${formData.level - 1} nodes only.`
+                }
+              >
+                <Dropdown
+                  id="eps-parent"
                   name="parent_eps_id"
-                  value={formData.parent_eps_id ?? ""}
-                  onChange={handleChange}
-                  disabled={formData.level === 1}
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 dark:disabled:bg-slate-600 disabled:text-gray-500 dark:disabled:text-gray-400"
-                >
-                  {formData.level === 1 ? (
-                    <option value="">No Parent</option>
-                  ) : (
-                    <option value="" disabled>
-                      {filteredParentEpsList.length === 0
-                        ? "No available parent EPS"
-                        : "Select parent EPS"}
-                    </option>
-                  )}
-                  {formData.level > 1 &&
-                    filteredParentEpsList.length > 0 &&
-                    filteredParentEpsList.map((parentEps) => (
-                      <option key={parentEps.eps_id} value={parentEps.eps_id}>
-                        {parentEps.name} (Level {parentEps.level})
-                      </option>
-                    ))}
-                </select>
-                {formData.level === 1 && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Level 1 EPS cannot have a parent.
-                  </p>
-                )}
-              </div>
+                  value={String(formData.parent_eps_id ?? "")}
+                  onChange={(__v: string) =>
+                    handleChange({
+                      target: { name: "parent_eps_id", value: __v },
+                    } as React.ChangeEvent<HTMLSelectElement>)
+                  }
+                  disabled={formData.level === 1 || isSubmitting}
+                  ariaLabel="Parent EPS"
+                  options={[
+                    formData.level === 1
+                      ? { value: "", label: "No parent" }
+                      : {
+                          value: "",
+                          label:
+                            filteredParentEpsList.length === 0
+                              ? "No available parent EPS"
+                              : "Select parent EPS",
+                          disabled: true,
+                        },
+                    ...(formData.level > 1
+                      ? filteredParentEpsList.map((parentEps) => ({
+                          value: String(parentEps.eps_id),
+                          label: `${parentEps.name} (Level ${parentEps.level})`,
+                        }))
+                      : []),
+                  ]}
+                />
+              </Field>
+            </FieldGrid>
+          </FormSection>
 
-              {/* Error Display */}
-              {formError && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                  <div className="flex items-center">
-                    <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0" />
-                    <div className="ml-3">
-                      <p className="text-sm text-red-800 dark:text-red-200 font-medium">
-                        {formError}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Actions */}
-              <div className="flex items-center justify-end gap-4 pt-6 border-t border-gray-200 dark:border-slate-700">
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  disabled={isSubmitting}
-                  className="px-6 py-3 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg flex items-center gap-2 disabled:opacity-60 transition-colors"
-                >
-                  <Save size={16} />
-                  {isSubmitting ? "Saving..." : "Save Changes"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+          <FormFooter>
+            <CancelButton onClick={handleCancel} />
+            <SubmitButton
+              busy={isSubmitting}
+              busyLabel="Saving…"
+              icon={<Save className="h-4 w-4" aria-hidden="true" />}
+            >
+              Save Changes
+            </SubmitButton>
+          </FormFooter>
+        </form>
       </DashboardLayout>
     </ProtectedRoute>
   );

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import type { ReactNode } from "react";
-import { ThemeToggleButton } from "@/components/layout/ThemeToggleButton";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { BRAND } from "@/lib/brand";
 import { AuthShowcase } from "./AuthShowcase";
 import { BrandChip } from "./BrandChip";
@@ -32,7 +32,7 @@ export function AuthLayout({
     <div className="relative h-dvh overflow-y-auto bg-bg-light lg:p-4">
       {/* Theme toggle — top-right across all auth screens */}
       <div className="absolute right-5 top-5 z-30 lg:right-7 lg:top-7">
-        <ThemeToggleButton />
+        <ThemeToggle />
       </div>
 
       <div className="grid min-h-full lg:min-h-[calc(100dvh-2rem)] lg:grid-cols-[1.08fr_1fr] lg:gap-4">

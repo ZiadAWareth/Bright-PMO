@@ -66,7 +66,7 @@ export function AlternativeResourcesPopup({
           <DialogTitle>Alternative Resources Available</DialogTitle>
         </DialogHeader>
         <div className="py-4">
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-muted mb-4">
             The selected resource is not available. Here are some alternative
             resources you can assign:
           </p>
@@ -74,18 +74,18 @@ export function AlternativeResourcesPopup({
             {alternatives.map((resource) => (
               <div
                 key={resource.resource_id}
-                className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+                className="flex items-center justify-between p-3 border rounded-lg hover:bg-surface-2"
               >
                 <div>
                   <p className="font-medium">{resource.name}</p>
-                  <p className="text-sm text-gray-500">{resource.role}</p>
+                  <p className="text-sm text-muted">{resource.role}</p>
                   {resource.department && (
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-faint">
                       {resource.department}
                     </p>
                   )}
                   {resource.rate && (
-                    <p className="text-xs text-gray-400">${resource.rate}/hr</p>
+                    <p className="text-xs text-faint">${resource.rate}/hr</p>
                   )}
                 </div>
                 <Button

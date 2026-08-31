@@ -34,7 +34,7 @@ export function LandingPlatform() {
     <section id="platform" className="mx-auto max-w-6xl px-5 py-20 sm:px-8">
       <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
         <div className="reveal-on-scroll">
-          <p className="text-sm font-bold uppercase tracking-wider text-wujha-primary">
+          <p className="text-sm font-bold uppercase tracking-wider text-bright-primary">
             Platform
           </p>
           <h2 className="mt-2 text-balance text-3xl font-bold tracking-tight text-text-primary sm:text-4xl">
@@ -53,7 +53,7 @@ export function LandingPlatform() {
               key={title}
               className="reveal-on-scroll rounded-2xl border border-border bg-bg-surface p-5"
             >
-              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-wujha-secondary/10 text-wujha-secondary">
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-bright-secondary/10 text-bright-secondary">
                 <Icon className="h-5 w-5" aria-hidden="true" />
               </div>
               <h3 className="font-semibold text-text-primary">{title}</h3>

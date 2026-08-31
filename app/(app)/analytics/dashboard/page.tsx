@@ -21,7 +21,7 @@ export default function AnalyticsDashboardPage() {
     useAnalyticsDashboard();
 
   return (
-    <DashboardLayout title="Analytics · Dashboard">
+    <DashboardLayout hideHeader>
       <div className="space-y-8">
         <DashboardHeader
           generatedAt={stats?.generatedAt}
@@ -32,7 +32,7 @@ export default function AnalyticsDashboardPage() {
         {error && (
           <div
             role="alert"
-            className="rounded-2xl border border-wujha-danger/30 bg-wujha-danger/10 px-5 py-4 text-sm text-wujha-danger"
+            className="rounded-2xl border border-bright-danger/30 bg-bright-danger/10 px-5 py-4 text-sm text-bright-danger"
           >
             {error}
           </div>

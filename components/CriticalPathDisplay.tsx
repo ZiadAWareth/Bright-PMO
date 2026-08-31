@@ -5,7 +5,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { Spinner } from "@/components/ui/spinner";
 
 interface CriticalPathTask {
   task_id: number;
@@ -111,7 +112,7 @@ export default function CriticalPathDisplay({ projectId }: CriticalPathDisplayPr
     return (
       <Card>
         <CardContent className="flex items-center justify-center p-8">
-          <Loader2 className="h-8 w-8 animate-spin mr-2" />
+          <Spinner size={32} className="mr-2 text-bright-primary" />
           <span>Loading critical path...</span>
         </CardContent>
       </Card>
@@ -139,7 +140,7 @@ export default function CriticalPathDisplay({ projectId }: CriticalPathDisplayPr
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-red-500" />
+            <AlertTriangle className="h-5 w-5 text-danger" />
             Critical Path Analysis
           </CardTitle>
           <Button
@@ -149,7 +150,7 @@ export default function CriticalPathDisplay({ projectId }: CriticalPathDisplayPr
           >
             {calculating ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Spinner size={16} className="mr-2" />
                 Recalculating...
               </>
             ) : (
@@ -162,23 +163,23 @@ export default function CriticalPathDisplay({ projectId }: CriticalPathDisplayPr
             <>
               <div className="mb-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="text-center p-4 bg-red-50 rounded-lg">
-                    <div className="text-2xl font-bold text-red-600">
+                  <div className="text-center p-4 bg-danger-soft rounded-lg">
+                    <div className="text-2xl font-bold text-danger">
                       {criticalPath.total_critical_tasks}
                     </div>
-                    <div className="text-sm text-gray-600">Critical Tasks</div>
+                    <div className="text-sm text-muted">Critical Tasks</div>
                   </div>
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600">
+                  <div className="text-center p-4 bg-info-soft rounded-lg">
+                    <div className="text-2xl font-bold text-info">
                       {criticalPath.critical_tasks.reduce((sum, task) => sum + task.duration, 0)}
                     </div>
-                    <div className="text-sm text-gray-600">Total Days (Critical Path)</div>
+                    <div className="text-sm text-muted">Total Days (Critical Path)</div>
                   </div>
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <div className="text-2xl font-bold text-green-600">
+                  <div className="text-center p-4 bg-success-soft rounded-lg">
+                    <div className="text-2xl font-bold text-success">
                       {criticalPath.critical_tasks.filter(task => task.total_float === 0).length}
                     </div>
-                    <div className="text-sm text-gray-600">Zero Float Tasks</div>
+                    <div className="text-sm text-muted">Zero Float Tasks</div>
                   </div>
                 </div>
               </div>
@@ -192,7 +193,7 @@ export default function CriticalPathDisplay({ projectId }: CriticalPathDisplayPr
                         <div className="flex justify-between items-start mb-3">
                           <div>
                             <h4 className="font-semibold text-lg">{task.name}</h4>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm text-muted">
                               Task #{task.task_id}
                             </p>
                           </div>
@@ -208,29 +209,29 @@ export default function CriticalPathDisplay({ projectId }: CriticalPathDisplayPr
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                           <div>
-                            <span className="font-medium text-gray-500">Duration:</span>
+                            <span className="font-medium text-muted">Duration:</span>
                             <div className="flex items-center gap-1">
                               <Clock className="h-4 w-4" />
                               {task.duration} days
                             </div>
                           </div>
                           <div>
-                            <span className="font-medium text-gray-500">Planned:</span>
+                            <span className="font-medium text-muted">Planned:</span>
                             <div>{formatDate(task.start_date)} - {formatDate(task.end_date)}</div>
                           </div>
                           <div>
-                            <span className="font-medium text-gray-500">Early:</span>
+                            <span className="font-medium text-muted">Early:</span>
                             <div>{formatDate(task.early_start)} - {formatDate(task.early_finish)}</div>
                           </div>
                           <div>
-                            <span className="font-medium text-gray-500">Late:</span>
+                            <span className="font-medium text-muted">Late:</span>
                             <div>{formatDate(task.late_start)} - {formatDate(task.late_finish)}</div>
                           </div>
                         </div>
 
                         {task.assigned_users && task.assigned_users.length > 0 && (
                           <div className="mt-3">
-                            <span className="font-medium text-gray-500 text-sm">Assigned to:</span>
+                            <span className="font-medium text-muted text-sm">Assigned to:</span>
                             <div className="flex flex-wrap gap-1 mt-1">
                               {task.assigned_users.map((assignment, idx) => (
                                 <Badge key={idx} variant="outline" className="text-xs">
@@ -255,7 +256,7 @@ export default function CriticalPathDisplay({ projectId }: CriticalPathDisplayPr
             </>
           ) : (
             <div className="text-center py-8">
-              <p className="text-gray-500">No critical path data available</p>
+              <p className="text-muted">No critical path data available</p>
               <Button onClick={fetchCriticalPath} className="mt-4" variant="outline">
                 Load Critical Path
               </Button>

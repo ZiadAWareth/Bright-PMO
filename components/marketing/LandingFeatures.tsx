@@ -52,7 +52,7 @@ export function LandingFeatures() {
   return (
     <section id="modules" className="mx-auto max-w-6xl px-5 py-20 sm:px-8">
       <div className="reveal-on-scroll mx-auto max-w-2xl text-center">
-        <p className="text-sm font-bold uppercase tracking-wider text-wujha-primary">
+        <p className="text-sm font-bold uppercase tracking-wider text-bright-primary">
           Modules
         </p>
         <h2 className="mt-2 text-balance text-3xl font-bold tracking-tight text-text-primary sm:text-4xl">
@@ -69,13 +69,13 @@ export function LandingFeatures() {
         {MODULES.map(({ title, description, Icon }) => (
           <div
             key={title}
-            className="reveal-on-scroll group relative overflow-hidden rounded-2xl border border-border bg-bg-surface p-6 transition-colors hover:border-wujha-primary/40"
+            className="reveal-on-scroll group relative overflow-hidden rounded-2xl border border-border bg-bg-surface p-6 transition-colors hover:border-bright-primary/40"
           >
             <div
               aria-hidden="true"
-              className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-wujha-primary/5 blur-2xl transition-opacity group-hover:opacity-100 sm:opacity-0"
+              className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-bright-primary/5 blur-2xl transition-opacity group-hover:opacity-100 sm:opacity-0"
             />
-            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-wujha-primary/10 text-wujha-primary">
+            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-bright-primary/10 text-bright-primary">
               <Icon className="h-5 w-5" aria-hidden="true" />
             </div>
             <h3 className="text-lg font-semibold text-text-primary">{title}</h3>

@@ -1,6 +1,7 @@
 import React from "react";
 
 import { FieldConfig } from "@/components/scheduler/taskHelpers";
+import { Dropdown } from "@/components/ui/dropdown";
 
 interface DynamicFieldProps {
   field: FieldConfig<any>;
@@ -40,16 +41,14 @@ export function DynamicField({ field, value, error, onChange, disabled }: Dynami
       );
     case "select":
       return (
-        <select
-          value={value ?? ""}
-          onChange={e => onChange(field.key as string, e.target.value)}
-          className={field.className}
+        <Dropdown
+          value={String(value ?? "")}
+          onChange={(__v: string) => onChange(field.key as string, __v)}
+          options={[
+          ...(field.options?.map((opt) => ({ value: String(opt.value), label: opt.label })) ?? []),
+        ]}
           disabled={disabled}
-        >
-          {field.options?.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
+        />
       );
     case "checkbox":
       return (

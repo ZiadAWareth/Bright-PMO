@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import axios from '@/lib/axios';
+import { Spinner } from "@/components/ui/spinner";
 
 interface ScheduleTaskDependencyModalProps {
   scheduleId: number;
@@ -159,31 +160,31 @@ const ScheduleTaskDependencyModal: React.FC<ScheduleTaskDependencyModalProps> = 
 
   const getDependencyTypeColor = (type: string) => {
     const colors = {
-      'finish_to_start': 'bg-blue-100 text-blue-800',
-      'start_to_start': 'bg-green-100 text-green-800',
-      'finish_to_finish': 'bg-purple-100 text-purple-800',
-      'start_to_finish': 'bg-orange-100 text-orange-800'
+      'finish_to_start': 'bg-info-soft text-info',
+      'start_to_start': 'bg-success-soft text-success',
+      'finish_to_finish': 'bg-accent-violet-soft text-accent-violet',
+      'start_to_finish': 'bg-bright-soft text-bright'
     };
-    return colors[type as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+    return colors[type as keyof typeof colors] || 'bg-surface-2 text-ink-2';
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-slate-800 rounded-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-surface rounded-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              <h3 className="text-xl font-bold text-ink">
                 Task Dependencies
               </h3>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-muted">
                 Manage dependencies for "{task.name}"
               </p>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="p-2 hover:bg-surface-2 rounded-lg transition-colors"
             >
               <X size={20} />
             </button>
@@ -191,17 +192,17 @@ const ScheduleTaskDependencyModal: React.FC<ScheduleTaskDependencyModalProps> = 
 
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+              <Spinner size={32} className="text-bright-primary" />
             </div>
           ) : (
             <div className="space-y-6">
               {/* Current Dependencies */}
               <div>
-                <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                <h4 className="text-lg font-semibold text-ink mb-4">
                   Current Dependencies
                 </h4>
                 {dependencies.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <div className="text-center py-8 text-muted">
                     <Link size={48} className="mx-auto mb-4 opacity-50" />
                     <p>No dependencies configured for this task</p>
                   </div>
@@ -210,17 +211,17 @@ const ScheduleTaskDependencyModal: React.FC<ScheduleTaskDependencyModalProps> = 
                     {dependencies.map((dependency) => (
                       <div
                         key={dependency.dependency_id}
-                        className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-700 rounded-lg"
+                        className="flex items-center justify-between p-4 bg-surface-2 rounded-lg"
                       >
                         <div className="flex items-center space-x-4">
                           <div className="flex items-center space-x-2">
-                            <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                            <span className="font-medium text-gray-900 dark:text-gray-100">
+                            <div className="w-2 h-2 bg-bright rounded-full"></div>
+                            <span className="font-medium text-ink">
                               {dependency.predecessor.name}
                             </span>
                           </div>
-                          <span className="text-gray-400">→</span>
-                          <span className="font-medium text-gray-900 dark:text-gray-100">
+                          <span className="text-faint">→</span>
+                          <span className="font-medium text-ink">
                             {dependency.successor.name}
                           </span>
                         </div>
@@ -237,7 +238,7 @@ const ScheduleTaskDependencyModal: React.FC<ScheduleTaskDependencyModalProps> = 
                             variant="outline"
                             size="sm"
                             onClick={() => removeDependency(dependency.dependency_id)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="text-danger hover:text-danger hover:bg-danger-soft"
                           >
                             <X size={14} />
                           </Button>
@@ -249,13 +250,13 @@ const ScheduleTaskDependencyModal: React.FC<ScheduleTaskDependencyModalProps> = 
               </div>
 
               {/* Add New Dependency */}
-              <div className="border-t border-gray-200 dark:border-slate-700 pt-6">
-                <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              <div className="border-t border-line pt-6">
+                <h4 className="text-lg font-semibold text-ink mb-4">
                   Add New Dependency
                 </h4>
                 {availableTasks.length === 0 && (
-                  <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg">
-                    <p className="text-sm text-yellow-800 dark:text-yellow-300">
+                  <div className="mb-4 p-3 bg-warning-soft border border-warning rounded-lg">
+                    <p className="text-sm text-warning">
                       {allTasks.length === 0 
                         ? "No tasks found in this schedule. Please create some tasks first before adding dependencies."
                         : "No available tasks to create dependencies with. All tasks may already have dependencies or this is the only task."
@@ -323,26 +324,26 @@ const ScheduleTaskDependencyModal: React.FC<ScheduleTaskDependencyModalProps> = 
               </div>
 
               {/* Dependency Type Help */}
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <h5 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
+              <div className="bg-info-soft border border-info rounded-lg p-4">
+                <h5 className="font-semibold text-info mb-2">
                   Dependency Types
                 </h5>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                   <div>
-                    <Badge className="bg-blue-100 text-blue-800 mr-2">Finish to Start</Badge>
-                    <span className="text-blue-800 dark:text-blue-200">Most common. Successor starts after predecessor finishes.</span>
+                    <Badge className="bg-info-soft text-info mr-2">Finish to Start</Badge>
+                    <span className="text-info">Most common. Successor starts after predecessor finishes.</span>
                   </div>
                   <div>
-                    <Badge className="bg-green-100 text-green-800 mr-2">Start to Start</Badge>
-                    <span className="text-green-800 dark:text-green-200">Both tasks start at the same time.</span>
+                    <Badge className="bg-success-soft text-success mr-2">Start to Start</Badge>
+                    <span className="text-success">Both tasks start at the same time.</span>
                   </div>
                   <div>
-                    <Badge className="bg-purple-100 text-purple-800 mr-2">Finish to Finish</Badge>
-                    <span className="text-purple-800 dark:text-purple-200">Both tasks finish at the same time.</span>
+                    <Badge className="bg-accent-violet-soft text-accent-violet mr-2">Finish to Finish</Badge>
+                    <span className="text-accent-violet">Both tasks finish at the same time.</span>
                   </div>
                   <div>
-                    <Badge className="bg-orange-100 text-orange-800 mr-2">Start to Finish</Badge>
-                    <span className="text-orange-800 dark:text-orange-200">Successor finishes when predecessor starts.</span>
+                    <Badge className="bg-bright-soft text-bright mr-2">Start to Finish</Badge>
+                    <span className="text-bright">Successor finishes when predecessor starts.</span>
                   </div>
                 </div>
               </div>

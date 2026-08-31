@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { User } from "@/types/user";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -172,7 +173,7 @@ export default function ProfilePage() {
     return (
       <DashboardLayout title="User Profile">
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
+          <Spinner size={48} className="text-bright-primary" />
         </div>
       </DashboardLayout>
     );
@@ -182,7 +183,7 @@ export default function ProfilePage() {
     <DashboardLayout title="User Profile">
       <div className="max-w-4xl mx-auto">
         <Tabs defaultValue="info" className="w-full">
-          <TabsList className="mb-4">
+          <TabsList variant="line">
             <TabsTrigger value="info">Personal Information</TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
           </TabsList>
@@ -230,7 +231,7 @@ export default function ProfilePage() {
                       placeholder="Email"
                       disabled
                     />
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-muted">
                       Email cannot be changed. Please contact administrator.
                     </p>
                   </div>

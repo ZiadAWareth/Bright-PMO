@@ -272,7 +272,7 @@ export default function ReportGeneratorPage() {
                           </span>
                           {col.type && col.type !== '' && (
                             <span 
-                              className="text-xs text-gray-500 truncate cursor-default" 
+                              className="text-xs text-muted truncate cursor-default" 
                               title={col.type}
                             >
                               {col.type}
@@ -283,7 +283,7 @@ export default function ReportGeneratorPage() {
                     ))}
                 </div>
                 {selectedColumns.length === 0 && (
-                  <div className="mt-2 text-yellow-700 bg-yellow-50 border border-yellow-200 rounded px-3 py-2 text-sm">
+                  <div className="mt-2 text-warning bg-warning-soft border border-warning rounded px-3 py-2 text-sm">
                     No columns selected. All columns will be included in the report.
                   </div>
                 )}
@@ -294,7 +294,7 @@ export default function ReportGeneratorPage() {
             {relationships.length > 0 && (
               <div className="mb-6">
                 <div className="font-semibold mb-2 flex items-center gap-2">
-                  <span className="text-green-600">
+                  <span className="text-success">
                     <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17v-2a4 4 0 0 0-4-4H7m10 6v2a4 4 0 0 1-4 4H7m10-6a4 4 0 0 0-4-4H7m10 6a4 4 0 0 1-4 4H7m0-6v2a4 4 0 0 0 4 4h6m-6-6V7a4 4 0 0 1 4-4h6m-6 6V7a4 4 0 0 0-4-4H7"/></svg>
                   </span>
                   Related Tables
@@ -314,19 +314,19 @@ export default function ReportGeneratorPage() {
                             id={`related-${relatedTableName}-${idx}`}
                             checked={isSelected}
                             onChange={() => handleRelatedTableToggle(relatedTableName)}
-                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                            className="w-4 h-4 text-info bg-surface-2 border-line rounded focus:ring-info"
                           />
                           <label htmlFor={`related-${relatedTableName}-${idx}`} className="font-medium cursor-pointer">
                             {relatedTableName}
                           </label>
-                          <span className="text-xs text-gray-500 ml-auto">({rel.fromColumn} → {rel.toColumn})</span>
+                          <span className="text-xs text-muted ml-auto">({rel.fromColumn} → {rel.toColumn})</span>
                         </div>
                         
                         {isSelected && (
                           <div className="ml-6 mt-2 border-t pt-2">
                             <div className="font-semibold mb-2">Columns from {relatedTableName}</div>
                             {isLoading ? (
-                              <div className="text-sm text-gray-500">Loading columns...</div>
+                              <div className="text-sm text-muted">Loading columns...</div>
                             ) : tableInfo && tableInfo.columns ? (
                               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                                 {tableInfo.columns.map((col: { columnName?: string; name?: string; column_name?: string; dataType?: string; type?: string; data_type?: string; }, colIdx: number) => (
@@ -335,17 +335,17 @@ export default function ReportGeneratorPage() {
                                       type="checkbox"
                                       checked={relatedTableColumns[relatedTableName]?.includes(col.columnName || col.name || "") || false}
                                       onChange={() => handleRelatedColumnToggle(relatedTableName, col.columnName || col.name || "")}
-                                      className="w-3 h-3 text-blue-600"
+                                      className="w-3 h-3 text-info"
                                     />
                                     <span className="font-medium text-sm">{col.columnName || col.name || ""}</span>
                                     {col.dataType || col.type && col.dataType || col.type !== '' && (
-                                      <span className="text-xs text-gray-500 ml-auto">{col.dataType || col.type}</span>
+                                      <span className="text-xs text-muted ml-auto">{col.dataType || col.type}</span>
                                     )}
                                   </label>
                                 ))}
                               </div>
                             ) : (
-                              <div className="text-sm text-gray-500">No columns found</div>
+                              <div className="text-sm text-muted">No columns found</div>
                             )}
                           </div>
                         )}
@@ -369,14 +369,14 @@ export default function ReportGeneratorPage() {
             {/* Download Buttons */}
             <div className="flex justify-center items-center border rounded-lg p-8">
               <Button
-                className="bg-blue-600 hover:bg-blue-700 text-white text-xl font-medium rounded-xl px-10 py-5 flex items-center gap-2 mr-6"
+                className="bg-info hover:opacity-90 text-white text-xl font-medium rounded-xl px-10 py-5 flex items-center gap-2 mr-6"
                 onClick={() => downloadReport("pdf")}
                 disabled={downloading === "pdf" || !selectedTable || selectedColumns.length === 0}
               >
                 <FileDown className="w-6 h-6" /> Download PDF
               </Button>
               <Button
-                className="bg-green-600 hover:bg-green-700 text-white text-xl font-medium rounded-xl px-10 py-5 flex items-center gap-2"
+                className="bg-success hover:opacity-90 text-white text-xl font-medium rounded-xl px-10 py-5 flex items-center gap-2"
                 onClick={() => downloadReport("excel")}
                 disabled={downloading === "excel" || !selectedTable || selectedColumns.length === 0}
               >

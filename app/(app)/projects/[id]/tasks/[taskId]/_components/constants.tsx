@@ -11,13 +11,13 @@ export const getStatusBadge = (status: string) => {
   const baseClasses = "px-3 py-1 rounded-full text-sm font-medium";
   switch (status) {
     case "todo":
-      return `${baseClasses} bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300`;
+      return `${baseClasses} bg-surface-2 text-ink-2  `;
     case "in_progress":
-      return `${baseClasses} bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300`;
+      return `${baseClasses} bg-info-soft text-info  `;
     case "completed":
-      return `${baseClasses} bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300`;
+      return `${baseClasses} bg-success-soft text-success  `;
     case "on_hold":
-      return `${baseClasses} bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300`;
+      return `${baseClasses} bg-warning-soft text-warning  `;
     default:
       return baseClasses;
   }
@@ -27,11 +27,11 @@ export const getPriorityBadge = (priority: string) => {
   const baseClasses = "px-2 py-1 rounded-md text-xs font-medium";
   switch (priority) {
     case "high":
-      return `${baseClasses} bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300`;
+      return `${baseClasses} bg-danger-soft text-danger  `;
     case "medium":
-      return `${baseClasses} bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300`;
+      return `${baseClasses} bg-warning-soft text-warning  `;
     case "low":
-      return `${baseClasses} bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300`;
+      return `${baseClasses} bg-success-soft text-success  `;
     default:
       return baseClasses;
   }
@@ -62,28 +62,28 @@ export const formatFileSize = (bytes: number): string => {
 
 export const getFileIcon = (fileName: string | undefined | null) => {
   if (!fileName || typeof fileName !== "string") {
-    return <FileText className="w-5 h-5 text-gray-500" />;
+    return <FileText className="w-5 h-5 text-muted" />;
   }
 
   const extension = fileName.split(".").pop()?.toLowerCase();
   switch (extension) {
     case "pdf":
-      return <FileText className="w-5 h-5 text-red-500" />;
+      return <FileText className="w-5 h-5 text-danger" />;
     case "doc":
     case "docx":
-      return <FileText className="w-5 h-5 text-blue-500" />;
+      return <FileText className="w-5 h-5 text-info" />;
     case "xls":
     case "xlsx":
-      return <FileText className="w-5 h-5 text-green-500" />;
+      return <FileText className="w-5 h-5 text-success" />;
     case "ppt":
     case "pptx":
-      return <FileText className="w-5 h-5 text-orange-500" />;
+      return <FileText className="w-5 h-5 text-bright" />;
     case "jpg":
     case "jpeg":
     case "png":
     case "gif":
-      return <FileText className="w-5 h-5 text-purple-500" />;
+      return <FileText className="w-5 h-5 text-accent-violet" />;
     default:
-      return <FileText className="w-5 h-5 text-gray-500" />;
+      return <FileText className="w-5 h-5 text-muted" />;
   }
 };

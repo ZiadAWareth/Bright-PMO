@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2, Save } from "lucide-react";
+import { Save } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -16,6 +16,8 @@ import {
   inputClass,
   textareaClass,
 } from "@/components/ui/form-shell";
+import { Spinner } from "@/components/ui/spinner";
+import { Dropdown } from "@/components/ui/dropdown";
 
 interface ParentEps {
   eps_id: number;
@@ -129,17 +131,18 @@ export default function NewEpsPage() {
   return (
     <ProtectedRoute>
       <DashboardLayout hideHeader>
-        <form onSubmit={handleSubmit} className="mx-auto max-w-3xl space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <PageHeader
             title="New EPS"
             subtitle="Add a node to the enterprise project structure"
             backHref="/eps"
+            backLabel="Back to EPS"
           />
 
           {error && (
             <div
               role="alert"
-              className="rounded-[12px] border border-wujha-danger/30 bg-wujha-danger/10 px-4 py-3 text-[13.5px] text-wujha-danger"
+              className="rounded-[12px] border border-bright-danger/30 bg-bright-danger/10 px-4 py-3 text-[13.5px] text-bright-danger"
             >
               {error}
             </div>
@@ -186,19 +189,15 @@ export default function NewEpsPage() {
                 htmlFor="eps-level"
                 hint="Level 1 is a root node."
               >
-                <select
+                <Dropdown
+                  value={String(level ?? '')}
+                  onChange={(__v: string) => handleLevelChange(Number(__v))}
+                  options={[
+                  ...Array.from({ length: MAX_LEVEL }, (_, i) => i + 1).map((l) => ({ value: String(l), label: `Level ${l}` })),
+                ]}
                   id="eps-level"
-                  value={level}
-                  onChange={(e) => handleLevelChange(Number(e.target.value))}
                   disabled={submitting}
-                  className={inputClass}
-                >
-                  {Array.from({ length: MAX_LEVEL }, (_, i) => i + 1).map((l) => (
-                    <option key={l} value={l}>
-                      Level {l}
-                    </option>
-                  ))}
-                </select>
+                />
               </Field>
 
               <Field
@@ -215,24 +214,17 @@ export default function NewEpsPage() {
                         : `Showing level ${level - 1} nodes only.`
                 }
               >
-                <select
+                <Dropdown
+                  value={String(parentEpsId ?? "" ?? '')}
+                  onChange={(__v: string) =>
+                    setParentEpsId(__v ? Number(__v) : null)}
+                  options={[
+                  { value: String(""), label: level === 1 ? "None (root)" : "Select a parent…" },
+                  ...eligibleParents.map((eps) => ({ value: String(eps.eps_id), label: eps.name })),
+                ]}
                   id="eps-parent"
-                  value={parentEpsId ?? ""}
-                  onChange={(e) =>
-                    setParentEpsId(e.target.value ? Number(e.target.value) : null)
-                  }
                   disabled={submitting || level === 1 || loadingParents}
-                  className={inputClass}
-                >
-                  <option value="">
-                    {level === 1 ? "None (root)" : "Select a parent…"}
-                  </option>
-                  {eligibleParents.map((eps) => (
-                    <option key={eps.eps_id} value={eps.eps_id}>
-                      {eps.name}
-                    </option>
-                  ))}
-                </select>
+                />
               </Field>
             </div>
           </FormSection>
@@ -247,11 +239,11 @@ export default function NewEpsPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex h-10 items-center gap-2 rounded-[10px] bg-wujha-primary px-5 text-[13.5px] font-semibold text-white transition-colors hover:bg-wujha-primary-hover disabled:opacity-60"
+              className="inline-flex h-10 items-center gap-2 rounded-[10px] bg-bright-primary px-5 text-[13.5px] font-semibold text-white transition-colors hover:bg-bright-primary-hover disabled:opacity-60"
             >
               {submitting ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  <Spinner size={16} />
                   Creating…
                 </>
               ) : (

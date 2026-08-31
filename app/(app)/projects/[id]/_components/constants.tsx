@@ -480,19 +480,19 @@ export const getStatusBadge = (status: string) => {
     const baseClasses = "px-3 py-1 rounded-full text-sm font-medium";
     switch (status) {
         case "planning":
-            return `${baseClasses} bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300`;
+            return `${baseClasses} bg-info-soft text-info  `;
         case "execution":
-            return `${baseClasses} bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300`;
+            return `${baseClasses} bg-success-soft text-success  `;
         case "completed":
-            return `${baseClasses} bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300`;
+            return `${baseClasses} bg-accent-violet-soft text-accent-violet  `;
         case "on_hold":
-            return `${baseClasses} bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300`;
+            return `${baseClasses} bg-surface-2 text-ink-2  `;
         case "at_risk":
-            return `${baseClasses} bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300`;
+            return `${baseClasses} bg-warning-soft text-warning  `;
         case "delayed":
-            return `${baseClasses} bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300`;
+            return `${baseClasses} bg-danger-soft text-danger  `;
         case "closed":
-            return `${baseClasses} bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-400`;
+            return `${baseClasses} bg-surface-3 text-ink-3  `;
         default:
             return baseClasses;
     }
@@ -502,11 +502,11 @@ export const getPriorityBadge = (priority: string) => {
     const baseClasses = "px-2 py-1 rounded-md text-xs font-medium";
     switch (priority) {
         case "high":
-            return `${baseClasses} bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300`;
+            return `${baseClasses} bg-danger-soft text-danger  `;
         case "medium":
-            return `${baseClasses} bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300`;
+            return `${baseClasses} bg-warning-soft text-warning  `;
         case "low":
-            return `${baseClasses} bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300`;
+            return `${baseClasses} bg-success-soft text-success  `;
         default:
             return baseClasses;
     }
@@ -522,76 +522,76 @@ export const formatFileSize = (bytes: number): string => {
 
 export const getFileIcon = (fileName: string | undefined | null) => {
     if (!fileName || typeof fileName !== "string") {
-        return <FileText className="w-5 h-5 text-gray-500" />;
+        return <FileText className="w-5 h-5 text-muted" />;
     }
 
     const extension = fileName.split(".").pop()?.toLowerCase();
     switch (extension) {
         case "pdf":
-            return <FileText className="w-5 h-5 text-red-500" />;
+            return <FileText className="w-5 h-5 text-danger" />;
         case "doc":
         case "docx":
-            return <FileText className="w-5 h-5 text-blue-500" />;
+            return <FileText className="w-5 h-5 text-info" />;
         case "xls":
         case "xlsx":
-            return <FileText className="w-5 h-5 text-green-500" />;
+            return <FileText className="w-5 h-5 text-success" />;
         case "ppt":
         case "pptx":
-            return <FileText className="w-5 h-5 text-orange-500" />;
+            return <FileText className="w-5 h-5 text-bright" />;
         case "jpg":
         case "jpeg":
         case "png":
         case "gif":
-            return <FileText className="w-5 h-5 text-purple-500" />;
+            return <FileText className="w-5 h-5 text-accent-violet" />;
         default:
-            return <FileText className="w-5 h-5 text-gray-500" />;
+            return <FileText className="w-5 h-5 text-muted" />;
     }
 };
 
 export const getProgressColors = (percentage: number) => {
     if (percentage >= 90)
-        return { text: "text-green-600", bg: "bg-green-600" };
+        return { text: "text-success", bg: "bg-success" };
     if (percentage >= 75)
-        return { text: "text-blue-600", bg: "bg-blue-600" };
+        return { text: "text-info", bg: "bg-info" };
     if (percentage >= 50)
-        return { text: "text-yellow-600", bg: "bg-yellow-600" };
+        return { text: "text-warning", bg: "bg-warning" };
     if (percentage >= 25)
-        return { text: "text-orange-600", bg: "bg-orange-600" };
-    return { text: "text-red-600", bg: "bg-red-600" };
+        return { text: "text-bright", bg: "bg-bright" };
+    return { text: "text-danger", bg: "bg-danger" };
 };
 
 export const getBudgetColors = (utilization: number) => {
     if (utilization <= 80)
-        return { text: "text-green-600", bg: "bg-green-600" };
+        return { text: "text-success", bg: "bg-success" };
     if (utilization <= 90)
-        return { text: "text-blue-600", bg: "bg-blue-600" };
+        return { text: "text-info", bg: "bg-info" };
     if (utilization <= 100)
-        return { text: "text-yellow-600", bg: "bg-yellow-600" };
+        return { text: "text-warning", bg: "bg-warning" };
     if (utilization <= 110)
-        return { text: "text-orange-600", bg: "bg-orange-600" };
-    return { text: "text-red-600", bg: "bg-red-600" };
+        return { text: "text-bright", bg: "bg-bright" };
+    return { text: "text-danger", bg: "bg-danger" };
 };
 
 export const getHealthColors = (healthScore: number) => {
     if (healthScore >= 90)
-        return { text: "text-green-600", bg: "bg-green-600" };
+        return { text: "text-success", bg: "bg-success" };
     if (healthScore >= 80)
-        return { text: "text-blue-600", bg: "bg-blue-600" };
+        return { text: "text-info", bg: "bg-info" };
     if (healthScore >= 70)
-        return { text: "text-yellow-600", bg: "bg-yellow-600" };
+        return { text: "text-warning", bg: "bg-warning" };
     if (healthScore >= 60)
-        return { text: "text-orange-600", bg: "bg-orange-600" };
-    return { text: "text-red-600", bg: "bg-red-600" };
+        return { text: "text-bright", bg: "bg-bright" };
+    return { text: "text-danger", bg: "bg-danger" };
 };
 
 export const getRiskColors = (riskPercent: number) => {
     if (riskPercent <= 20)
-        return { text: "text-green-600", bg: "bg-green-600" };
+        return { text: "text-success", bg: "bg-success" };
     if (riskPercent <= 40)
-        return { text: "text-blue-600", bg: "bg-blue-600" };
+        return { text: "text-info", bg: "bg-info" };
     if (riskPercent <= 60)
-        return { text: "text-yellow-600", bg: "bg-yellow-600" };
+        return { text: "text-warning", bg: "bg-warning" };
     if (riskPercent <= 80)
-        return { text: "text-orange-600", bg: "bg-orange-600" };
-    return { text: "text-red-600", bg: "bg-red-600" };
+        return { text: "text-bright", bg: "bg-bright" };
+    return { text: "text-danger", bg: "bg-danger" };
 };

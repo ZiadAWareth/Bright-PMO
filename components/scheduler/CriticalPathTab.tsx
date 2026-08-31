@@ -3,6 +3,7 @@ import {
   Zap, RotateCcw, AlertTriangle, CheckCircle
 } from "lucide-react";
 import type { Task } from "@/types/project";
+import { Spinner } from "@/components/ui/spinner";
 
 interface CriticalPathTabProps {
   filteredTasks: Task[];
@@ -289,9 +290,9 @@ const CriticalPathTab: React.FC<CriticalPathTabProps> = ({
         return (
             <div className="space-y-6">
                 {/* Critical Path Overview */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+                <div className="bg-surface rounded-xl border border-line p-6">
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        <h3 className="text-lg font-semibold text-ink">
                             Critical Path Analysis
                         </h3>
 
@@ -300,11 +301,11 @@ const CriticalPathTab: React.FC<CriticalPathTabProps> = ({
                             <button
                                 onClick={calculateCriticalPath}
                                 disabled={calculatingCriticalPath}
-                                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                                className="flex items-center gap-2 px-4 py-2 bg-danger hover:opacity-90 text-white rounded-lg transition-colors disabled:opacity-50"
                             >
                                 {calculatingCriticalPath ? (
                                     <>
-                                        <RotateCcw className="w-4 h-4 animate-spin" />
+                                        <Spinner size={16} />
                                         Calculating...
                                     </>
                                 ) : (
@@ -325,7 +326,7 @@ const CriticalPathTab: React.FC<CriticalPathTabProps> = ({
                                         setShowCriticalPathModal(true);
                                     }
                                 }}
-                                className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors"
+                                className="flex items-center gap-2 px-4 py-2 bg-bright hover:bg-bright-deep text-white rounded-lg transition-colors"
                             >
                                 <AlertTriangle className="w-4 h-4" />
                                 Analyze Risks
@@ -342,7 +343,7 @@ const CriticalPathTab: React.FC<CriticalPathTabProps> = ({
                     setShowCriticalPathModal(true);
                   }, 100);
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-accent-violet hover:opacity-90 text-white rounded-lg transition-colors"
               >
                 <Info className="w-4 h-4" />
                 Debug Risks
@@ -351,7 +352,7 @@ const CriticalPathTab: React.FC<CriticalPathTabProps> = ({
 
                         {/* Critical Path Error Display */}
                         {criticalPathError && (
-                            <div className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                            <div className="text-xs text-danger flex items-center gap-1">
                                 <AlertTriangle className="w-3 h-3" />
                                 {criticalPathError}
                             </div>
@@ -359,8 +360,8 @@ const CriticalPathTab: React.FC<CriticalPathTabProps> = ({
 
                         <div className="flex items-center space-x-4">
                             <div className="flex items-center space-x-2">
-                                <Zap size={16} className="text-red-500" />
-                                <span className="text-sm text-gray-600 dark:text-gray-400">
+                                <Zap size={16} className="text-danger" />
+                                <span className="text-sm text-muted">
                                     {criticalTasks.length} critical tasks
                                 </span>
                             </div>
@@ -368,9 +369,9 @@ const CriticalPathTab: React.FC<CriticalPathTabProps> = ({
                                 <div className="flex items-center space-x-2">
                                     <AlertTriangle
                                         size={16}
-                                        className="text-orange-500"
+                                        className="text-bright"
                                     />
-                                    <span className="text-sm text-orange-600 dark:text-orange-400">
+                                    <span className="text-sm text-bright">
                                         {delayedTasks.length} delayed
                                     </span>
                                 </div>
@@ -380,17 +381,17 @@ const CriticalPathTab: React.FC<CriticalPathTabProps> = ({
 
                     {/* Delayed Tasks Alert */}
                     {delayedTasks.length > 0 && (
-                        <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                        <div className="mb-6 p-4 bg-danger-soft border border-danger rounded-lg">
                             <div className="flex items-center space-x-2 mb-2">
                                 <AlertTriangle
                                     size={20}
-                                    className="text-red-500"
+                                    className="text-danger"
                                 />
-                                <h4 className="font-medium text-red-900 dark:text-red-100">
+                                <h4 className="font-medium text-danger">
                                     Critical Path Delays Detected
                                 </h4>
                             </div>
-                            <p className="text-sm text-red-700 dark:text-red-300">
+                            <p className="text-sm text-danger">
                                 {delayedTasks.length} critical tasks are behind
                                 schedule, which may impact the project
                                 completion date.
@@ -411,8 +412,8 @@ const CriticalPathTab: React.FC<CriticalPathTabProps> = ({
                                     key={task.task_id}
                                     className={`p-4 border rounded-lg ${
                                         isDelayed
-                                            ? "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20"
-                                            : "border-gray-200 dark:border-gray-700"
+                                            ? "border-danger  bg-danger-soft"
+                                            : "border-line"
                                     }`}
                                 >
                                     <div className="flex items-center justify-between">
@@ -421,15 +422,15 @@ const CriticalPathTab: React.FC<CriticalPathTabProps> = ({
                                                 size={16}
                                                 className={
                                                     isDelayed
-                                                        ? "text-red-500"
-                                                        : "text-orange-500"
+                                                        ? "text-danger"
+                                                        : "text-bright"
                                                 }
                                             />
                                             <div>
-                                                <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                                                <h4 className="font-medium text-ink">
                                                     {task.name}
                                                 </h4>
-                                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                                <p className="text-sm text-muted">
                                                     {task.wbs.name}
                                                 </p>
                                             </div>
@@ -441,23 +442,23 @@ const CriticalPathTab: React.FC<CriticalPathTabProps> = ({
                                                         task
                                                     )
                                                 }
-                                                className="flex items-center space-x-1 px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition-colors shadow-sm"
+                                                className="flex items-center space-x-1 px-3 py-1 text-xs bg-info hover:opacity-90 text-white rounded-md font-medium transition-colors shadow-sm"
                                                 title="Assign Resource to Critical Task"
                                             >
                                                 <Users size={12} />
                                                 <span>Assign</span>
                                             </button> */}
                                             <div className="text-right">
-                                                <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                                <div className="text-sm font-medium text-ink">
                                                     {formatDate(task.end_date)}
                                                 </div>
                                                 <div
                                                     className={`text-xs ${
                                                         isDelayed
-                                                            ? "text-red-600"
+                                                            ? "text-danger"
                                                             : daysUntil < 7
-                                                            ? "text-orange-600"
-                                                            : "text-gray-500"
+                                                            ? "text-bright"
+                                                            : "text-muted"
                                                     }`}
                                                 >
                                                     {isDelayed
@@ -489,7 +490,7 @@ const CriticalPathTab: React.FC<CriticalPathTabProps> = ({
                                                 </span>
                                             </div>
                                             <div className="w-20 text-right">
-                                                <div className="text-sm font-medium text-gray-900 dark:text-gray-100 flex items-center justify-end space-x-1">
+                                                <div className="text-sm font-medium text-ink flex items-center justify-end space-x-1">
                                                     <span>
                                                         {
                                                             task.progress_percentage
@@ -500,33 +501,33 @@ const CriticalPathTab: React.FC<CriticalPathTabProps> = ({
                                                         100 && (
                                                         <CheckCircle
                                                             size={12}
-                                                            className="text-green-600"
+                                                            className="text-success"
                                                         />
                                                     )}
                                                 </div>
-                                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-1">
+                                                <div className="w-full bg-surface-3 rounded-full h-2 mt-1">
                                                     <div
                                                         className={`h-2 rounded-full transition-all duration-300 ${
                                                             task.progress_percentage ===
                                                             100
-                                                                ? "bg-green-500"
+                                                                ? "bg-success"
                                                                 : task.progress_percentage >=
                                                                   75
-                                                                ? "bg-blue-500"
+                                                                ? "bg-info"
                                                                 : task.progress_percentage >=
                                                                   50
-                                                                ? "bg-yellow-500"
+                                                                ? "bg-warning"
                                                                 : task.progress_percentage >=
                                                                   25
-                                                                ? "bg-orange-500"
-                                                                : "bg-red-400"
+                                                                ? "bg-bright"
+                                                                : "bg-danger"
                                                         }`}
                                                         style={{
                                                             width: `${task.progress_percentage}%`,
                                                         }}
                                                     ></div>
                                                 </div>
-                                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                <div className="text-xs text-muted mt-1">
                                                     {allTaskAssignments[
                                                         task.task_id
                                                     ]?.length || 0}{" "}
@@ -540,7 +541,7 @@ const CriticalPathTab: React.FC<CriticalPathTabProps> = ({
                             );
                         })}
                         {criticalTasks.length === 0 && (
-                            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                            <div className="text-center py-8 text-muted">
                                 No critical path tasks found
                             </div>
                         )}

@@ -16,7 +16,7 @@ async function EntityTable({ entity }: { entity: string }) {
     
     if (!Array.isArray(data)) {
       return (
-        <div className="p-4 text-red-500">
+        <div className="p-4 text-danger">
           Invalid data format received
         </div>
       );
@@ -36,24 +36,24 @@ async function EntityTable({ entity }: { entity: string }) {
 
     return (
       <div className="w-full overflow-x-auto">
-        <table className="w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="w-full divide-y divide-line">
+          <thead className="bg-surface-2">
             <tr>
               {columns.map((column) => (
                 <th
                   key={column}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider"
                 >
                   {column.replace(/_/g, ' ')}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-surface divide-y divide-line">
             {data.map((item: Record<string, any>, index: number) => (
               <tr key={index}>
                 {columns.map((column) => (
-                  <td key={column} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td key={column} className="px-6 py-4 whitespace-nowrap text-sm text-muted">
                     {typeof item[column] === 'object' && item[column] !== null
                       ? JSON.stringify(item[column])
                       : item[column]?.toString() || '-'}
@@ -67,7 +67,7 @@ async function EntityTable({ entity }: { entity: string }) {
     );
   } catch (error) {
     return (
-      <div className="p-4 text-red-500">
+      <div className="p-4 text-danger">
         Error loading data: {error instanceof Error ? error.message : 'Unknown error'}
       </div>
     );
@@ -93,7 +93,7 @@ export default async function EntityPage({ params }: PageProps) {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold">{config.label}</h1>
-          <p className="text-gray-600">Manage your {config.label.toLowerCase()} here.</p>
+          <p className="text-muted">Manage your {config.label.toLowerCase()} here.</p>
         </div>
         <div>
           <Link href={`/admin/${entity}/add`} passHref>

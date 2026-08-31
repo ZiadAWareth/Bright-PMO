@@ -47,10 +47,10 @@ function IdpCompleteInner() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <p className="text-red-600 text-sm">
+      <div className="min-h-screen flex items-center justify-center bg-surface-2">
+        <p className="text-danger text-sm">
           Sign-in could not be completed.{' '}
-          <a href="/auth/login" className="underline text-orange-600">
+          <a href="/auth/login" className="underline text-bright">
             Back to login
           </a>
         </p>
@@ -59,8 +59,8 @@ function IdpCompleteInner() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <p className="text-gray-600">Completing sign-in…</p>
+    <div className="min-h-screen flex items-center justify-center bg-surface-2">
+      <p className="text-muted">Completing sign-in…</p>
     </div>
   );
 }
@@ -69,8 +69,8 @@ export default function IdpCompletePage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-gray-100">
-          <p className="text-gray-600">Completing sign-in…</p>
+        <div className="min-h-screen flex items-center justify-center bg-surface-2">
+          <p className="text-muted">Completing sign-in…</p>
         </div>
       }
     >

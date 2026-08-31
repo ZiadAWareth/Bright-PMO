@@ -1,5 +1,6 @@
 import React from "react";
 import { Search } from "lucide-react";
+import { Dropdown } from "@/components/ui/dropdown";
 
 interface ScheduleFiltersProps {
     searchTerm: string;
@@ -23,56 +24,56 @@ const ScheduleFilters: React.FC<ScheduleFiltersProps> = ({
     filteredCount,
 }) => {
     return (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-surface border border-line rounded-lg shadow-sm">
             <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
                 <div className="relative flex-grow sm:flex-grow-0 min-w-[200px]">
                     <Search
                         size={16}
-                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-faint"
                     />
                     <input
                         type="text"
                         placeholder="Search tasks..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none"
+                        className="w-full pl-10 pr-4 py-2 border border-line rounded-md bg-surface text-ink focus:ring-2 focus:ring-info focus:border-transparent focus:outline-none"
                     />
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                     <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                        <span className="text-xs text-muted font-medium">
                             Status:
                         </span>
-                        <select
-                            value={filterStatus}
-                            onChange={(e) => setFilterStatus(e.target.value)}
-                            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none text-sm"
-                        >
-                            <option value="all">All Status</option>
-                            <option value="todo">To Do</option>
-                            <option value="in_progress">In Progress</option>
-                            <option value="completed">Completed</option>
-                            <option value="on_hold">On Hold</option>
-                        </select>
+                        <Dropdown
+                          value={String(filterStatus ?? '')}
+                          onChange={(__v: string) => setFilterStatus(__v)}
+                          options={[
+                          { value: String("all"), label: "All Status" },
+                          { value: String("todo"), label: "To Do" },
+                          { value: String("in_progress"), label: "In Progress" },
+                          { value: String("completed"), label: "Completed" },
+                          { value: String("on_hold"), label: "On Hold" },
+                        ]}
+                        />
                     </div>
                     <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                        <span className="text-xs text-muted font-medium">
                             Priority:
                         </span>
-                        <select
-                            value={filterPriority}
-                            onChange={(e) => setFilterPriority(e.target.value)}
-                            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none text-sm"
-                        >
-                            <option value="all">All Priority</option>
-                            <option value="high">High</option>
-                            <option value="medium">Medium</option>
-                            <option value="low">Low</option>
-                        </select>
+                        <Dropdown
+                          value={String(filterPriority ?? '')}
+                          onChange={(__v: string) => setFilterPriority(__v)}
+                          options={[
+                          { value: String("all"), label: "All Priority" },
+                          { value: String("high"), label: "High" },
+                          { value: String("medium"), label: "Medium" },
+                          { value: String("low"), label: "Low" },
+                        ]}
+                        />
                     </div>
                 </div>
             </div>
-            <div className="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs font-medium">
+            <div className="px-3 py-1 bg-info-soft text-info rounded-full text-xs font-medium">
                 {filteredCount} of {tasksCount} tasks
             </div>
         </div>

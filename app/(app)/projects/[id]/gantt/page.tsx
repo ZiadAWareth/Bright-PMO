@@ -55,6 +55,8 @@ import CriticalPathManagementModal from "./_components/CriticalPathManagementMod
 import ResourceDetailModal from "./_components/ResourceDetailModal";
 import CreateTaskModal from "./_components/CreateTaskModal";
 import ResourceAssignmentModal from "./_components/GanttResourceAssignmentModal";
+import { Spinner } from "@/components/ui/spinner";
+import { Dropdown } from "@/components/ui/dropdown";
 
 const ProjectGanttPage: React.FC = () => {
   const params = useParams();
@@ -873,28 +875,28 @@ const ProjectGanttPage: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "completed":
-        return "bg-green-500";
+        return "bg-success";
       case "in-progress":
-        return "bg-blue-500";
+        return "bg-info";
       case "at-risk":
-        return "bg-red-500";
+        return "bg-danger";
       case "on-hold":
-        return "bg-yellow-500";
+        return "bg-warning";
       default:
-        return "bg-gray-400";
+        return "bg-faint";
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "critical":
-        return "text-red-600";
+        return "text-danger";
       case "high":
-        return "text-orange-500";
+        return "text-bright";
       case "medium":
-        return "text-yellow-500";
+        return "text-warning";
       default:
-        return "text-gray-400";
+        return "text-faint";
     }
   };
 
@@ -937,45 +939,45 @@ const ProjectGanttPage: React.FC = () => {
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="bg-surface p-6 rounded-lg border border-line">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
+              <p className="text-muted text-sm">
                 Total Tasks
               </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <p className="text-2xl font-bold text-ink">
                 {actualTasks.length}
               </p>
             </div>
-            <BarChart className="w-8 h-8 text-blue-500" />
+            <BarChart className="w-8 h-8 text-info" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="bg-surface p-6 rounded-lg border border-line">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
+              <p className="text-muted text-sm">
                 Completed
               </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <p className="text-2xl font-bold text-ink">
                 {completedTasks}
               </p>
             </div>
-            <CheckCircle className="w-8 h-8 text-green-500" />
+            <CheckCircle className="w-8 h-8 text-success" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="bg-surface p-6 rounded-lg border border-line">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
+              <p className="text-muted text-sm">
                 Critical Path
               </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <p className="text-2xl font-bold text-ink">
                 {criticalPathTasks}
               </p>
               {criticalPathTasks > 0 && (
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+                <p className="text-xs text-muted">
                   {tasks
                     .filter((t) => t.isOnCriticalPath)
                     .reduce((sum, task) => sum + task.duration, 0)}{" "}
@@ -984,13 +986,13 @@ const ProjectGanttPage: React.FC = () => {
               )}
               {criticalPathRisks.length > 0 && (
                 <div className="flex items-center gap-1 mt-1">
-                  <AlertTriangle className="w-3 h-3 text-red-500" />
-                  <p className="text-xs text-red-500 dark:text-red-400 font-medium">
+                  <AlertTriangle className="w-3 h-3 text-danger" />
+                  <p className="text-xs text-danger font-medium">
                     {criticalPathRisks.length} risks detected
                   </p>
                   <button
                     onClick={() => setShowCriticalPathModal(true)}
-                    className="ml-2 px-2 py-1 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 text-xs rounded hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
+                    className="ml-2 px-2 py-1 bg-danger-soft text-danger text-xs rounded hover:bg-danger-soft transition-colors"
                   >
                     Manage
                   </button>
@@ -998,28 +1000,28 @@ const ProjectGanttPage: React.FC = () => {
               )}
             </div>
             <div className="flex items-center gap-2">
-              <Zap className="w-8 h-8 text-red-500" />
+              <Zap className="w-8 h-8 text-danger" />
               {criticalPathCalculated && (
-                <CheckCircle className="w-4 h-4 text-green-500" />
+                <CheckCircle className="w-4 h-4 text-success" />
               )}
               {criticalPathRisks.length > 0 && (
-                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                <div className="w-3 h-3 bg-danger rounded-full animate-pulse"></div>
               )}
             </div>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="bg-surface p-6 rounded-lg border border-line">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
+              <p className="text-muted text-sm">
                 On Hold
               </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <p className="text-2xl font-bold text-ink">
                 {onHoldTasks}
               </p>
             </div>
-            <AlertTriangle className="w-8 h-8 text-yellow-500" />
+            <AlertTriangle className="w-8 h-8 text-warning" />
           </div>
         </div>
       </div>
@@ -1039,7 +1041,7 @@ const ProjectGanttPage: React.FC = () => {
                     setCreateType("task");
                     setShowCreateModal(true);
                   }}
-                  className="flex items-center px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                  className="flex items-center px-4 py-2 bg-gradient-to-r from-bright to-bright-deep hover:from-bright-deep hover:to-bright-deep text-white font-medium rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Add Task
@@ -1049,7 +1051,7 @@ const ProjectGanttPage: React.FC = () => {
                     setCreateType("milestone");
                     setShowCreateModal(true);
                   }}
-                  className="flex items-center px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                  className="flex items-center px-4 py-2 bg-gradient-to-r from-bright to-bright-deep hover:from-bright-deep hover:to-bright-deep text-white font-medium rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 >
                   <Target className="w-4 h-4 mr-2" />
                   Add Milestone
@@ -1064,13 +1066,13 @@ const ProjectGanttPage: React.FC = () => {
                     setSelectedTaskForResource(null);
                     setShowResourceModal(true);
                   }}
-                  className="flex items-center px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                  className="flex items-center px-4 py-2 bg-gradient-to-r from-bright to-bright-deep hover:from-bright-deep hover:to-bright-deep text-white font-medium rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 >
                   <Users className="w-4 h-4 mr-2" />
                   Assign Resources
                 </button> */}
                 <button
-                  className="flex items-center px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                  className="flex items-center px-4 py-2 bg-gradient-to-r from-bright to-bright-deep hover:from-bright-deep hover:to-bright-deep text-white font-medium rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                   onClick={() => {
                     router.push(`/projects/${projectId}/baseline`);
                   }}
@@ -1080,7 +1082,7 @@ const ProjectGanttPage: React.FC = () => {
                 </button>
               </>
             ) : (
-              <div className="text-sm text-gray-500 dark:text-gray-400 italic">
+              <div className="text-sm text-muted italic">
                 Viewing in read-only mode
               </div>
             )}
@@ -1161,10 +1163,10 @@ const ProjectGanttPage: React.FC = () => {
 
     return (
       <div className="space-y-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="bg-surface rounded-lg border border-line overflow-hidden">
           {/* Header */}
-          <div className="bg-gray-50 dark:bg-gray-900 p-4 border-b border-gray-200 dark:border-gray-700">
-            <div className="grid grid-cols-12 gap-4 text-sm font-medium text-gray-600 dark:text-gray-300">
+          <div className="bg-canvas p-4 border-b border-line">
+            <div className="grid grid-cols-12 gap-4 text-sm font-medium text-muted">
               <div className="col-span-3">Task Name</div>
               <div className="col-span-2">WBS Package</div>
               <div className="col-span-1">Duration</div>
@@ -1177,7 +1179,7 @@ const ProjectGanttPage: React.FC = () => {
           {/* Body */}
           <div className="max-h-96 overflow-y-auto">
             {filteredTasks.length === 0 ? (
-              <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+              <div className="p-8 text-center text-muted">
                 {userRole === "technical"
                   ? "No tasks assigned to you in this project."
                   : userRole === "executive"
@@ -1191,9 +1193,9 @@ const ProjectGanttPage: React.FC = () => {
                 return (
                   <div key={task.id}>
                     <div
-                      className={`grid grid-cols-12 gap-4 p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-all duration-200 ${
+                      className={`grid grid-cols-12 gap-4 p-4 border-b border-line-2 hover:bg-surface-2 cursor-pointer transition-all duration-200 ${
                         task.isOnCriticalPath && showCriticalPath
-                          ? "border-l-4 border-l-red-500 bg-red-50 dark:bg-red-900/10"
+                          ? "border-l-4 border-l-red-500 bg-danger-soft "
                           : ""
                       }`}
                       onClick={() => setSelectedTask(task)}
@@ -1204,20 +1206,20 @@ const ProjectGanttPage: React.FC = () => {
                             <Target
                               className={`w-4 h-4 mr-2 ${
                                 task.isOnCriticalPath
-                                  ? "text-red-500"
-                                  : "text-yellow-500"
+                                  ? "text-danger"
+                                  : "text-warning"
                               }`}
                             />
                           ) : (
                             <div
                               className={`w-2 h-2 rounded-full mr-2 ${
                                 task.priority === "critical"
-                                  ? "bg-red-600"
+                                  ? "bg-danger"
                                   : task.priority === "high"
-                                  ? "bg-orange-500"
+                                  ? "bg-bright"
                                   : task.priority === "medium"
-                                  ? "bg-yellow-500"
-                                  : "bg-gray-400"
+                                  ? "bg-warning"
+                                  : "bg-faint"
                               }`}
                             />
                           )}
@@ -1226,18 +1228,18 @@ const ProjectGanttPage: React.FC = () => {
                             <div
                               className={`font-medium ${
                                 task.isOnCriticalPath && showCriticalPath
-                                  ? "text-red-900 dark:text-red-100"
-                                  : "text-gray-900 dark:text-white"
+                                  ? "text-danger "
+                                  : "text-ink"
                               }`}
                             >
                               {task.name}
                               {task.isOnCriticalPath && showCriticalPath && (
-                                <span className="ml-2 px-2 py-1 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 text-xs rounded-md">
+                                <span className="ml-2 px-2 py-1 bg-danger-soft text-danger text-xs rounded-md">
                                   Critical Path
                                 </span>
                               )}
                             </div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                            <div className="text-sm text-muted">
                               {task.wbsId}
                             </div>
                           </div>
@@ -1249,13 +1251,13 @@ const ProjectGanttPage: React.FC = () => {
                           <div
                             className={`font-medium ${
                               task.wbsName === "Unassigned"
-                                ? "text-amber-600 dark:text-amber-400"
-                                : "text-gray-900 dark:text-white"
+                                ? "text-warning"
+                                : "text-ink"
                             }`}
                           >
                             {task.wbsName || "Unassigned"}
                           </div>
-                          <div className="text-gray-500 dark:text-gray-400 text-xs">
+                          <div className="text-muted text-xs">
                             {task.wbsId}
                           </div>
                         </div>
@@ -1263,10 +1265,10 @@ const ProjectGanttPage: React.FC = () => {
 
                       <div className="col-span-1">
                         <div className="text-sm">
-                          <div className="text-gray-900 dark:text-white">
+                          <div className="text-ink">
                             {task.duration} days
                           </div>
-                          <div className="text-gray-500 dark:text-gray-400 text-xs">
+                          <div className="text-muted text-xs">
                             {task.startDate.toLocaleDateString("en-US", {
                               month: "short",
                               day: "numeric",
@@ -1282,23 +1284,23 @@ const ProjectGanttPage: React.FC = () => {
 
                       <div className="col-span-2">
                         <div className="flex items-center">
-                          <div className="flex-1 bg-gray-200 dark:bg-gray-600 rounded-full h-2 mr-2">
+                          <div className="flex-1 bg-surface-3 rounded-full h-2 mr-2">
                             <div
                               className={`h-2 rounded-full ${
                                 task.status === "completed"
-                                  ? "bg-green-500"
+                                  ? "bg-success"
                                   : task.status === "in_progress"
-                                  ? "bg-blue-500"
+                                  ? "bg-info"
                                   : task.status === "on_hold"
-                                  ? "bg-yellow-500"
-                                  : "bg-gray-400"
+                                  ? "bg-warning"
+                                  : "bg-faint"
                               }`}
                               style={{
                                 width: `${task.progress}%`,
                               }}
                             />
                           </div>
-                          <span className="text-sm text-gray-600 dark:text-gray-300">
+                          <span className="text-sm text-muted">
                             {task.progress}%
                           </span>
                         </div>
@@ -1307,7 +1309,7 @@ const ProjectGanttPage: React.FC = () => {
                       <div className="col-span-2">
                         <div className="flex flex-wrap gap-1">
                           {task.assignedTo.length === 0 ? (
-                            <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-full text-xs italic">
+                            <span className="px-2 py-1 bg-surface-2 text-muted rounded-full text-xs italic">
                               No resources assigned
                             </span>
                           ) : (
@@ -1338,8 +1340,8 @@ const ProjectGanttPage: React.FC = () => {
                                       }}
                                       className={`px-2 py-1 rounded-full text-xs transition-colors cursor-pointer ${
                                         isCompleted
-                                          ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-800"
-                                          : "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800"
+                                          ? "bg-success-soft text-success hover:bg-success-soft "
+                                          : "bg-info-soft text-info hover:bg-info-soft "
                                       }`}
                                       title={`Click to view details for ${assignee}${
                                         isCompleted
@@ -1356,7 +1358,7 @@ const ProjectGanttPage: React.FC = () => {
                                 })}
                               {task.assignedTo.length > 3 && (
                                 <span
-                                  className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full text-xs"
+                                  className="px-2 py-1 bg-surface-2 text-muted rounded-full text-xs"
                                   title={`${task.assignedTo
                                     .slice(3)
                                     .join(", ")}`}
@@ -1373,12 +1375,12 @@ const ProjectGanttPage: React.FC = () => {
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-medium ${
                             task.status === "completed"
-                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                              ? "bg-success-soft text-success  "
                               : task.status === "in_progress"
-                              ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                              ? "bg-info-soft text-info  "
                               : task.status === "on_hold"
-                              ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                              : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
+                              ? "bg-warning-soft text-warning  "
+                              : "bg-surface-2 text-ink-2  "
                           }`}
                         >
                           {task.status.replace("_", " ").toUpperCase()}
@@ -1476,15 +1478,15 @@ const ProjectGanttPage: React.FC = () => {
 
     if (filteredTasks.length === 0) {
       return (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-12">
+        <div className="bg-surface rounded-xl border border-line p-12">
           <div className="text-center">
-            <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
-              <Calendar className="w-8 h-8 text-gray-400" />
+            <div className="w-16 h-16 mx-auto mb-4 bg-surface-2 rounded-full flex items-center justify-center">
+              <Calendar className="w-8 h-8 text-faint" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            <h3 className="text-lg font-medium text-ink mb-2">
               No Tasks Found
             </h3>
-            <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+            <p className="text-muted max-w-md mx-auto">
               {userRole === "technical"
                 ? "No tasks are currently assigned to you in this project."
                 : userRole === "executive"
@@ -1499,27 +1501,27 @@ const ProjectGanttPage: React.FC = () => {
     return (
       <div className="space-y-6">
         {/* Enhanced Timeline Header */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-xl border border-blue-200 dark:border-gray-600 overflow-hidden">
-          <div className="p-6 border-b border-blue-200 dark:border-gray-600">
+        <div className="bg-gradient-to-r from-info-soft to-accent-indigo-soft rounded-xl border border-info overflow-hidden">
+          <div className="p-6 border-b border-info">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-info rounded-lg flex items-center justify-center">
                   <BarChart className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                  <h3 className="text-xl font-bold text-ink">
                     Project Timeline
                   </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                  <p className="text-sm text-muted">
                     {project?.name} • {filteredTasks.length} tasks • {viewMode}{" "}
                     view
                   </p>
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="flex items-center space-x-1 px-3 py-1 bg-white dark:bg-gray-800 rounded-lg border">
-                  <Clock className="w-4 h-4 text-gray-500" />
-                  <span className="text-sm text-gray-600 dark:text-gray-300">
+                <div className="flex items-center space-x-1 px-3 py-1 bg-surface rounded-lg border">
+                  <Clock className="w-4 h-4 text-muted" />
+                  <span className="text-sm text-muted">
                     {project?.startDate.toLocaleDateString()} -{" "}
                     {project?.endDate.toLocaleDateString()}
                   </span>
@@ -1530,38 +1532,38 @@ const ProjectGanttPage: React.FC = () => {
             {/* Enhanced Legend */}
             <div className="flex flex-wrap items-center gap-4 text-xs">
               <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-green-500 rounded"></div>
-                <span className="text-gray-600 dark:text-gray-300">
+                <div className="w-3 h-3 bg-success rounded"></div>
+                <span className="text-muted">
                   Completed
                 </span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-blue-500 rounded"></div>
-                <span className="text-gray-600 dark:text-gray-300">
+                <div className="w-3 h-3 bg-info rounded"></div>
+                <span className="text-muted">
                   In Progress
                 </span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-gray-400 rounded"></div>
-                <span className="text-gray-600 dark:text-gray-300">
+                <div className="w-3 h-3 bg-faint rounded"></div>
+                <span className="text-muted">
                   Not Started
                 </span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-amber-500 rounded"></div>
-                <span className="text-gray-600 dark:text-gray-300">
+                <div className="w-3 h-3 bg-warning rounded"></div>
+                <span className="text-muted">
                   On Hold
                 </span>
               </div>
               <div className="flex items-center space-x-2">
-                <Target className="w-3 h-3 text-purple-500" />
-                <span className="text-gray-600 dark:text-gray-300">
+                <Target className="w-3 h-3 text-accent-violet" />
+                <span className="text-muted">
                   Milestone
                 </span>
               </div>
               <div className="flex items-center space-x-2">
-                <Zap className="w-3 h-3 text-red-500" />
-                <span className="text-gray-600 dark:text-gray-300">
+                <Zap className="w-3 h-3 text-danger" />
+                <span className="text-muted">
                   Critical Path
                 </span>
               </div>
@@ -1569,7 +1571,7 @@ const ProjectGanttPage: React.FC = () => {
           </div>
 
           {/* Unified Timeline with Header and Content in Same Scroll */}
-          <div className="overflow-x-auto bg-white dark:bg-gray-800">
+          <div className="overflow-x-auto bg-surface">
             <div
               className="min-w-max"
               style={{
@@ -1577,11 +1579,11 @@ const ProjectGanttPage: React.FC = () => {
               }}
             >
               {/* Timeline Scale Header */}
-              <div className="flex border-b border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
-                <div className="w-96 px-6 py-4 border-r border-gray-200 dark:border-gray-600">
+              <div className="flex border-b border-line bg-surface-2">
+                <div className="w-96 px-6 py-4 border-r border-line">
                   <div className="flex items-center space-x-2">
-                    <FolderOpen className="w-4 h-4 text-gray-500" />
-                    <span className="font-semibold text-gray-700 dark:text-gray-300">
+                    <FolderOpen className="w-4 h-4 text-muted" />
+                    <span className="font-semibold text-ink-3">
                       Task Structure
                     </span>
                   </div>
@@ -1589,26 +1591,26 @@ const ProjectGanttPage: React.FC = () => {
                 {timelineColumns.map((col, index) => (
                   <div
                     key={index}
-                    className={`w-32 px-2 py-4 text-center border-r border-gray-200 dark:border-gray-600 ${
-                      col.isWeekend ? "bg-gray-100 dark:bg-gray-600" : ""
+                    className={`w-32 px-2 py-4 text-center border-r border-line ${
+                      col.isWeekend ? "bg-surface-2 " : ""
                     }`}
                     style={{
                       minWidth: "128px",
                       width: "128px",
                     }}
                   >
-                    <div className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                    <div className="text-xs font-semibold text-ink-3">
                       {col.label}
                     </div>
                     {viewMode === "days" && (
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      <div className="text-xs text-muted mt-1">
                         {col.date.toLocaleDateString("en-US", {
                           weekday: "short",
                         })}
                       </div>
                     )}
                     {viewMode === "weeks" && (
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      <div className="text-xs text-muted mt-1">
                         {col.date.toLocaleDateString("en-US", {
                           day: "2-digit",
                         })}
@@ -1620,20 +1622,20 @@ const ProjectGanttPage: React.FC = () => {
               {Object.entries(tasksByWBS).map(([wbsKey, wbsGroup]) => (
                 <div
                   key={wbsKey}
-                  className="border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                  className="border-b border-line-2 last:border-b-0"
                 >
                   {/* WBS Header */}
-                  <div className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                  <div className="bg-surface-2 border-b border-line">
                     <div className="flex">
-                      <div className="w-96 px-6 py-3 flex items-center space-x-3 border-r border-gray-200 dark:border-gray-600">
-                        <div className="w-8 h-8 bg-indigo-100 dark:bg-indigo-900 rounded-lg flex items-center justify-center">
-                          <FolderOpen className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                      <div className="w-96 px-6 py-3 flex items-center space-x-3 border-r border-line">
+                        <div className="w-8 h-8 bg-accent-indigo-soft rounded-lg flex items-center justify-center">
+                          <FolderOpen className="w-4 h-4 text-accent-indigo" />
                         </div>
                         <div>
-                          <div className="font-semibold text-gray-900 dark:text-white">
+                          <div className="font-semibold text-ink">
                             {wbsGroup.wbsInfo.name}
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                          <div className="text-xs text-muted">
                             {wbsGroup.wbsInfo.code} • {wbsGroup.tasks.length}{" "}
                             tasks
                           </div>
@@ -1649,7 +1651,7 @@ const ProjectGanttPage: React.FC = () => {
                         {timelineColumns.map((col, index) => (
                           <div
                             key={index}
-                            className="w-32 border-r border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-600"
+                            className="w-32 border-r border-line bg-surface-2"
                             style={{
                               width: "128px",
                             }}
@@ -1672,19 +1674,19 @@ const ProjectGanttPage: React.FC = () => {
                         key={task.id}
                         className={`flex transition-all duration-200 ${
                           task.isOnCriticalPath && showCriticalPath
-                            ? "bg-red-50 dark:bg-red-900/10"
+                            ? "bg-danger-soft "
                             : isHovered
-                            ? "bg-blue-50 dark:bg-blue-900/20"
-                            : "hover:bg-gray-50 dark:hover:bg-gray-700"
+                            ? "bg-info-soft"
+                            : "hover:bg-surface-2"
                         } ${
                           taskIndex < wbsGroup.tasks.length - 1
-                            ? "border-b border-gray-100 dark:border-gray-700"
+                            ? "border-b border-line-2"
                             : ""
                         }`}
                         onClick={() => setSelectedTask(task)}
                       >
                         {/* Enhanced Task Info */}
-                        <div className="w-96 px-6 py-4 border-r border-gray-200 dark:border-gray-600">
+                        <div className="w-96 px-6 py-4 border-r border-line">
                           <div className="flex items-start space-x-3">
                             {/* Task Icon */}
                             <div className="flex-shrink-0 mt-0.5">
@@ -1692,15 +1694,15 @@ const ProjectGanttPage: React.FC = () => {
                                 <div
                                   className={`w-6 h-6 ${
                                     task.isOnCriticalPath
-                                      ? "bg-red-100 dark:bg-red-900"
-                                      : "bg-purple-100 dark:bg-purple-900"
+                                      ? "bg-danger-soft"
+                                      : "bg-accent-violet-soft "
                                   } rounded-lg flex items-center justify-center`}
                                 >
                                   <Target
                                     className={`w-3 h-3 ${
                                       task.isOnCriticalPath
-                                        ? "text-red-600 dark:text-red-400"
-                                        : "text-purple-600 dark:text-purple-400"
+                                        ? "text-danger"
+                                        : "text-accent-violet "
                                     }`}
                                   />
                                 </div>
@@ -1708,23 +1710,23 @@ const ProjectGanttPage: React.FC = () => {
                                 <div
                                   className={`w-6 h-6 rounded-lg flex items-center justify-center ${
                                     task.priority === "critical"
-                                      ? "bg-red-100 dark:bg-red-900"
+                                      ? "bg-danger-soft"
                                       : task.priority === "high"
-                                      ? "bg-orange-100 dark:bg-orange-900"
+                                      ? "bg-bright-soft"
                                       : task.priority === "medium"
-                                      ? "bg-yellow-100 dark:bg-yellow-900"
-                                      : "bg-gray-100 dark:bg-gray-700"
+                                      ? "bg-warning-soft"
+                                      : "bg-surface-2"
                                   }`}
                                 >
                                   <div
                                     className={`w-2 h-2 rounded-full ${
                                       task.priority === "critical"
-                                        ? "bg-red-500"
+                                        ? "bg-danger"
                                         : task.priority === "high"
-                                        ? "bg-orange-500"
+                                        ? "bg-bright"
                                         : task.priority === "medium"
-                                        ? "bg-yellow-500"
-                                        : "bg-gray-400"
+                                        ? "bg-warning"
+                                        : "bg-faint"
                                     }`}
                                   />
                                 </div>
@@ -1737,18 +1739,18 @@ const ProjectGanttPage: React.FC = () => {
                                 <h4
                                   className={`font-medium text-sm truncate ${
                                     task.isOnCriticalPath && showCriticalPath
-                                      ? "text-red-900 dark:text-red-100"
-                                      : "text-gray-900 dark:text-white"
+                                      ? "text-danger "
+                                      : "text-ink"
                                   }`}
                                 >
                                   {task.name}
                                 </h4>
                                 {task.isOnCriticalPath && (
-                                  <Zap className="w-3 h-3 text-red-500 flex-shrink-0" />
+                                  <Zap className="w-3 h-3 text-danger flex-shrink-0" />
                                 )}
                               </div>
 
-                              <div className="flex items-center space-x-3 text-xs text-gray-500 dark:text-gray-400">
+                              <div className="flex items-center space-x-3 text-xs text-muted">
                                 <span className="flex items-center space-x-1">
                                   <Calendar className="w-3 h-3" />
                                   <span>{task.duration}d</span>
@@ -1762,12 +1764,12 @@ const ProjectGanttPage: React.FC = () => {
                                 <span
                                   className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                                     task.status === "completed"
-                                      ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                                      ? "bg-success-soft text-success  "
                                       : task.status === "in_progress"
-                                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                                      ? "bg-info-soft text-info  "
                                       : task.status === "on_hold"
-                                      ? "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300"
-                                      : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                                      ? "bg-warning-soft text-warning  "
+                                      : "bg-surface-2 text-ink-3  "
                                   }`}
                                 >
                                   {task.status.replace("_", " ").toUpperCase()}
@@ -1797,12 +1799,12 @@ const ProjectGanttPage: React.FC = () => {
                                 if (todayPositionPx !== null) {
                                   return (
                                     <div
-                                      className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-20 opacity-60"
+                                      className="absolute top-0 bottom-0 w-0.5 bg-danger z-20 opacity-60"
                                       style={{
                                         left: `${todayPositionPx}px`,
                                       }}
                                     >
-                                      <div className="absolute -top-1 -left-1 w-2 h-2 bg-red-500 rounded-full"></div>
+                                      <div className="absolute -top-1 -left-1 w-2 h-2 bg-danger rounded-full"></div>
                                     </div>
                                   );
                                 }
@@ -1826,17 +1828,17 @@ const ProjectGanttPage: React.FC = () => {
                                     <div
                                       className={`w-4 h-4 transform rotate-45 ${
                                         task.isOnCriticalPath
-                                          ? "bg-red-500"
+                                          ? "bg-danger"
                                           : task.status === "completed"
-                                          ? "bg-green-500"
+                                          ? "bg-success"
                                           : task.status === "in_progress"
-                                          ? "bg-purple-500"
-                                          : "bg-purple-400"
+                                          ? "bg-accent-violet"
+                                          : "bg-accent-violet"
                                       } shadow-lg`}
                                     />
                                     {/* Milestone Progress Badge */}
                                     <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <div className="bg-gray-800 text-white text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap">
+                                      <div className="bg-ink-solid-2 text-white text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap">
                                         {task.progress}% Complete
                                       </div>
                                     </div>
@@ -1846,14 +1848,14 @@ const ProjectGanttPage: React.FC = () => {
                                   <div
                                     className={`h-full rounded-lg relative overflow-hidden ${
                                       task.isOnCriticalPath && showCriticalPath
-                                        ? "bg-red-500"
+                                        ? "bg-danger"
                                         : task.status === "completed"
-                                        ? "bg-green-500"
+                                        ? "bg-success"
                                         : task.status === "in_progress"
-                                        ? "bg-blue-500"
+                                        ? "bg-info"
                                         : task.status === "on_hold"
-                                        ? "bg-amber-500"
-                                        : "bg-gray-400"
+                                        ? "bg-warning"
+                                        : "bg-faint"
                                     } shadow-sm`}
                                   >
                                     {/* Progress Fill - Enhanced */}
@@ -1872,7 +1874,7 @@ const ProjectGanttPage: React.FC = () => {
                                     {task.progress > 0 &&
                                       task.progress < 100 && (
                                         <div
-                                          className="absolute top-0 bottom-0 w-0.5 bg-white bg-opacity-60"
+                                          className="absolute top-0 bottom-0 w-0.5 bg-surface bg-opacity-60"
                                           style={{
                                             left: `${task.progress}%`,
                                           }}
@@ -1894,7 +1896,7 @@ const ProjectGanttPage: React.FC = () => {
                                               : task.status === "in_progress"
                                               ? "text-white"
                                               : task.status === "on_hold"
-                                              ? "text-gray-800"
+                                              ? "text-ink-2"
                                               : task.isOnCriticalPath &&
                                                 showCriticalPath
                                               ? "text-white"
@@ -1910,7 +1912,7 @@ const ProjectGanttPage: React.FC = () => {
                                     {position.widthPx <= 30 &&
                                       position.widthPx > 15 && (
                                         <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-20">
-                                          <div className="bg-gray-800 text-white text-xs px-1 py-0.5 rounded shadow-lg">
+                                          <div className="bg-ink-solid-2 text-white text-xs px-1 py-0.5 rounded shadow-lg">
                                             {task.progress}%
                                           </div>
                                         </div>
@@ -1918,7 +1920,7 @@ const ProjectGanttPage: React.FC = () => {
 
                                     {/* Baseline comparison */}
                                     {showBaseline && task.baseline && (
-                                      <div className="absolute -bottom-2 left-0 right-0 h-1 bg-gray-400 rounded opacity-60" />
+                                      <div className="absolute -bottom-2 left-0 right-0 h-1 bg-faint rounded opacity-60" />
                                     )}
                                   </div>
                                 )}
@@ -1927,7 +1929,7 @@ const ProjectGanttPage: React.FC = () => {
                               {/* Task Dependencies Lines */}
                               {task.dependencies.length > 0 && (
                                 <div className="absolute top-1/2 transform -translate-y-1/2 -left-2">
-                                  <div className="w-2 h-0.5 bg-gray-400"></div>
+                                  <div className="w-2 h-0.5 bg-faint"></div>
                                 </div>
                               )}
                             </>
@@ -2530,7 +2532,7 @@ const ProjectGanttPage: React.FC = () => {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+          <Spinner size={64} className="text-bright-primary" />
         </div>
       </DashboardLayout>
     );
@@ -2541,10 +2543,10 @@ const ProjectGanttPage: React.FC = () => {
       <DashboardLayout>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+            <h2 className="text-xl font-bold text-ink mb-2">
               Project Not Found
             </h2>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-muted">
               The requested project could not be found.
             </p>
           </div>
@@ -2557,29 +2559,29 @@ const ProjectGanttPage: React.FC = () => {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Breadcrumb Navigation */}
-        <nav className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+        <nav className="flex items-center space-x-2 text-sm text-muted">
           <button
             onClick={() => router.push("/analytics/dashboard")}
-            className="hover:text-blue-600 dark:hover:text-blue-400"
+            className="hover:text-info"
           >
             <Home className="w-4 h-4" />
           </button>
           <span>/</span>
           <button
             onClick={() => router.push("/projects")}
-            className="hover:text-blue-600 dark:hover:text-blue-400"
+            className="hover:text-info"
           >
             Projects
           </button>
           <span>/</span>
           <button
             onClick={() => router.push(`/projects/${projectId}`)}
-            className="hover:text-blue-600 dark:hover:text-blue-400"
+            className="hover:text-info"
           >
             {project.name}
           </button>
           <span>/</span>
-          <span className="text-gray-900 dark:text-white font-medium">
+          <span className="text-ink font-medium">
             {userRole === "executive" ? "Timeline" : "Gantt Chart"}
           </span>
         </nav>
@@ -2587,25 +2589,25 @@ const ProjectGanttPage: React.FC = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-2xl font-bold text-ink">
               {userRole === "executive"
                 ? "Project Timeline"
                 : "Project Gantt Chart"}
             </h1>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-muted">
               {project.name} - {project.description}
             </p>
           </div>
           <div className="flex items-center space-x-3">
             {/* User Role Display */}
             {user && (
-              <div className="flex items-center space-x-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-md text-sm font-medium">
+              <div className="flex items-center space-x-2 px-3 py-2 bg-info-soft text-info rounded-md text-sm font-medium">
                 <span>Logged in as: {user.first_name} {user.last_name}</span>
-                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-800 rounded text-xs">
+                <span className="px-2 py-1 bg-info-soft rounded text-xs">
                   {user.role.name}
                 </span>
                 {!canEditGantt() && (
-                  <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-800 text-yellow-700 dark:text-yellow-200 rounded text-xs">
+                  <span className="px-2 py-1 bg-warning-soft text-warning rounded text-xs">
                     Read Only
                   </span>
                 )}
@@ -2616,46 +2618,46 @@ const ProjectGanttPage: React.FC = () => {
         </div>
 
         {/* Project Overview */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="bg-surface p-6 rounded-lg border border-line">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-ink-3 mb-1">
                 Project Manager
               </label>
-              <p className="text-gray-900 dark:text-white">{project.manager}</p>
+              <p className="text-ink">{project.manager}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-ink-3 mb-1">
                 Timeline
               </label>
-              <p className="text-gray-900 dark:text-white">
+              <p className="text-ink">
                 {project.startDate.toLocaleDateString()} -{" "}
                 {project.endDate.toLocaleDateString()}
               </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-ink-3 mb-1">
                 Progress
               </label>
               <div className="flex items-center">
-                <div className="flex-1 bg-gray-200 dark:bg-gray-600 rounded-full h-2 mr-2">
+                <div className="flex-1 bg-surface-3 rounded-full h-2 mr-2">
                   <div
-                    className="h-2 bg-blue-500 rounded-full"
+                    className="h-2 bg-info rounded-full"
                     style={{
                       width: `${project.progress}%`,
                     }}
                   />
                 </div>
-                <span className="text-sm text-gray-600 dark:text-gray-300">
+                <span className="text-sm text-muted">
                   {project.progress}%
                 </span>
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-ink-3 mb-1">
                 Budget
               </label>
-              <p className="text-gray-900 dark:text-white">
+              <p className="text-ink">
                 OMR {project.budget.toLocaleString()}
               </p>
             </div>
@@ -2666,60 +2668,60 @@ const ProjectGanttPage: React.FC = () => {
         {renderProjectStats()}
 
         {/* Enhanced Controls */}
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="bg-surface p-4 rounded-lg border border-line">
           <div className="flex flex-wrap items-center gap-4">
             {/* Enhanced View Mode */}
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label className="text-sm font-medium text-ink-3">
                 View:
               </label>
-              <select
-                value={viewMode}
-                onChange={(e) => setViewMode(e.target.value as any)}
-                className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700"
-              >
-                <option value="days">Days</option>
-                <option value="weeks">Weeks</option>
-                <option value="months">Months</option>
-                <option value="quarters">Quarters</option>
-              </select>
+              <Dropdown
+                value={String(viewMode ?? '')}
+                onChange={(__v: string) => setViewMode(__v as any)}
+                options={[
+                { value: String("days"), label: "Days" },
+                { value: String("weeks"), label: "Weeks" },
+                { value: String("months"), label: "Months" },
+                { value: String("quarters"), label: "Quarters" },
+              ]}
+              />
             </div>
 
             {/* Search */}
             <div className="flex items-center gap-2">
-              <Search className="w-4 h-4 text-gray-400" />
+              <Search className="w-4 h-4 text-faint" />
               <input
                 type="text"
                 placeholder="Search tasks..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700"
+                className="px-3 py-1 border border-line rounded-md text-sm bg-surface"
               />
             </div>
 
             {/* Filters */}
             <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-gray-400" />
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700"
-              >
-                <option value="all">All Status</option>
-                <option value="todo">To Do</option>
-                <option value="in_progress">In Progress</option>
-                <option value="completed">Completed</option>
-                <option value="on_hold">On Hold</option>
-              </select>
+              <Filter className="w-4 h-4 text-faint" />
+              <Dropdown
+                value={String(statusFilter ?? '')}
+                onChange={(__v: string) => setStatusFilter(__v)}
+                options={[
+                { value: String("all"), label: "All Status" },
+                { value: String("todo"), label: "To Do" },
+                { value: String("in_progress"), label: "In Progress" },
+                { value: String("completed"), label: "Completed" },
+                { value: String("on_hold"), label: "On Hold" },
+              ]}
+              />
             </div>
 
             {/* Assignee Filter */}
             <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-gray-400" />
+              <Users className="w-4 h-4 text-faint" />
               <select
                 value={assigneeFilter}
                 onChange={(e) => setAssigneeFilter(e.target.value)}
-                className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700"
+                className="px-3 py-1 border border-line rounded-md text-sm bg-surface"
               >
                 <option value="all">All Assignees</option>
                 {/* Get unique assignees from all tasks */}
@@ -2735,18 +2737,18 @@ const ProjectGanttPage: React.FC = () => {
 
             {/* Priority Filter */}
             <div className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-gray-400" />
-              <select
-                value={priorityFilter}
-                onChange={(e) => setPriorityFilter(e.target.value)}
-                className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700"
-              >
-                <option value="all">All Priorities</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="critical">Critical</option>
-              </select>
+              <AlertTriangle className="w-4 h-4 text-faint" />
+              <Dropdown
+                value={String(priorityFilter ?? '')}
+                onChange={(__v: string) => setPriorityFilter(__v)}
+                options={[
+                { value: String("all"), label: "All Priorities" },
+                { value: String("low"), label: "Low" },
+                { value: String("medium"), label: "Medium" },
+                { value: String("high"), label: "High" },
+                { value: String("critical"), label: "Critical" },
+              ]}
+              />
             </div>
 
             {/* Enhanced Toggle Options */}
@@ -2758,7 +2760,7 @@ const ProjectGanttPage: React.FC = () => {
                   onChange={(e) => setShowCriticalPath(e.target.checked)}
                   className="mr-2"
                 />
-                <span className="text-sm text-gray-700 dark:text-gray-300">
+                <span className="text-sm text-ink-3">
                   Critical Path
                 </span>
               </label>
@@ -2772,7 +2774,7 @@ const ProjectGanttPage: React.FC = () => {
                                     }
                                     className="mr-2"
                                 />
-                                <span className="text-sm text-gray-700 dark:text-gray-300">
+                                <span className="text-sm text-ink-3">
                                     Baseline
                                 </span>
                             </label> */}
@@ -2784,7 +2786,7 @@ const ProjectGanttPage: React.FC = () => {
                   onChange={(e) => setShowResourceView(e.target.checked)}
                   className="mr-2"
                 />
-                <span className="text-sm text-gray-700 dark:text-gray-300">
+                <span className="text-sm text-ink-3">
                   Resource View
                 </span>
               </label>
@@ -2795,11 +2797,11 @@ const ProjectGanttPage: React.FC = () => {
               {/* <button
                 onClick={calculateCriticalPath}
                 disabled={calculatingCriticalPath}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 bg-danger hover:opacity-90 text-white rounded-lg transition-colors disabled:opacity-50"
               >
                 {calculatingCriticalPath ? (
                   <>
-                    <RotateCcw className="w-4 h-4 animate-spin" />
+                    <Spinner size={16} />
                     Calculating...
                   </>
                 ) : (
@@ -2818,7 +2820,7 @@ const ProjectGanttPage: React.FC = () => {
                     setShowCriticalPathModal(true);
                   }
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-bright hover:bg-bright-deep text-white rounded-lg transition-colors"
               >
                 <AlertTriangle className="w-4 h-4" />
                 Analyze Risks
@@ -2835,7 +2837,7 @@ const ProjectGanttPage: React.FC = () => {
                     setShowCriticalPathModal(true);
                   }, 100);
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-accent-violet hover:opacity-90 text-white rounded-lg transition-colors"
               >
                 <Info className="w-4 h-4" />
                 Debug Risks
@@ -2844,7 +2846,7 @@ const ProjectGanttPage: React.FC = () => {
 
             {/* Critical Path Error Display */}
             {/* {criticalPathError && (
-              <div className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+              <div className="text-xs text-danger flex items-center gap-1">
                 <AlertTriangle className="w-3 h-3" />
                 {criticalPathError}
               </div>
@@ -2862,7 +2864,7 @@ const ProjectGanttPage: React.FC = () => {
                   setAssigneeFilter("all");
                   setPriorityFilter("all");
                 }}
-                className="flex items-center gap-2 px-3 py-1 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded-md hover:bg-red-200 dark:hover:bg-red-800 text-sm"
+                className="flex items-center gap-2 px-3 py-1 bg-danger-soft text-danger rounded-md hover:bg-danger-soft text-sm"
               >
                 <X className="w-4 h-4" />
                 Clear Filters
@@ -2870,14 +2872,14 @@ const ProjectGanttPage: React.FC = () => {
             )}
 
             {/* Export 
-            <button className="flex items-center gap-2 px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 text-sm">
+            <button className="flex items-center gap-2 px-3 py-1 bg-surface-2 text-ink-3 rounded-md hover:bg-surface-3 text-sm">
               <Download className="w-4 h-4" />
               Export
             </button>*/}
             {/* Add this button to export to Excel */}
             <button
               onClick={handleExportExcel}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-success hover:opacity-90 text-white rounded-lg transition-colors"
             >
               <Download className="w-4 h-4" />
               Export Excel
@@ -2888,14 +2890,14 @@ const ProjectGanttPage: React.FC = () => {
         {/* Main Content */}
         <div className="space-y-6">
           {/* Tab Navigation */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="bg-surface rounded-lg border border-line">
             <div className="flex">
               <button
                 onClick={() => setActiveTab("progress")}
                 className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
                   activeTab === "progress"
-                    ? "border-orange-500 text-orange-600 bg-orange-50 dark:bg-orange-900/20"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    ? "border-bright text-bright bg-bright-soft"
+                    : "border-transparent text-muted hover:text-ink-3 hover:border-line"
                 }`}
               >
                 Project Progress
@@ -2904,8 +2906,8 @@ const ProjectGanttPage: React.FC = () => {
                 onClick={() => setActiveTab("timeline")}
                 className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
                   activeTab === "timeline"
-                    ? "border-orange-500 text-orange-600 bg-orange-50 dark:bg-orange-900/20"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    ? "border-bright text-bright bg-bright-soft"
+                    : "border-transparent text-muted hover:text-ink-3 hover:border-line"
                 }`}
               >
                 Gantt Timeline
@@ -2932,16 +2934,16 @@ const ProjectGanttPage: React.FC = () => {
             {(selectedTask || showResourceView) && (
               <div className="lg:col-span-1 space-y-6">
                 {showResourceView && (
-                  <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                  <div className="bg-surface rounded-lg border border-line">
+                    <div className="p-4 border-b border-line">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        <h3 className="text-lg font-semibold text-ink">
                           Resource Workload
                         </h3>
                         <button
                           onClick={fetchResourceWorkloads}
                           disabled={loadingResourceView}
-                          className="flex items-center gap-2 px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-md hover:bg-blue-200 dark:hover:bg-blue-800 text-sm disabled:opacity-50"
+                          className="flex items-center gap-2 px-3 py-1 bg-info-soft text-info rounded-md hover:bg-info-soft text-sm disabled:opacity-50"
                         >
                           <RotateCcw className="w-4 h-4" />
                           Refresh
@@ -2951,13 +2953,13 @@ const ProjectGanttPage: React.FC = () => {
                     <div className="p-4">
                       {loadingResourceView ? (
                         <div className="flex items-center justify-center py-8">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                          <span className="ml-2 text-gray-600 dark:text-gray-400">
+                          <Spinner size={32} className="text-bright-primary" />
+                          <span className="ml-2 text-muted">
                             Loading resources...
                           </span>
                         </div>
                       ) : resourceWorkloads.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                        <div className="text-center py-8 text-muted">
                           <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
                           <p>No resource assignments found for this project</p>
                         </div>
@@ -2965,36 +2967,36 @@ const ProjectGanttPage: React.FC = () => {
                         <div className="space-y-4 max-h-96 overflow-y-auto">
                           {/* Summary Stats */}
                           {workloadSummary && (
-                            <div className="grid grid-cols-4 gap-3 mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                            <div className="grid grid-cols-4 gap-3 mb-6 p-4 bg-surface-2 rounded-lg">
                               <div className="text-center">
-                                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                                <div className="text-2xl font-bold text-info">
                                   {workloadSummary.total_resources}
                                 </div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                <div className="text-xs text-muted">
                                   Total Resources
                                 </div>
                               </div>
                               <div className="text-center">
-                                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                                <div className="text-2xl font-bold text-success">
                                   {workloadSummary.optimal_count}
                                 </div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                <div className="text-xs text-muted">
                                   Optimal
                                 </div>
                               </div>
                               <div className="text-center">
-                                <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                                <div className="text-2xl font-bold text-danger">
                                   {workloadSummary.overloaded_count}
                                 </div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                <div className="text-xs text-muted">
                                   Overloaded
                                 </div>
                               </div>
                               <div className="text-center">
-                                <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                                <div className="text-2xl font-bold text-warning">
                                   {workloadSummary.under_utilized_count}
                                 </div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                <div className="text-xs text-muted">
                                   Under-utilized
                                 </div>
                               </div>
@@ -3004,7 +3006,7 @@ const ProjectGanttPage: React.FC = () => {
                           {resourceWorkloads.map((resource) => (
                             <div
                               key={resource.resource_id}
-                              className="border border-gray-200 dark:border-gray-600 rounded-lg p-4"
+                              className="border border-line rounded-lg p-4"
                             >
                               {/* Resource Header */}
                               <div className="flex items-center justify-between mb-3">
@@ -3012,10 +3014,10 @@ const ProjectGanttPage: React.FC = () => {
                                   <div
                                     className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-medium mr-3 ${
                                       resource.status === "overloaded"
-                                        ? "bg-red-500"
+                                        ? "bg-danger"
                                         : resource.status === "under_utilized"
-                                        ? "bg-yellow-500"
-                                        : "bg-green-500"
+                                        ? "bg-warning"
+                                        : "bg-success"
                                     }`}
                                   >
                                     {resource.name
@@ -3024,10 +3026,10 @@ const ProjectGanttPage: React.FC = () => {
                                       .join("")}
                                   </div>
                                   <div>
-                                    <div className="font-medium text-gray-900 dark:text-white">
+                                    <div className="font-medium text-ink">
                                       {resource.name}
                                     </div>
-                                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                                    <div className="text-sm text-muted">
                                       {resource.role} • {resource.department}
                                     </div>
                                   </div>
@@ -3036,10 +3038,10 @@ const ProjectGanttPage: React.FC = () => {
                                   <div
                                     className={`text-lg font-bold ${
                                       resource.status === "overloaded"
-                                        ? "text-red-600"
+                                        ? "text-danger"
                                         : resource.status === "under_utilized"
-                                        ? "text-yellow-600"
-                                        : "text-green-600"
+                                        ? "text-warning"
+                                        : "text-success"
                                     }`}
                                   >
                                     {resource.planned_utilization_rate.toFixed(
@@ -3047,7 +3049,7 @@ const ProjectGanttPage: React.FC = () => {
                                     )}
                                     %
                                   </div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                                  <div className="text-xs text-muted">
                                     Planned Utilization
                                   </div>
                                 </div>
@@ -3055,27 +3057,27 @@ const ProjectGanttPage: React.FC = () => {
 
                               {/* Resource Stats */}
                               <div className="grid grid-cols-3 gap-4 mb-4 text-sm">
-                                <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded">
-                                  <div className="font-medium text-gray-900 dark:text-white">
+                                <div className="text-center p-2 bg-surface-2 rounded">
+                                  <div className="font-medium text-ink">
                                     {resource.capacity_hours}h
                                   </div>
-                                  <div className="text-gray-500 dark:text-gray-400">
+                                  <div className="text-muted">
                                     Capacity
                                   </div>
                                 </div>
-                                <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded">
-                                  <div className="font-medium text-gray-900 dark:text-white">
+                                <div className="text-center p-2 bg-surface-2 rounded">
+                                  <div className="font-medium text-ink">
                                     {resource.planned_hours.toFixed(1)}h
                                   </div>
-                                  <div className="text-gray-500 dark:text-gray-400">
+                                  <div className="text-muted">
                                     Planned
                                   </div>
                                 </div>
-                                <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded">
-                                  <div className="font-medium text-gray-900 dark:text-white">
+                                <div className="text-center p-2 bg-surface-2 rounded">
+                                  <div className="font-medium text-ink">
                                     {resource.actual_hours.toFixed(1)}h
                                   </div>
-                                  <div className="text-gray-500 dark:text-gray-400">
+                                  <div className="text-muted">
                                     Actual
                                   </div>
                                 </div>
@@ -3086,22 +3088,22 @@ const ProjectGanttPage: React.FC = () => {
                                 {/* Planned Utilization */}
                                 <div>
                                   <div className="flex justify-between text-sm mb-1">
-                                    <span className="text-gray-600 dark:text-gray-400">
+                                    <span className="text-muted">
                                       Planned Utilization
                                     </span>
-                                    <span className="text-gray-600 dark:text-gray-400">
+                                    <span className="text-muted">
                                       {resource.planned_hours.toFixed(1)}h /{" "}
                                       {resource.capacity_hours}h
                                     </span>
                                   </div>
-                                  <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                                  <div className="w-full bg-surface-3 rounded-full h-2">
                                     <div
                                       className={`h-2 rounded-full transition-all duration-300 ${
                                         resource.status === "overloaded"
-                                          ? "bg-red-500"
+                                          ? "bg-danger"
                                           : resource.status === "under_utilized"
-                                          ? "bg-yellow-500"
-                                          : "bg-green-500"
+                                          ? "bg-warning"
+                                          : "bg-success"
                                       }`}
                                       style={{
                                         width: `${Math.min(
@@ -3116,19 +3118,19 @@ const ProjectGanttPage: React.FC = () => {
                                 {/* Actual Utilization */}
                                 <div>
                                   <div className="flex justify-between text-sm mb-1">
-                                    <span className="text-gray-600 dark:text-gray-400">
+                                    <span className="text-muted">
                                       Actual Progress
                                     </span>
-                                    <span className="text-gray-600 dark:text-gray-400">
+                                    <span className="text-muted">
                                       {resource.actual_utilization_rate.toFixed(
                                         1
                                       )}
                                       %
                                     </span>
                                   </div>
-                                  <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                                  <div className="w-full bg-surface-3 rounded-full h-2">
                                     <div
-                                      className="h-2 bg-blue-500 rounded-full transition-all duration-300"
+                                      className="h-2 bg-info rounded-full transition-all duration-300"
                                       style={{
                                         width: `${Math.min(
                                           resource.actual_utilization_rate,
@@ -3142,16 +3144,16 @@ const ProjectGanttPage: React.FC = () => {
 
                               {/* Status Badge */}
                               <div className="flex items-center justify-between text-sm">
-                                <span className="text-gray-600 dark:text-gray-400">
+                                <span className="text-muted">
                                   Status:
                                 </span>
                                 <span
                                   className={`px-3 py-1 rounded-full text-xs font-medium ${
                                     resource.status === "optimal"
-                                      ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                      ? "bg-success-soft text-success  "
                                       : resource.status === "overloaded"
-                                      ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                                      : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                                      ? "bg-danger-soft text-danger  "
+                                      : "bg-warning-soft text-warning  "
                                   }`}
                                 >
                                   {resource.status.charAt(0).toUpperCase() +
@@ -3167,16 +3169,16 @@ const ProjectGanttPage: React.FC = () => {
                 )}
 
                 {selectedTask && (
-                  <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                  <div className="bg-surface rounded-lg border border-line">
+                    <div className="p-4 border-b border-line">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        <h3 className="text-lg font-semibold text-ink">
                           {selectedTask.name}
                         </h3>
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => handleTaskEdit(selectedTask)}
-                            className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                            className="p-2 text-info hover:text-info hover:bg-info-soft rounded-lg transition-colors"
                             title="Edit Task"
                           >
                             <Edit size={16} />
@@ -3185,14 +3187,14 @@ const ProjectGanttPage: React.FC = () => {
                             onClick={() =>
                               handleTaskDeleteConfirmation(selectedTask)
                             }
-                            className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            className="p-2 text-danger hover:text-danger hover:bg-danger-soft rounded-lg transition-colors"
                             title="Delete Task"
                           >
                             <Trash2 size={16} />
                           </button>
                           <button
                             onClick={() => setSelectedTask(null)}
-                            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                            className="p-2 text-faint hover:text-muted hover:bg-surface-2 rounded-lg transition-colors"
                             title="Close"
                           >
                             <X size={16} />
@@ -3203,10 +3205,10 @@ const ProjectGanttPage: React.FC = () => {
                     <div className="p-4 space-y-4">
                       <div className="grid grid-cols-1 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          <label className="block text-sm font-medium text-ink-3 mb-1">
                             Description
                           </label>
-                          <div className="text-sm text-gray-900 dark:text-white">
+                          <div className="text-sm text-ink">
                             {selectedTask.description ||
                               "No description available"}
                           </div>
@@ -3214,18 +3216,18 @@ const ProjectGanttPage: React.FC = () => {
 
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label className="block text-sm font-medium text-ink-3 mb-1">
                               Start Date
                             </label>
-                            <div className="text-sm text-gray-900 dark:text-white">
+                            <div className="text-sm text-ink">
                               {selectedTask.startDate.toLocaleDateString()}
                             </div>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label className="block text-sm font-medium text-ink-3 mb-1">
                               End Date
                             </label>
-                            <div className="text-sm text-gray-900 dark:text-white">
+                            <div className="text-sm text-ink">
                               {selectedTask.endDate.toLocaleDateString()}
                             </div>
                           </div>
@@ -3233,32 +3235,32 @@ const ProjectGanttPage: React.FC = () => {
 
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label className="block text-sm font-medium text-ink-3 mb-1">
                               Duration
                             </label>
-                            <div className="text-sm text-gray-900 dark:text-white">
+                            <div className="text-sm text-ink">
                               {selectedTask.duration} days
                             </div>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label className="block text-sm font-medium text-ink-3 mb-1">
                               Progress
                             </label>
-                            <div className="text-sm text-gray-900 dark:text-white">
+                            <div className="text-sm text-ink">
                               {selectedTask.progress}%
                             </div>
                           </div>
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          <label className="block text-sm font-medium text-ink-3 mb-1">
                             Assigned To
                           </label>
                           <div className="flex flex-wrap gap-2">
                             {selectedTask.assignedTo.map((assignee, index) => (
                               <span
                                 key={index}
-                                className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-sm"
+                                className="px-2 py-1 bg-info-soft text-info rounded-full text-sm"
                               >
                                 {assignee}
                               </span>
@@ -3267,9 +3269,9 @@ const ProjectGanttPage: React.FC = () => {
                         </div>
 
                         {selectedTask.isOnCriticalPath && (
-                          <div className="flex items-center p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                            <Zap className="w-4 h-4 text-red-500 mr-2" />
-                            <span className="text-sm text-red-700 dark:text-red-300">
+                          <div className="flex items-center p-3 bg-danger-soft border border-danger rounded-lg">
+                            <Zap className="w-4 h-4 text-danger mr-2" />
+                            <span className="text-sm text-danger">
                               This task is on the critical path
                             </span>
                           </div>
@@ -3342,29 +3344,29 @@ const ProjectGanttPage: React.FC = () => {
       {/* Delete Confirmation Modal */}
       {showDeleteConfirmation && itemToDelete && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full">
+          <div className="bg-surface rounded-xl shadow-xl max-w-md w-full">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                <h2 className="text-xl font-bold text-ink">
                   Confirm Deletion
                 </h2>
                 <button
                   onClick={() => setShowDeleteConfirmation(false)}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                  className="p-2 hover:bg-surface-2 rounded-lg"
                 >
                   <X size={20} />
                 </button>
               </div>
 
               <div className="mb-6">
-                <p className="text-gray-600 dark:text-gray-400">
+                <p className="text-muted">
                   Are you sure you want to delete the {itemToDelete.type} for{" "}
-                  <span className="font-semibold text-gray-900 dark:text-gray-100">
+                  <span className="font-semibold text-ink">
                     {itemToDelete.name}
                   </span>
                   ?
                 </p>
-                <p className="text-sm text-red-600 dark:text-red-400 mt-2">
+                <p className="text-sm text-danger mt-2">
                   This action cannot be undone.
                 </p>
               </div>
@@ -3375,13 +3377,13 @@ const ProjectGanttPage: React.FC = () => {
                     setShowDeleteConfirmation(false);
                     setItemToDelete(null);
                   }}
-                  className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  className="px-4 py-2 text-ink-3 hover:bg-surface-2 rounded-lg transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleConfirmedDelete}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  className="px-4 py-2 bg-danger text-white rounded-lg hover:opacity-90 transition-colors"
                 >
                   Delete
                 </button>

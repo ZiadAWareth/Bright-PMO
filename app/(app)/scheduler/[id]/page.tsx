@@ -3,14 +3,21 @@
 import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { FormSection, InfoGrid, StatusBadge } from "@/components/ui/form-shell";
+import {
+  feasibilityTone,
+  humanize,
+  priorityTone,
+  scheduleStatusTone,
+} from "@/lib/status-tone";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import { 
-  ArrowLeft, 
-  Plus, 
-  Download, 
-  Upload, 
-  BarChart3, 
-  ChevronDown, 
+import {
+  ArrowLeft,
+  Plus,
+  Download,
+  Upload,
+  BarChart3,
+  ChevronDown,
   ChevronRight,
   Edit3,
   Trash2,
@@ -47,6 +54,9 @@ import { AddEntityModal } from '@/components/AddEntityModal';
 import ResourceAssignmentModal from '@/components/scheduler/ResourceAssignmentModal';
 import ScheduleResourceAssignmentModal from '@/components/ScheduleResourceAssignmentModal';
 import ScheduleTaskDependencyModal from '@/components/ScheduleTaskDependencyModal';
+import { Spinner } from "@/components/ui/spinner";
+import { UserAvatar, personName } from "@/components/ui/person-cell";
+import { Dropdown } from "@/components/ui/dropdown";
 // import ScheduleApprovalModal from '@/components/ScheduleApprovalModal';
 
 interface WBSItem {
@@ -95,6 +105,19 @@ interface TeamMember {
       name: string;
     };
   };
+}
+
+/** Dates arrive as ISO strings and are sometimes empty; never render "Invalid Date". */
+function formatScheduleDate(iso?: string) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? "—"
+    : d.toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
 }
 
 interface Schedule {
@@ -163,7 +186,7 @@ const ScheduleDetailPage = () => {
   const router = useRouter();
   const params = useParams();
   const scheduleId = params.id as string;
-  
+
   const [schedule, setSchedule] = useState<Schedule | null>(null);
   const [wbsItems, setWbsItems] = useState<WBSItem[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
@@ -200,7 +223,7 @@ const ScheduleDetailPage = () => {
   const [resourceModalTask, setResourceModalTask] = useState<any>(null);
   const [availableResources, setAvailableResources] = useState<any[]>([]);
   const [existingAssignments, setExistingAssignments] = useState<any[]>([]);
-  
+
   // Add state for task dependency modal
   const [showDependencyModal, setShowDependencyModal] = useState(false);
   const [dependencyModalTask, setDependencyModalTask] = useState<any>(null);
@@ -343,8 +366,8 @@ const ScheduleDetailPage = () => {
   };
 
   const handleBulkSelect = (itemId: string) => {
-    setSelectedItems(prev => 
-      prev.includes(itemId) 
+    setSelectedItems(prev =>
+      prev.includes(itemId)
         ? prev.filter(id => id !== itemId)
         : [...prev, itemId]
     );
@@ -371,7 +394,7 @@ const ScheduleDetailPage = () => {
       }
       const token = localStorage.getItem("token");
       const payload: any = {};
-      
+
       if (field === 'budget') {
         payload.budget_amount = parseFloat(value) || 0;
       } else if (field === 'start_date') {
@@ -455,7 +478,7 @@ const ScheduleDetailPage = () => {
     setDeletingItem(itemToDelete.id);
     try {
       const token = localStorage.getItem("token");
-      
+
       switch (itemToDelete.type) {
         case 'wbs':
           await axios.delete(`/api/schedules/${scheduleId}/wbs/${itemToDelete.id}`, {
@@ -499,44 +522,44 @@ const ScheduleDetailPage = () => {
     // Calculate visual indentation based on the item's actual level
     // Level 1 (root) = 0px indent, Level 2 = 24px, Level 3 = 48px, etc.
     const indentWidth = (item.level - 1) * 24; // 24px per level, starting from level 1
-    
+
     // Color schemes based on visual level (0-based for colors)
     const colorSchemes = [
       {
-        gradient: 'from-blue-500 to-blue-600',
-        bg: 'bg-blue-500',
-        light: 'bg-blue-50 dark:bg-blue-900/10',
-        border: 'border-blue-200 dark:border-blue-800'
+        gradient: 'from-info to-info',
+        bg: 'bg-info',
+        light: 'bg-info-soft ',
+        border: 'border-info '
       },
       {
-        gradient: 'from-emerald-500 to-emerald-600',
-        bg: 'bg-emerald-500',
-        light: 'bg-emerald-50 dark:bg-emerald-900/10',
-        border: 'border-emerald-200 dark:border-emerald-800'
+        gradient: 'from-success to-success',
+        bg: 'bg-success',
+        light: 'bg-success-soft ',
+        border: 'border-success '
       },
       {
-        gradient: 'from-purple-500 to-purple-600',
-        bg: 'bg-purple-500',
-        light: 'bg-purple-50 dark:bg-purple-900/10',
-        border: 'border-purple-200 dark:border-purple-800'
+        gradient: 'from-accent-violet to-accent-violet',
+        bg: 'bg-accent-violet',
+        light: 'bg-accent-violet-soft ',
+        border: 'border-accent-violet '
       },
       {
-        gradient: 'from-orange-500 to-orange-600',
-        bg: 'bg-orange-500',
-        light: 'bg-orange-50 dark:bg-orange-900/10',
-        border: 'border-orange-200 dark:border-orange-800'
+        gradient: 'from-bright to-bright-deep',
+        bg: 'bg-bright',
+        light: 'bg-bright-soft ',
+        border: 'border-bright '
       },
       {
-        gradient: 'from-pink-500 to-pink-600',
-        bg: 'bg-pink-500',
-        light: 'bg-pink-50 dark:bg-pink-900/10',
-        border: 'border-pink-200 dark:border-pink-800'
+        gradient: 'from-accent-pink to-accent-pink',
+        bg: 'bg-accent-pink',
+        light: 'bg-accent-pink-soft ',
+        border: 'border-accent-pink '
       },
       {
-        gradient: 'from-indigo-500 to-indigo-600',
-        bg: 'bg-indigo-500',
-        light: 'bg-indigo-50 dark:bg-indigo-900/10',
-        border: 'border-indigo-200 dark:border-indigo-800'
+        gradient: 'from-accent-indigo to-accent-indigo',
+        bg: 'bg-accent-indigo',
+        light: 'bg-accent-indigo-soft ',
+        border: 'border-accent-indigo '
       }
     ];
     const colorScheme = colorSchemes[(item.level - 1) % colorSchemes.length];
@@ -550,13 +573,13 @@ const ScheduleDetailPage = () => {
             <div className="absolute inset-0 bg-white/10 opacity-20"></div>
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-16 translate-x-16"></div>
             <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-12 -translate-x-12"></div>
-            
+
             <div className="flex items-center justify-between relative z-10">
               <div className="flex items-center space-x-3">
                 <div className="flex items-center space-x-2">
-                  <div className={`w-3 h-3 rounded-full bg-white shadow-md`}></div>
+                  <div className={`w-3 h-3 rounded-full bg-surface shadow-md`}></div>
                 </div>
-                
+
                 <div>
                   <div className="flex items-center space-x-3 mb-1">
                     <h3 className="text-base font-bold text-white drop-shadow-sm">
@@ -566,13 +589,13 @@ const ScheduleDetailPage = () => {
 
                 </div>
               </div>
-              
+
               <div className="flex items-center space-x-4">
                 {/* Budget Information with Edit Functionality */}
                 <div className="text-right">
                   <div className="grid grid-cols-3 gap-6 text-xs">
                     {/* Budget - Clickable for editing */}
-                    <div 
+                    <div
                       className={`cursor-pointer hover:bg-white/10 rounded px-2 py-1 transition-colors ${
                         editingField?.id === item.id && editingField?.field === 'budget' ? 'bg-white/20 ring-2 ring-white/50' : ''
                       }`}
@@ -597,9 +620,9 @@ const ScheduleDetailPage = () => {
                         <div className="font-bold text-white">OMR {(item.budget || 0).toLocaleString()}</div>
                       )}
                     </div>
-                    
+
                     {/* Start Date - Clickable for editing */}
-                    <div 
+                    <div
                       className={`cursor-pointer hover:bg-white/10 rounded px-2 py-1 transition-colors ${
                         editingField?.id === item.id && editingField?.field === 'start_date' ? 'bg-white/20 ring-2 ring-white/50' : ''
                       }`}
@@ -622,9 +645,9 @@ const ScheduleDetailPage = () => {
                         </div>
                       )}
                     </div>
-                    
+
                     {/* End Date - Clickable for editing */}
-                    <div 
+                    <div
                       className={`cursor-pointer hover:bg-white/10 rounded px-2 py-1 transition-colors ${
                         editingField?.id === item.id && editingField?.field === 'end_date' ? 'bg-white/20 ring-2 ring-white/50' : ''
                       }`}
@@ -649,17 +672,17 @@ const ScheduleDetailPage = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Delete Button */}
                 <button
                   onClick={!readonly ? (e) => { e.stopPropagation(); handleDeleteClick({ id: item.id, type: 'wbs', name: item.title }); } : undefined}
-                  className={`p-1 rounded-full bg-white/20 hover:bg-red-500/80 transition-colors${readonly ? ' opacity-50 cursor-not-allowed' : ''}`}
+                  className={`p-1 rounded-full bg-white/20 hover:bg-danger/80 transition-colors${readonly ? ' opacity-50 cursor-not-allowed' : ''}`}
                   title="Delete WBS"
                   disabled={readonly}
                 >
                   <Trash2 size={16} className="text-white" />
                 </button>
-                
+
                 {/* Expand/Collapse Button */}
                 {(item.children && item.children.length > 0) || (item.tasks && item.tasks.length > 0) ? (
                   <button
@@ -701,7 +724,7 @@ const ScheduleDetailPage = () => {
                   style={{ marginLeft: `${(item.level) * 24}px` }}
                 >
                   <div className="rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
-                    <div className="px-6 py-4 bg-gradient-to-r from-gray-400 to-gray-500 text-white relative overflow-hidden">
+                    <div className="px-6 py-4 bg-gradient-to-r from-faint to-muted text-white relative overflow-hidden">
                       {/* Row: Title/Description | Details | Actions */}
                       <div className="flex items-center justify-between relative z-10 w-full">
                         {/* Title & Description */}
@@ -788,14 +811,14 @@ const ScheduleDetailPage = () => {
                         <div className="flex items-center space-x-2 ml-6">
                           <button
                             onClick={!readonly ? (e) => { e.stopPropagation(); handleDeleteClick({ id: `${task.task_id}`, type: 'task', name: task.name }); } : undefined}
-                            className={`p-1 rounded-full bg-white/20 hover:bg-red-500/80 transition-colors${readonly ? ' opacity-50 cursor-not-allowed' : ''}`}
+                            className={`p-1 rounded-full bg-white/20 hover:bg-danger/80 transition-colors${readonly ? ' opacity-50 cursor-not-allowed' : ''}`}
                             title="Delete Task"
                             disabled={readonly}
                           >
                             <Trash2 size={16} className="text-white" />
                           </button>
                           <button
-                            className="p-1 rounded bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs flex items-center gap-1"
+                            className="p-1 rounded bg-info-soft hover:bg-info-soft text-info text-xs flex items-center gap-1"
                             onClick={!readonly ? (e) => {
                               e.stopPropagation();
                               setAssigningTask(task);
@@ -808,7 +831,7 @@ const ScheduleDetailPage = () => {
                             <User size={14} /> Assign
                           </button>
                           <button
-                            className="p-1 rounded bg-green-100 hover:bg-green-200 text-green-700 text-xs flex items-center gap-1"
+                            className="p-1 rounded bg-success-soft hover:bg-success-soft text-success text-xs flex items-center gap-1"
                             onClick={!readonly ? () => handleOpenResourceModal(task) : undefined}
                             title="Assign Resource"
                             disabled={readonly}
@@ -816,7 +839,7 @@ const ScheduleDetailPage = () => {
                             <Users size={14} /> Resource
                           </button>
                           <button
-                            className="p-1 rounded bg-purple-100 hover:bg-purple-200 text-purple-700 text-xs flex items-center gap-1"
+                            className="p-1 rounded bg-accent-violet-soft hover:bg-accent-violet-soft text-accent-violet text-xs flex items-center gap-1"
                             onClick={!readonly ? () => handleOpenDependencyModal(task) : undefined}
                             title="Manage Dependencies"
                             disabled={readonly}
@@ -832,15 +855,15 @@ const ScheduleDetailPage = () => {
                         <div className="flex flex-wrap gap-2 mt-2">
                           {task.user_assignments.map((assignment: any) => {
                             const user = assignment.user;
-                            const initials = `${user.account.first_name?.[0] || ''}${user.account.last_name?.[0] || ''}`.toUpperCase();
                             return (
-                              <div key={user.user_id} className="flex items-center bg-white/80 rounded-lg px-2 py-1 shadow text-gray-800">
-                                <div className="w-7 h-7 rounded-full flex items-center justify-center bg-blue-500 text-white font-bold mr-2 text-xs">
-                                  {initials}
-                                </div>
+                              <div key={user.user_id} className="flex items-center bg-white/80 rounded-lg px-2 py-1 shadow text-ink-2">
+                                <UserAvatar
+                                  name={personName(user)}
+                                  className="mr-2 h-7 w-7 text-xs"
+                                />
                                 <div className="flex flex-col">
                                   <span className="font-medium text-xs leading-tight">{user.account.first_name} {user.account.last_name}</span>
-                                  <span className="text-[10px] text-gray-500">{assignment.role || user.role?.name || 'Team Member'}</span>
+                                  <span className="text-[10px] text-muted">{assignment.role || user.role?.name || 'Team Member'}</span>
                                 </div>
                               </div>
                             );
@@ -854,12 +877,12 @@ const ScheduleDetailPage = () => {
                             const resource = assignment.resource;
                             const initials = `${resource.name?.[0] || ''}`.toUpperCase();
                             return (
-                              <div key={assignment.id} className="flex items-center gap-2 bg-green-100 text-green-800 rounded-full px-3 py-1 text-xs font-medium border border-green-300">
-                                <span className="w-6 h-6 flex items-center justify-center rounded-full bg-green-300 text-white font-bold">
+                              <div key={assignment.id} className="flex items-center gap-2 bg-success-soft text-success rounded-full px-3 py-1 text-xs font-medium border border-success">
+                                <span className="w-6 h-6 flex items-center justify-center rounded-full bg-success text-white font-bold">
                                   {initials}
                                 </span>
                                 <span>{resource.name}</span>
-                                <span className="ml-1 text-green-600">({resource.type})</span>
+                                <span className="ml-1 text-success">({resource.type})</span>
                                 <span className="ml-2">{assignment.allocation_percentage}%</span>
                                 {resource.rate && (
                                   <span className="ml-2">@ {resource.rate}/hr</span>
@@ -1132,9 +1155,13 @@ const ScheduleDetailPage = () => {
   if (loading) {
     return (
       <ProtectedRoute>
-        <DashboardLayout title="Schedule Details">
+        <DashboardLayout
+          title="Schedule Details"
+          backHref="/scheduler"
+          backLabel="Back to Scheduler"
+        >
           <div className="flex items-center justify-center min-h-screen">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-orange-600"></div>
+            <Spinner size={64} className="text-bright-primary" />
           </div>
         </DashboardLayout>
       </ProtectedRoute>
@@ -1144,11 +1171,15 @@ const ScheduleDetailPage = () => {
   if (!schedule) {
     return (
       <ProtectedRoute>
-        <DashboardLayout title="Schedule Not Found">
+        <DashboardLayout
+          title="Schedule Not Found"
+          backHref="/scheduler"
+          backLabel="Back to Scheduler"
+        >
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Schedule Not Found</h1>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">The schedule you're looking for doesn't exist or you don't have permission to view it.</p>
-            <Button onClick={() => router.push("/scheduler")} className="bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800">
+            <h1 className="text-2xl font-bold text-ink mb-4">Schedule Not Found</h1>
+            <p className="text-muted mb-6">The schedule you're looking for doesn't exist or you don't have permission to view it.</p>
+            <Button onClick={() => router.push("/scheduler")} className="bg-gradient-to-r from-bright to-bright-deep hover:from-bright-deep hover:to-bright">
               Back to Schedules
             </Button>
           </div>
@@ -1157,69 +1188,131 @@ const ScheduleDetailPage = () => {
     );
   }
 
+  const scheduleRows: [string, React.ReactNode][] = [
+    [
+      "Status",
+      <StatusBadge
+        key="status"
+        label={humanize(schedule.status)}
+        tone={scheduleStatusTone(schedule.status)}
+      />,
+    ],
+    [
+      "Priority",
+      <StatusBadge
+        key="priority"
+        label={humanize(schedule.priority)}
+        tone={priorityTone(schedule.priority)}
+      />,
+    ],
+    ["Start Date", formatScheduleDate(schedule.start_date)],
+    ["End Date", formatScheduleDate(schedule.end_date)],
+    ["Target Completion", formatScheduleDate(schedule.target_completion_date)],
+    [
+      "Feasibility",
+      <StatusBadge
+        key="feasibility"
+        label={`${schedule.feasibility_score}%`}
+        tone={feasibilityTone(schedule.feasibility_score)}
+      />,
+    ],
+    [
+      "Estimated Budget",
+      <span key="budget" className="tabular-nums">
+        {schedule.estimated_budget
+          ? `OMR ${schedule.estimated_budget.toLocaleString()}`
+          : "—"}
+      </span>,
+    ],
+    [
+      "WBS Items",
+      <span key="wbs" className="tabular-nums">{schedule.total_wbs_items}</span>,
+    ],
+    [
+      "Tasks",
+      <span key="tasks" className="tabular-nums">{schedule.total_tasks}</span>,
+    ],
+    [
+      "Resources",
+      <span key="resources" className="tabular-nums">{schedule.total_resources}</span>,
+    ],
+  ];
+
   return (
     <ProtectedRoute>
-      <DashboardLayout title={schedule.name}>
+      <DashboardLayout
+        title={schedule.name}
+        subtitle={schedule.description}
+        backHref="/scheduler"
+        backLabel="Back to Scheduler"
+        actions={
+          <>
+            <Button
+              onClick={() => setShowWBSModal(true)}
+              disabled={readonly}
+              className="flex items-center gap-2 bg-bright hover:bg-bright-deep disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Plus size={16} />
+              Add WBS
+            </Button>
+            <Button
+              onClick={() => setShowTaskModal(true)}
+              disabled={readonly}
+              variant="outline"
+              className="flex items-center gap-2 border-line hover:bg-surface-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Plus size={16} />
+              Add Task
+            </Button>
+            <Button
+              onClick={() => handleSubmitPlan()}
+              className="flex items-center gap-2 bg-success text-white hover:opacity-90"
+            >
+              <CheckCircle size={16} />
+              Submit Plan
+            </Button>
+          </>
+        }
+      >
         <div className="flex flex-col min-h-screen">
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex-shrink-0">
-            <div className="flex items-center gap-4 min-w-0">
-              <button
-                onClick={() => router.push("/scheduler")}
-                className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex-shrink-0"
-              >
-                <ArrowLeft size={20} />
-              </button>
-              <div className="min-w-0 flex-1">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 truncate">{schedule.name}</h1>
-                <p className="text-gray-600 dark:text-gray-400 truncate">{schedule.description}</p>
-              </div>
-            </div>
-            
-            {/* Action Buttons */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <Button
-                onClick={() => setShowWBSModal(true)}
-                disabled={readonly}
-                className="flex items-center gap-2 bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Plus size={16} />
-                Add WBS
-              </Button>
-              <Button
-                onClick={() => setShowTaskModal(true)}
-                disabled={readonly}
-                variant="outline"
-                className="flex items-center gap-2 border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Plus size={16} />
-                Add Task
-              </Button>
-              <Button
-                onClick={() => handleSubmitPlan()}
-                className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
-              >
-                <CheckCircle size={16} />
-                Submit Plan
-              </Button>
-            </div>
-          </div>
+          <details className="group mb-4 flex-shrink-0">
+            <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 text-[13px] font-medium text-muted transition-colors hover:text-ink">
+              <ChevronRight
+                size={14}
+                className="transition-transform group-open:rotate-90"
+                aria-hidden="true"
+              />
+              Schedule details
+            </summary>
+            <div className="mt-3">
+              <FormSection title="Schedule Information">
+                <InfoGrid rows={scheduleRows} />
 
-
+                {schedule.notes && (
+                  <div className="mt-5 border-t border-line-2 pt-4">
+                    <div className="mb-1 text-[13px] text-muted">Notes</div>
+                    <p className="whitespace-pre-line text-[13.5px] text-ink">
+                      {schedule.notes}
+                    </p>
+                  </div>
+                )}
+              </FormSection>
+            </div>
+          </details>
 
           {/* Approval Section */}
           {userApproval && currentUser && (
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-slate-700 bg-blue-50 dark:bg-blue-900/20 flex-shrink-0">
+            <div className="px-6 py-4 border-b border-line bg-info-soft flex-shrink-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <CheckCircle size={20} className="text-blue-600" />
+                  <CheckCircle size={20} className="text-info" />
                   <div>
-                    <h3 className="text-sm font-medium text-blue-900 dark:text-blue-100">Pending Approval Required</h3>
-                    <p className="text-xs text-blue-700 dark:text-blue-300">You have a pending approval for this schedule</p>
+                    <h3 className="text-sm font-medium text-info">Pending Approval Required</h3>
+                    <p className="text-xs text-info">You have a pending approval for this schedule</p>
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button onClick={handleApprove} variant="default" className="bg-green-600 hover:bg-green-700 text-white">
+                  <Button onClick={handleApprove} variant="default" className="bg-success hover:opacity-90 text-white">
                     Approve
                   </Button>
                   <Button onClick={handleReject} variant="destructive">
@@ -1233,7 +1326,7 @@ const ScheduleDetailPage = () => {
           {/* Main Content: WBS/tasks and Team Members side by side */}
           <div className="flex flex-1 min-h-0 overflow-hidden">
             {/* WBS Content */}
-            <div className="flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-slate-900/50">
+            <div className="flex-1 overflow-y-auto p-6 bg-surface-2">
                           <div className="space-y-4">
               {wbsItems.map(item => (
                 <div key={item.id}>
@@ -1242,11 +1335,11 @@ const ScheduleDetailPage = () => {
               ))}
             </div>
             </div>
-            
+
             {/* Team Members Column */}
-            <div className="w-80 border-l border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-y-auto flex-shrink-0">
-              <div className="p-6 border-b border-gray-200 dark:border-slate-700">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Team Members</h2>
+            <div className="w-80 border-l border-line bg-surface overflow-y-auto flex-shrink-0">
+              <div className="p-6 border-b border-line">
+                <h2 className="text-lg font-semibold text-ink mb-4">Team Members</h2>
                 <AddEntityModal
                   entityName="Team Member"
                   fields={[
@@ -1313,21 +1406,21 @@ const ScheduleDetailPage = () => {
                 />
                 <div className="space-y-4">
                   {teamMembers.map(member => (
-                    <Card key={member.team_member_id} className="cursor-pointer hover:shadow-lg transition-all duration-200 border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+                    <Card key={member.team_member_id} className="cursor-pointer hover:shadow-lg transition-all duration-200 border-line bg-surface">
                       <CardContent className="p-4">
                         <div className="flex items-center gap-3 mb-3">
-                          <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/20 rounded-full flex items-center justify-center flex-shrink-0">
-                            <User size={20} className="text-orange-600 dark:text-orange-400" />
+                          <div className="w-10 h-10 bg-bright-soft rounded-full flex items-center justify-center flex-shrink-0">
+                            <User size={20} className="text-bright" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">
+                            <h3 className="font-semibold text-ink truncate">
                               {member.user.account.first_name} {member.user.account.last_name}
                             </h3>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{member.role}</p>
+                            <p className="text-sm text-muted truncate">{member.role}</p>
                           </div>
                           <div className="flex items-center space-x-2">
                             {member.is_lead && (
-                              <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
+                              <Badge variant="secondary" className="text-xs bg-success-soft text-success">
                                 Lead
                               </Badge>
                             )}
@@ -1335,31 +1428,31 @@ const ScheduleDetailPage = () => {
                             <button
                               onClick={!readonly ? (e) => {
                                 e.stopPropagation();
-                                handleDeleteClick({ 
-                                  id: member.team_member_id.toString(), 
-                                  type: 'team-member', 
-                                  name: `${member.user.account.first_name} ${member.user.account.last_name}` 
+                                handleDeleteClick({
+                                  id: member.team_member_id.toString(),
+                                  type: 'team-member',
+                                  name: `${member.user.account.first_name} ${member.user.account.last_name}`
                                 });
                               } : undefined}
-                              className={`p-1 rounded-full bg-gray-100 hover:bg-red-100 hover:text-red-600 transition-colors${readonly ? ' opacity-50 cursor-not-allowed' : ''}`}
+                              className={`p-1 rounded-full bg-surface-2 hover:bg-danger-soft hover:text-danger transition-colors${readonly ? ' opacity-50 cursor-not-allowed' : ''}`}
                               title="Remove Team Member"
                               disabled={readonly}
                             >
-                              <Trash2 size={14} className="text-gray-500" />
+                              <Trash2 size={14} className="text-muted" />
                             </button>
                           </div>
                         </div>
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">Workload</span>
-                            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{member.workload}%</span>
+                            <span className="text-sm text-muted">Workload</span>
+                            <span className="text-sm font-semibold text-ink">{member.workload}%</span>
                           </div>
                           <Progress value={member.workload} className="h-2" />
                           <div className="flex flex-wrap gap-1">
-                            <Badge variant="secondary" className="text-xs bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300">
+                            <Badge variant="secondary" className="text-xs bg-surface-2 text-ink-3">
                               {member.department}
                             </Badge>
-                            <Badge variant="secondary" className="text-xs bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300">
+                            <Badge variant="secondary" className="text-xs bg-surface-2 text-ink-3">
                               @{member.user.username}
                             </Badge>
                           </div>
@@ -1376,7 +1469,7 @@ const ScheduleDetailPage = () => {
         {/* WBS Modal */}
         {showWBSModal && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-slate-800 rounded-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="bg-surface rounded-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
               <CreateScheduleWBSForm
                 onClose={() => setShowWBSModal(false)}
                 onSave={createScheduleWBS}
@@ -1403,8 +1496,8 @@ const ScheduleDetailPage = () => {
         {/* Add Team Member Modal */}
         {showAddTeamMemberModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl p-8 w-full max-w-md relative">
-              <button className="absolute top-2 right-2 text-gray-400 hover:text-gray-700" onClick={() => setShowAddTeamMemberModal(false)}>
+            <div className="bg-surface rounded-xl shadow-xl p-8 w-full max-w-md relative">
+              <button className="absolute top-2 right-2 text-faint hover:text-ink-3" onClick={() => setShowAddTeamMemberModal(false)}>
                 <X size={20} />
               </button>
               <h2 className="text-lg font-bold mb-4">Add Team Member</h2>
@@ -1464,26 +1557,22 @@ const ScheduleDetailPage = () => {
         {/* Assign Team Member Modal */}
         {showAssignModal && assigningTask && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl p-8 w-full max-w-sm relative">
-              <button className="absolute top-2 right-2 text-gray-400 hover:text-gray-700" onClick={() => setShowAssignModal(false)}>
+            <div className="bg-surface rounded-xl shadow-xl p-8 w-full max-w-sm relative">
+              <button className="absolute top-2 right-2 text-faint hover:text-ink-3" onClick={() => setShowAssignModal(false)}>
                 <X size={20} />
               </button>
               <h2 className="text-lg font-bold mb-4">Assign Team Member</h2>
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-2">Team Member</label>
-                <select
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                  value={selectedAssignUser}
-                  onChange={e => setSelectedAssignUser(e.target.value)}
-                >
-                  {teamMembers.filter(member =>
+                <Dropdown
+                  value={String(selectedAssignUser ?? '')}
+                  onChange={(__v: string) => setSelectedAssignUser(__v)}
+                  options={[
+                  ...teamMembers.filter(member =>
                     !(assigningTask.assigned_users || []).some((au: any) => (au.user_id || au.user?.user_id) === member.user_id)
-                  ).map(member => (
-                    <option key={member.user_id} value={member.user_id}>
-                      {member.user.account.first_name} {member.user.account.last_name} (@{member.user.username})
-                    </option>
-                  ))}
-                </select>
+                  ).map(member => ({ value: String(member.user_id), label: `${member.user.account.first_name} ${member.user.account.last_name} (@${member.user.username})` })),
+                ]}
+                />
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setShowAssignModal(false)} disabled={assigning}>Cancel</Button>
@@ -1512,7 +1601,7 @@ const ScheduleDetailPage = () => {
                   }}
                   disabled={!selectedAssignUser || assigning}
                 >
-                  {assigning ? <Loader2 size={16} className="animate-spin" /> : "Assign"}
+                  {assigning ? <Spinner size={16} /> : "Assign"}
                 </Button>
               </div>
             </div>
@@ -1522,16 +1611,16 @@ const ScheduleDetailPage = () => {
         {/* Delete Confirmation Modal */}
         {showDeleteConfirmation && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-slate-800 rounded-xl max-w-md w-full mx-4 p-6">
+            <div className="bg-surface rounded-xl max-w-md w-full mx-4 p-6">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                <div className="w-10 h-10 bg-danger-soft rounded-full flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-danger" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  <h3 className="text-lg font-semibold text-ink">
                     Confirm Delete
                   </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-muted">
                     Are you sure you want to delete "{itemToDelete?.name}"?
                   </p>
                 </div>
@@ -1553,7 +1642,7 @@ const ScheduleDetailPage = () => {
                 >
                   {deletingItem !== null ? (
                     <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      <Spinner size={16} className="mr-2" />
                       Deleting...
                     </>
                   ) : (
@@ -1804,16 +1893,16 @@ const CreateScheduleWBSForm = ({
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+          <h3 className="text-xl font-bold text-ink">
             Create New WBS Item
           </h3>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-muted">
             Add a custom work breakdown structure item to the schedule
           </p>
         </div>
         <button
           onClick={onClose}
-          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          className="p-2 hover:bg-surface-2 rounded-lg transition-colors"
         >
           <ArrowLeft size={20} />
         </button>
@@ -1823,7 +1912,7 @@ const CreateScheduleWBSForm = ({
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-ink-3 mb-2">
               Name *
             </label>
             <input
@@ -1835,74 +1924,68 @@ const CreateScheduleWBSForm = ({
                   name: e.target.value,
                 })
               }
-              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full p-3 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
               placeholder="Enter WBS item name"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-ink-3 mb-2">
               Level
             </label>
-            <select
-              value={formData.level}
-              onChange={(e) =>
+            <Dropdown
+              value={String(formData.level ?? '')}
+              onChange={(__v: string) =>
                 setFormData({
                   ...formData,
-                  level: parseInt(e.target.value),
-                })
-              }
-              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-            >
-              <option value={1}>Level 1 (Root)</option>
-              <option value={2}>Level 2 (Main Phase)</option>
-              <option value={3}>Level 3</option>
-              <option value={4}>Level 4</option>
-            </select>
+                  level: parseInt(__v),
+                })}
+              options={[
+              { value: String(1), label: "Level 1 (Root)" },
+              { value: String(2), label: "Level 2 (Main Phase)" },
+              { value: String(3), label: "Level 3" },
+              { value: String(4), label: "Level 4" },
+            ]}
+            />
           </div>
         </div>
 
         {/* Parent WBS Selection - only show for levels > 1 */}
         {formData.level > 1 && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-ink-3 mb-2">
               Parent WBS *
             </label>
             {availableParents.length === 0 ? (
-              <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg">
-                <p className="text-sm text-yellow-800 dark:text-yellow-300">
+              <div className="p-3 bg-warning-soft border border-warning rounded-lg">
+                <p className="text-sm text-warning">
                   No Level {formData.level - 1} WBS items found. Please create a
                   Level {formData.level - 1} parent first.
                 </p>
               </div>
             ) : (
-              <select
-                value={formData.parent_wbs_id || ""}
-                onChange={(e) =>
+              <Dropdown
+                value={String(formData.parent_wbs_id || "")}
+                onChange={(__v: string) =>
                   setFormData({
                     ...formData,
-                    parent_wbs_id: e.target.value
-                      ? parseInt(e.target.value)
+                    parent_wbs_id: __v
+                      ? parseInt(__v)
                       : null,
-                  })
-                }
-                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                required
-              >
-                <option value="">Select a parent WBS...</option>
-                {availableParents.map((parent) => (
-                  <option key={parent.id} value={parent.id}>
-                    {parent.title}
-                  </option>
-                ))}
-              </select>
+                  })}
+                options={[
+                { value: String(""), label: "Select a parent WBS..." },
+                ...availableParents.map((parent) => ({ value: String(parent.id), label: parent.title })),
+              ]}
+                required={true}
+              />
             )}
           </div>
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-ink-3 mb-2">
             Description
           </label>
           <textarea
@@ -1914,14 +1997,14 @@ const CreateScheduleWBSForm = ({
               })
             }
             rows={3}
-            className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            className="w-full p-3 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
             placeholder="Enter WBS item description"
           />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-ink-3 mb-2">
               Start Date *
             </label>
             <input
@@ -1933,13 +2016,13 @@ const CreateScheduleWBSForm = ({
                   start_date: e.target.value,
                 })
               }
-              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full p-3 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-ink-3 mb-2">
               End Date *
             </label>
             <input
@@ -1951,7 +2034,7 @@ const CreateScheduleWBSForm = ({
                   end_date: e.target.value,
                 })
               }
-              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full p-3 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
               required
             />
           </div>
@@ -1961,11 +2044,11 @@ const CreateScheduleWBSForm = ({
       </div>
 
       {/* Footer */}
-      <div className="flex justify-end space-x-3 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+      <div className="flex justify-end space-x-3 mt-6 pt-6 border-t border-line">
         <button
           onClick={onClose}
           disabled={creating}
-          className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+          className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50"
         >
           Cancel
         </button>
@@ -1977,11 +2060,11 @@ const CreateScheduleWBSForm = ({
             !formData.start_date ||
             !formData.end_date
           }
-          className="flex items-center space-x-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center space-x-2 px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {creating ? (
             <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              <Spinner size={16} />
               <span>Creating...</span>
             </>
           ) : (
@@ -2004,7 +2087,7 @@ const CreateScheduleWBSForm = ({
           }}
         >
           <div
-            className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl"
+            className="bg-surface rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl"
             style={{
               animation: "fadeIn 0.3s ease-out",
               border: "1px solid rgba(255, 255, 255, 0.1)",
@@ -2012,14 +2095,14 @@ const CreateScheduleWBSForm = ({
             }}
           >
             <div className="flex items-center mb-4">
-              <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mr-4">
-                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+              <div className="w-10 h-10 bg-danger-soft rounded-full flex items-center justify-center mr-4">
+                <AlertTriangle className="w-5 h-5 text-danger" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <h3 className="text-lg font-semibold text-ink">
                   {errorPopup.title}
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-muted">
                   Please correct and try again
                 </p>
               </div>
@@ -2027,19 +2110,19 @@ const CreateScheduleWBSForm = ({
                 onClick={() =>
                   setErrorPopup((prev) => ({ ...prev, show: false }))
                 }
-                className="ml-auto p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="ml-auto p-2 text-faint hover:text-muted rounded-full hover:bg-surface-2"
               >
                 <ArrowLeft className="h-4 w-4 rotate-45" />
               </button>
             </div>
-            <p className="text-gray-700 dark:text-gray-300 mb-4">
+            <p className="text-ink-3 mb-4">
               {errorPopup.message}
             </p>
             <button
               onClick={() =>
                 setErrorPopup((prev) => ({ ...prev, show: false }))
               }
-              className="w-full py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+              className="w-full py-2 bg-danger hover:opacity-90 text-white rounded-lg transition-colors"
             >
               Dismiss
             </button>
@@ -2153,7 +2236,7 @@ const CreateScheduleTaskModal = ({
       const taskEndDate = new Date(formData.end_date);
       const wbsStartDate = new Date(parentWBS.start_date);
       const wbsEndDate = new Date(parentWBS.end_date);
-      
+
       if (taskStartDate < wbsStartDate || taskEndDate > wbsEndDate) {
         setError(`Task dates must be within or equal to parent WBS date range (${wbsStartDate.toLocaleDateString()} - ${wbsEndDate.toLocaleDateString()})`);
         return;
@@ -2165,32 +2248,30 @@ const CreateScheduleTaskModal = ({
   if (!open) return null;
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-slate-800 rounded-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto p-6 relative">
+      <div className="bg-surface rounded-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto p-6 relative">
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          className="absolute top-4 right-4 text-faint hover:text-muted transition-colors"
           aria-label="Close modal"
         >
           <X className="h-5 w-5" />
         </button>
 
-        <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100 pr-8">Create New Task</h3>
+        <h3 className="text-xl font-bold mb-4 text-ink pr-8">Create New Task</h3>
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1">Parent WBS *</label>
-            <select
+            <Dropdown
+              value={String(formData.wbs_id ?? '')}
+              onChange={(__v: string) => handleChange({ target: { name: "wbs_id", value: __v } } as React.ChangeEvent<HTMLSelectElement>)}
+              options={[
+              { value: String(""), label: "Select WBS..." },
+              ...availableWBS.map(wbs => ({ value: String(wbs.id), label: wbs.title })),
+            ]}
               name="wbs_id"
-              value={formData.wbs_id}
-              onChange={handleChange}
-              className="w-full p-2 border rounded"
-              required
-            >
-              <option value="">Select WBS...</option>
-              {availableWBS.map(wbs => (
-                <option key={wbs.id} value={wbs.id}>{wbs.title}</option>
-              ))}
-            </select>
+              required={true}
+            />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Name *</label>
@@ -2212,11 +2293,16 @@ const CreateScheduleTaskModal = ({
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Priority</label>
-            <select name="priority" value={formData.priority} onChange={handleChange} className="w-full p-2 border rounded">
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select>
+            <Dropdown
+              value={String(formData.priority ?? '')}
+              onChange={(__v: string) => handleChange({ target: { name: "priority", value: __v } } as React.ChangeEvent<HTMLSelectElement>)}
+              options={[
+              { value: String("low"), label: "Low" },
+              { value: String("medium"), label: "Medium" },
+              { value: String("high"), label: "High" },
+            ]}
+              name="priority"
+            />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Estimated Hours</label>
@@ -2260,11 +2346,11 @@ const CreateScheduleTaskModal = ({
               Is Critical Path
             </label>
           </div>
-          {error && <div className="text-red-600 text-sm mt-2">{error}</div>}
+          {error && <div className="text-danger text-sm mt-2">{error}</div>}
         </div>
         <div className="flex justify-end gap-2 mt-6">
           <button onClick={onClose} className="px-4 py-2 border rounded">Cancel</button>
-          <button onClick={handleSave} disabled={creating} className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 disabled:opacity-50">{creating ? 'Creating...' : 'Create Task'}</button>
+          <button onClick={handleSave} disabled={creating} className="px-4 py-2 bg-bright text-white rounded hover:bg-bright-deep disabled:opacity-50">{creating ? 'Creating...' : 'Create Task'}</button>
         </div>
       </div>
     </div>
@@ -2380,17 +2466,17 @@ const ScheduleApprovalModal = ({
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full p-8 relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
+      <div className="bg-surface rounded-xl shadow-xl max-w-2xl w-full p-8 relative">
+        <button onClick={onClose} className="absolute top-4 right-4 text-faint hover:text-ink-3 transition-colors">
           <X className="w-6 h-6" />
         </button>
-        <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">Schedule Approvals</h2>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">Select approvers for this schedule</p>
-        
+        <h2 className="text-2xl font-bold mb-2 text-ink">Schedule Approvals</h2>
+        <p className="text-sm text-muted mb-6">Select approvers for this schedule</p>
+
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12 space-y-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
-            <p className="text-gray-600 dark:text-gray-400">Loading users...</p>
+            <Spinner size={48} className="text-bright-primary" />
+            <p className="text-muted">Loading users...</p>
           </div>
         ) : (
           <form className="space-y-6">
@@ -2400,18 +2486,18 @@ const ScheduleApprovalModal = ({
                 const existingApproval = getExistingApprovalForRole(role.key);
                 const usersForRole = usersByRole[role.key] || [];
                 return (
-                  <div key={role.key} className={`rounded-lg p-5 flex flex-col gap-3 transition-all ${hasApproval ? 'bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700' : 'bg-gray-50 dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700'}`}>
-                    <label className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  <div key={role.key} className={`rounded-lg p-5 flex flex-col gap-3 transition-all ${hasApproval ? 'bg-success-soft border-2 border-success ' : 'bg-canvas border-2 border-line'}`}>
+                    <label className="font-semibold text-ink flex items-center gap-2">
                       {role.label}
-                      {hasApproval && <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />}
+                      {hasApproval && <CheckCircle className="w-5 h-5 text-success" />}
                     </label>
                     {hasApproval ? (
-                      <div className="text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 rounded-lg p-3 border border-green-200 dark:border-green-800">
-                        <p className="font-medium text-gray-900 dark:text-gray-100">{existingApproval?.user.account.first_name} {existingApproval?.user.account.last_name}</p>
-                        <p className="text-xs text-green-600 dark:text-green-400 mt-1">✓ Already assigned</p>
+                      <div className="text-sm text-muted bg-surface rounded-lg p-3 border border-success">
+                        <p className="font-medium text-ink">{existingApproval?.user.account.first_name} {existingApproval?.user.account.last_name}</p>
+                        <p className="text-xs text-success mt-1">✓ Already assigned</p>
                       </div>
                     ) : usersForRole.length === 0 ? (
-                      <div className="text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 border border-amber-200 dark:border-amber-800">
+                      <div className="text-sm text-warning bg-warning-soft rounded-lg p-3 border border-warning">
                         <p className="font-medium">No users found</p>
                         <p className="text-xs mt-1">No users with {role.label} role are available</p>
                       </div>
@@ -2427,20 +2513,20 @@ const ScheduleApprovalModal = ({
                 );
               })}
             </div>
-            <div className="flex justify-center pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex justify-center pt-6 border-t border-line">
               <button
                 type="button"
                 onClick={handleCreateApprovals}
                 disabled={creatingApprovals || existingApprovals.length >= 2 || !form.PJM || !form.FIN}
                 className={`flex items-center space-x-2 px-8 py-3 rounded-lg font-semibold transition-all transform ${
                   creatingApprovals || existingApprovals.length >= 2 || !form.PJM || !form.FIN
-                    ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                    : 'bg-green-600 text-white hover:bg-green-700 hover:scale-105 shadow-lg'
+                    ? 'bg-surface-3  text-muted cursor-not-allowed'
+                    : 'bg-success text-white hover:opacity-90 hover:scale-105 shadow-lg'
                 }`}
               >
                 {creatingApprovals ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <Spinner size={16} />
                     <span>Creating Approvals...</span>
                   </>
                 ) : existingApprovals.length >= 2 ? (
@@ -2463,4 +2549,4 @@ const ScheduleApprovalModal = ({
   );
 };
 
-export default ScheduleDetailPage; 
+export default ScheduleDetailPage;

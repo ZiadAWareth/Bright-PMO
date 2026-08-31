@@ -167,38 +167,38 @@ export const getDaysUntilDeadline = (endDate: string) => {
 export const getStatusColor = (status: string) => {
         switch (status) {
             case "completed":
-                return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800";
+                return "bg-success-soft text-success   border border-success ";
             case "in_progress":
-                return "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800";
+                return "bg-info-soft text-info   border border-info ";
             case "on_hold":
-                return "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800";
+                return "bg-warning-soft text-warning   border border-warning ";
             default:
-                return "bg-gray-100 text-gray-800 dark:bg-gray-800/60 dark:text-gray-300 border border-gray-200 dark:border-gray-700";
+                return "bg-surface-2 text-ink-2   border border-line";
         }
     };
 
 export const getPriorityColor = (priority: string) => {
         switch (priority) {
             case "high":
-                return "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300 border border-red-200 dark:border-red-800";
+                return "bg-danger-soft text-danger   border border-danger ";
             case "medium":
-                return "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800";
+                return "bg-warning-soft text-warning   border border-warning ";
             case "low":
-                return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800";
+                return "bg-success-soft text-success   border border-success ";
             default:
-                return "bg-gray-100 text-gray-800 dark:bg-gray-800/60 dark:text-gray-300 border border-gray-200 dark:border-gray-700";
+                return "bg-surface-2 text-ink-2   border border-line";
         }
     };
 const getPriorityIcon = (priority: string) => {
         switch (priority) {
             case "high":
-                return <AlertTriangle size={16} className="text-red-500" />;
+                return <AlertTriangle size={16} className="text-danger" />;
             case "medium":
-                return <Clock size={16} className="text-yellow-500" />;
+                return <Clock size={16} className="text-warning" />;
             case "low":
-                return <CheckCircle size={16} className="text-green-500" />;
+                return <CheckCircle size={16} className="text-success" />;
             default:
-                return <Clock size={16} className="text-gray-500" />;
+                return <Clock size={16} className="text-muted" />;
         }
     };  
 
@@ -259,13 +259,13 @@ const getPriorityIcon = (priority: string) => {
         }
 
         const colors = [
-            "bg-blue-500",
-            "bg-orange-500",
-            "bg-purple-500",
-            "bg-green-500",
-            "bg-indigo-500",
-            "bg-pink-500",
-            "bg-teal-500",
+            "bg-info",
+            "bg-bright",
+            "bg-accent-violet",
+            "bg-success",
+            "bg-accent-indigo",
+            "bg-accent-pink",
+            "bg-bright-2",
         ];
 
         return {

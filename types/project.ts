@@ -1,4 +1,4 @@
-import { ProjectStatus, ProjectPriority, projectCompliance, ProjectStrategicValue, TaskPriority, ClosureDocumentType } from '@prisma/client';
+import type { ProjectStatus, ProjectPriority, projectCompliance, ProjectStrategicValue, TaskPriority, ClosureDocumentType } from '@prisma/client';
 
 export interface WBSItem {
   wbs_id: number;
@@ -264,6 +264,12 @@ export type TaskAddUpdate = {
 };
 
 export interface ProjectWithRelations extends Project {
+  /**
+   * The seven setup completion flags, present when the projects list query
+   * includes them. Optional because a project has no setup row until one is
+   * created, and because other callers of this type do not request it.
+   */
+  setup?: ProjectSetup | null;
   eps: {
     eps_id: number;
     eps_code: string;

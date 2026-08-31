@@ -1,6 +1,7 @@
 import React from "react";
 import { calculateDatesFromDependency } from "@/components/scheduler/taskHelpers";
 import { Task, ProjectSetup, TaskAddUpdate } from "@/types/project";
+import { Dropdown } from "@/components/ui/dropdown";
 
 interface TaskDependenciesFieldProps {
   tasks: Task[];
@@ -39,7 +40,7 @@ export function TaskDependenciesField({
 }: TaskDependenciesFieldProps) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+      <label className="block text-sm font-medium text-ink-3 mb-2">
         Task Dependencies
       </label>
       <div className="space-y-4">
@@ -54,7 +55,7 @@ export function TaskDependenciesField({
                 setShowDependencyDropdown(true);
               }}
               onFocus={() => setShowDependencyDropdown(true)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="w-full px-3 py-2 border border-line rounded-lg focus:ring-2 focus:ring-info focus:border-transparent bg-surface text-ink"
               placeholder="Search tasks to add as dependency..."
               disabled={creating || tasks.filter(task => !selectedPredecessors.includes(task.task_id)).length === 0}
             />
@@ -62,7 +63,7 @@ export function TaskDependenciesField({
               !selectedPredecessors.includes(task.task_id) &&
               task.name.toLowerCase().includes(dependencySearchTerm.toLowerCase())
             ).length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+              <div className="absolute z-10 w-full mt-1 bg-surface border border-line rounded-lg shadow-lg max-h-60 overflow-y-auto">
                 {tasks
                   .filter((task: Task) =>
                     !selectedPredecessors.includes(task.task_id) &&
@@ -94,7 +95,7 @@ export function TaskDependenciesField({
                           console.error('Error calculating dates:', error);
                         }
                       }}
-                      className="px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      className="px-3 py-2 cursor-pointer hover:bg-surface-2 text-ink"
                     >
                       {task.name}
                     </div>
@@ -103,30 +104,30 @@ export function TaskDependenciesField({
                   !selectedPredecessors.includes(task.task_id) &&
                   task.name.toLowerCase().includes(dependencySearchTerm.toLowerCase())
                 ).length === 0 && (
-                  <div className="px-3 py-2 text-gray-500 dark:text-gray-400 text-sm">
+                  <div className="px-3 py-2 text-muted text-sm">
                     No tasks found
                   </div>
                 )}
               </div>
             )}
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-xs text-muted mt-1">
             Search and select tasks that must be completed before this task can start. A task cannot depend on itself.
           </p>
         </div>
         {/* Dependency configuration for selected tasks */}
         {selectedPredecessors.length > 0 && (
           <div className="space-y-3">
-            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <h4 className="text-sm font-medium text-ink-3">
               Configure Dependencies
             </h4>
             {selectedPredecessors.map((predId: number) => {
               const predTask = tasks.find((t: Task) => t.task_id === predId);
               if (!predTask) return null;
               return (
-                <div key={predId} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div key={predId} className="p-3 bg-surface-2 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <span className="text-sm font-medium text-ink-3">
                       {predTask.name}
                     </span>
                     <button
@@ -145,20 +146,20 @@ export function TaskDependenciesField({
                         });
                       }}
                       disabled={creating}
-                      className="px-3 py-1 text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 border border-red-300 dark:border-red-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-3 py-1 text-xs font-medium text-danger hover:text-danger hover:bg-danger-soft border border-danger rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Remove
                     </button>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                      <label className="block text-xs font-medium text-muted mb-1">
                         Dependency Type
                       </label>
-                      <select
-                        value={dependencyTypes[predId] || "finish_to_start"}
-                        onChange={e => {
-                          const newDepType = e.target.value;
+                      <Dropdown
+                        value={String(dependencyTypes[predId] || "finish_to_start")}
+                        onChange={(__v: string) => {
+                          const newDepType = __v;
                           setDependencyTypes((prev: Record<number, string>) => ({ ...prev, [predId]: newDepType }));
                           const lag = lagTimes[predId] || 0;
                           try {
@@ -178,17 +179,17 @@ export function TaskDependenciesField({
                             console.error('Error calculating dates:', error);
                           }
                         }}
-                        className="w-full px-2 py-1 text-xs border rounded focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100"
+                        options={[
+                        { value: String("finish_to_start"), label: "Finish to Start" },
+                        { value: String("start_to_start"), label: "Start to Start" },
+                        { value: String("finish_to_finish"), label: "Finish to Finish" },
+                        { value: String("start_to_finish"), label: "Start to Finish" },
+                      ]}
                         disabled={creating}
-                      >
-                        <option value="finish_to_start">Finish to Start</option>
-                        <option value="start_to_start">Start to Start</option>
-                        <option value="finish_to_finish">Finish to Finish</option>
-                        <option value="start_to_finish">Start to Finish</option>
-                      </select>
+                      />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                      <label className="block text-xs font-medium text-muted mb-1">
                         Lag Time (days)
                       </label>
                       <input
@@ -225,13 +226,13 @@ export function TaskDependenciesField({
                             setLagTimes((prev: Record<number, number>) => ({ ...prev, [predId]: 0 }));
                           }
                         }}
-                        className="w-full px-2 py-1 text-xs border rounded focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100"
+                        className="w-full px-2 py-1 text-xs border rounded focus:ring-1 focus:ring-info bg-surface text-ink"
                         disabled={creating}
                         placeholder="0 (negative = lead)"
                       />
                     </div>
                   </div>
-                  <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  <div className="mt-2 text-xs text-muted">
                     {dependencyTypes[predId] === "finish_to_start" &&
                       `This task starts after the predecessor finishes${lagTimes[predId] ? ` + ${lagTimes[predId]} days` : ''}`}
                     {dependencyTypes[predId] === "start_to_start" &&
@@ -240,7 +241,7 @@ export function TaskDependenciesField({
                       `This task finishes when the predecessor finishes${lagTimes[predId] ? ` + ${lagTimes[predId]} days` : ''}`}
                     {dependencyTypes[predId] === "start_to_finish" &&
                       `This task finishes when the predecessor starts${lagTimes[predId] ? ` + ${lagTimes[predId]} days` : ''}`}
-                    <span className="block mt-1 text-gray-400">💡 Use negative lag for lead time (overlap)</span>
+                    <span className="block mt-1 text-faint">💡 Use negative lag for lead time (overlap)</span>
                   </div>
                 </div>
               );

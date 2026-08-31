@@ -6,11 +6,11 @@
  */
 export const BRAND = {
   /** Full product name, used as the primary wordmark. */
-  productTitle: "WUJHA PMO",
+  productTitle: "BRIGHT PMO",
   /** Owning company. */
-  companyName: "WUJHA",
+  companyName: "BRIGHT",
   /** Positioning line under the wordmark. */
   suiteName: "ERP Ecosystem",
   /** Short mark used where only a glyph fits (logo tiles, favicons). */
-  monogram: "W",
+  monogram: "B",
 } as const;

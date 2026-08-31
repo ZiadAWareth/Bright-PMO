@@ -19,7 +19,7 @@ export function LandingStats() {
                 stay on one line at every breakpoint — that keeps all four labels
                 on a shared baseline across the band. */}
             <div className="flex min-h-[2.25rem] items-center justify-center sm:min-h-[2.75rem]">
-              <p className="text-xl font-bold leading-tight tracking-tight text-wujha-primary sm:text-2xl lg:text-3xl">
+              <p className="text-xl font-bold leading-tight tracking-tight text-bright-primary sm:text-2xl lg:text-3xl">
                 {value}
               </p>
             </div>

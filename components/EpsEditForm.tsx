@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Save, X, Pencil } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
+import { Spinner } from "@/components/ui/spinner";
+import { Dropdown } from "@/components/ui/dropdown";
 
 
 interface EPS {
@@ -188,29 +190,29 @@ const EpsEditForm: React.FC<EpsEditFormProps> = ({ eps, allEps = [], onClose, on
   // Early return if eps is not provided or not yet initialized
   if (!eps || !isInitialized) {
     return (
-      <div className="w-full max-w-xl mx-auto bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-200 dark:border-slate-700 px-8 py-10 relative">
+      <div className="w-full max-w-xl mx-auto bg-surface rounded-2xl shadow-xl border border-line px-8 py-10 relative">
         <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-          <span className="ml-2 text-gray-600 dark:text-gray-400">Loading EPS data...</span>
+          <Spinner size={32} className="text-bright-primary" />
+          <span className="ml-2 text-muted">Loading EPS data...</span>
         </div>
       </div>
     );
   }
 
     return (
-      <div className="w-full max-w-xl mx-auto bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-200 dark:border-slate-700 px-8 py-10 relative">
+      <div className="w-full max-w-xl mx-auto bg-surface rounded-2xl shadow-xl border border-line px-8 py-10 relative">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-2">
-            <Pencil size={20} className="text-orange-500" />
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+            <Pencil size={20} className="text-bright" />
+            <h2 className="text-xl font-semibold text-ink">
               Edit EPS
             </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            className="text-faint hover:text-muted transition-colors"
           >
             <X size={20} />
           </button>
@@ -221,18 +223,18 @@ const EpsEditForm: React.FC<EpsEditFormProps> = ({ eps, allEps = [], onClose, on
             {/* EPS Code */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-ink-3 mb-1">
                   EPS Code
                 </label>
                 <input
                   type="text"
                   value={formData.eps_code || ""}
                   disabled
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400"
+                  className="w-full px-3 py-2 border border-line rounded-lg text-sm bg-surface-2 text-muted"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-ink-3 mb-1">
                   Name
                 </label>
                 <input
@@ -241,7 +243,7 @@ const EpsEditForm: React.FC<EpsEditFormProps> = ({ eps, allEps = [], onClose, on
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100"
+                  className="w-full px-3 py-2 border border-line rounded-lg text-sm bg-surface text-ink"
                   required
                 />
               </div>
@@ -251,7 +253,7 @@ const EpsEditForm: React.FC<EpsEditFormProps> = ({ eps, allEps = [], onClose, on
             <div>
               <label
                 htmlFor="description"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                className="block text-sm font-medium text-ink-3 mb-1"
               >
                 Description
               </label>
@@ -261,7 +263,7 @@ const EpsEditForm: React.FC<EpsEditFormProps> = ({ eps, allEps = [], onClose, on
                 value={formData.description || ""}
                 onChange={handleChange}
                 rows={3}
-                className="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-md text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full px-4 py-2.5 border border-line rounded-md text-sm bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-bright"
               />
             </div>
 
@@ -269,66 +271,67 @@ const EpsEditForm: React.FC<EpsEditFormProps> = ({ eps, allEps = [], onClose, on
             <div>
               <label
                 htmlFor="level"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                className="block text-sm font-medium text-ink-3 mb-1"
               >
                 Level
               </label>
-              <select
+              <Dropdown
+                value={String(formData.level ?? '')}
+                onChange={(__v: string) => handleChange({ target: { name: "level", value: __v } } as React.ChangeEvent<HTMLSelectElement>)}
+                options={[
+                ...[1, 2, 3, 4, 5].map((level) => ({ value: String(level), label: `Level ${level}` })),
+              ]}
                 id="level"
                 name="level"
-                value={formData.level}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-md text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
-              >
-                {[1, 2, 3, 4, 5].map((level) => (
-                  <option key={level} value={level}>
-                    Level {level}
-                  </option>
-                ))}
-              </select>
+                required={true}
+              />
             </div>
 
             {/* Parent EPS */}
             <div>
               <label
                 htmlFor="parent_eps_id"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                className="block text-sm font-medium text-ink-3 mb-1"
               >
                 Parent EPS
               </label>
-              <select
+              <Dropdown
                 id="parent_eps_id"
                 name="parent_eps_id"
-                value={formData.parent_eps_id ?? ""}
-                onChange={handleChange}
+                value={String(formData.parent_eps_id ?? "")}
+                onChange={(__v: string) =>
+                  handleChange({
+                    target: { name: "parent_eps_id", value: __v },
+                  } as React.ChangeEvent<HTMLSelectElement>)
+                }
                 disabled={formData.level === 1}
-                className="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-md text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 dark:disabled:bg-slate-600 disabled:text-gray-500 dark:disabled:text-gray-400"
-              >
-                {formData.level === 1 ? (
-                  <option value="">No Parent</option>
-                ) : (
-                  <option value="" disabled>
-                    {filteredParentEpsList.length === 0
-                      ? "No available parent EPS"
-                      : "Select parent EPS"}
-                  </option>
-                )}
-                {formData.level > 1 &&
-                  filteredParentEpsList.length > 0 &&
-                  filteredParentEpsList.map((parentEps) => (
-                    <option key={parentEps.eps_id} value={parentEps.eps_id}>
-                      {parentEps.name} (Level {parentEps.level})
-                    </option>
-                  ))}
-              </select>
+                ariaLabel="Parent EPS"
+                options={[
+                  formData.level === 1
+                    ? { value: "", label: "No Parent" }
+                    : {
+                        value: "",
+                        label:
+                          filteredParentEpsList.length === 0
+                            ? "No available parent EPS"
+                            : "Select parent EPS",
+                        disabled: true,
+                      },
+                  ...(formData.level > 1
+                    ? filteredParentEpsList.map((parentEps) => ({
+                        value: String(parentEps.eps_id),
+                        label: `${parentEps.name} (Level ${parentEps.level})`,
+                      }))
+                    : []),
+                ]}
+              />
               {formData.level === 1 && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-xs text-muted mt-1">
                   Level 1 EPS cannot have a parent.
                 </p>
               )}
               {formError && (
-                <p className="text-xs text-red-600 dark:text-red-400 mt-1 font-semibold">
+                <p className="text-xs text-danger mt-1 font-semibold">
                   {formError}
                 </p>
               )}
@@ -336,15 +339,15 @@ const EpsEditForm: React.FC<EpsEditFormProps> = ({ eps, allEps = [], onClose, on
 
             {/* Global Error Display */}
             {formError && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+              <div className="bg-danger-soft border border-danger rounded-lg p-4">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <svg className="h-5 w-5 text-danger" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                     </svg>
                   </div>
                   <div className="ml-3">
-                    <p className="text-sm text-red-800 dark:text-red-200 font-medium">
+                    <p className="text-sm text-danger font-medium">
                       {formError}
                     </p>
                   </div>
@@ -357,7 +360,7 @@ const EpsEditForm: React.FC<EpsEditFormProps> = ({ eps, allEps = [], onClose, on
           <div className="flex justify-end gap-4 mt-8">
             <button
               type="button"
-              className="px-4 py-2 rounded-md text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+              className="px-4 py-2 rounded-md text-ink-3 font-medium hover:bg-surface-2 transition-colors"
               onClick={onClose}
               disabled={isSubmitting}
             >
@@ -365,7 +368,7 @@ const EpsEditForm: React.FC<EpsEditFormProps> = ({ eps, allEps = [], onClose, on
             </button>
             <button
               type="submit"
-              className="px-6 py-2 rounded-md bg-orange-500 hover:bg-orange-600 text-white font-semibold flex items-center gap-2 disabled:opacity-60 transition-colors"
+              className="px-6 py-2 rounded-md bg-bright hover:bg-bright-deep text-white font-semibold flex items-center gap-2 disabled:opacity-60 transition-colors"
               disabled={isSubmitting}
             >
               <Save size={16} />

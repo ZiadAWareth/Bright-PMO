@@ -17,28 +17,28 @@ const KIND_STYLE: Record<
 > = {
   activity: {
     icon: Sparkles,
-    bg: "bg-slate-100 dark:bg-slate-500/15",
-    color: "text-slate-600 dark:text-slate-300",
+    bg: "bg-surface-2 ",
+    color: "text-muted ",
   },
   project: {
     icon: Briefcase,
-    bg: "bg-orange-50 dark:bg-orange-500/10",
-    color: "text-wujha-primary",
+    bg: "bg-bright-soft ",
+    color: "text-bright-primary",
   },
   task: {
     icon: ListChecks,
-    bg: "bg-sky-50 dark:bg-sky-500/10",
-    color: "text-sky-600 dark:text-sky-400",
+    bg: "bg-info-soft ",
+    color: "text-info ",
   },
   risk: {
     icon: AlertTriangle,
-    bg: "bg-rose-50 dark:bg-rose-500/10",
-    color: "text-rose-600 dark:text-rose-400",
+    bg: "bg-danger-soft ",
+    color: "text-danger ",
   },
   approval: {
     icon: ClipboardCheck,
-    bg: "bg-emerald-50 dark:bg-emerald-500/10",
-    color: "text-emerald-600 dark:text-emerald-400",
+    bg: "bg-success-soft ",
+    color: "text-success ",
   },
 };
 

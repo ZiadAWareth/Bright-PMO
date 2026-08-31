@@ -30,8 +30,8 @@ export function LandingHero() {
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
       >
-        <div className="absolute -top-40 -left-24 h-[36rem] w-[36rem] animate-aurora-a rounded-full bg-wujha-primary/15 blur-[120px] dark:bg-wujha-primary/20" />
-        <div className="absolute -right-24 top-8 h-[30rem] w-[30rem] animate-aurora-b rounded-full bg-wujha-secondary/15 blur-[120px]" />
+        <div className="absolute -top-40 -left-24 h-[36rem] w-[36rem] animate-aurora-a rounded-full bg-bright-primary/15 blur-[120px] dark:bg-bright-primary/20" />
+        <div className="absolute -right-24 top-8 h-[30rem] w-[30rem] animate-aurora-b rounded-full bg-bright-secondary/15 blur-[120px]" />
         <div
           className="absolute inset-0"
           style={{
@@ -47,7 +47,7 @@ export function LandingHero() {
           <div className="text-center lg:text-left">
             <span className="inline-flex animate-rise items-center gap-2 rounded-full border border-border bg-bg-surface/70 px-3.5 py-1.5 text-xs font-medium text-text-secondary backdrop-blur">
               <Sparkles
-                className="h-3.5 w-3.5 text-wujha-primary"
+                className="h-3.5 w-3.5 text-bright-primary"
                 aria-hidden="true"
               />
               The delivery core of the ERP ecosystem
@@ -76,7 +76,7 @@ export function LandingHero() {
             >
               <Link
                 href="/auth/signin"
-                className="group inline-flex h-11 items-center gap-2 rounded-xl bg-wujha-primary px-8 text-[0.95rem] font-semibold text-white shadow-lg shadow-wujha-primary/25 transition-colors hover:bg-wujha-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wujha-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-light"
+                className="group inline-flex h-11 items-center gap-2 rounded-xl bg-bright-primary px-8 text-[0.95rem] font-semibold text-white shadow-lg shadow-bright-primary/25 transition-colors hover:bg-bright-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bright-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-light"
               >
                 Sign in to your workspace
                 <ArrowRight
@@ -86,7 +86,7 @@ export function LandingHero() {
               </Link>
               <a
                 href="#modules"
-                className="inline-flex h-11 items-center rounded-xl border border-border bg-bg-surface px-8 text-[0.95rem] font-semibold text-text-primary transition-colors hover:bg-bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wujha-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-light"
+                className="inline-flex h-11 items-center rounded-xl border border-border bg-bg-surface px-8 text-[0.95rem] font-semibold text-text-primary transition-colors hover:bg-bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bright-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-light"
               >
                 Explore modules
               </a>
@@ -99,7 +99,7 @@ export function LandingHero() {
               {TRUST_ITEMS.map(({ label, Icon }) => (
                 <li key={label} className="inline-flex items-center gap-2">
                   <Icon
-                    className="h-4 w-4 text-wujha-primary"
+                    className="h-4 w-4 text-bright-primary"
                     aria-hidden="true"
                   />
                   {label}

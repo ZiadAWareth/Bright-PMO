@@ -27,7 +27,7 @@ export function LandingHowItWorks() {
     <section id="workflow" className="border-y border-border bg-bg-surface/40">
       <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8">
         <div className="reveal-on-scroll mx-auto max-w-2xl text-center">
-          <p className="text-sm font-bold uppercase tracking-wider text-wujha-primary">
+          <p className="text-sm font-bold uppercase tracking-wider text-bright-primary">
             Workflow
           </p>
           <h2 className="mt-2 text-balance text-3xl font-bold tracking-tight text-text-primary sm:text-4xl">
@@ -46,7 +46,7 @@ export function LandingHowItWorks() {
                 />
               )}
               <div className="relative flex flex-col items-center text-center">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-wujha-primary text-sm font-bold text-white shadow-md">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-bright-primary text-sm font-bold text-white shadow-md">
                   {index + 1}
                 </span>
                 <h3 className="mt-4 font-semibold text-text-primary">{title}</h3>

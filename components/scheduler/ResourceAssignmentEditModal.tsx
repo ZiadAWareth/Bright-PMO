@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from "react";
 import {  X } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { Dropdown } from "@/components/ui/dropdown";
 
 interface Task {
   task_id: number;
@@ -166,15 +168,15 @@ const EditAssignmentModal = ({
 
     return (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-                <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <div className="bg-surface rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                <div className="p-6 border-b border-line">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                        <h2 className="text-xl font-semibold text-ink">
                             Edit Assignment
                         </h2>
                         <button
                             onClick={onClose}
-                            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                            className="text-faint hover:text-muted"
                         >
                             <X size={24} />
                         </button>
@@ -184,36 +186,24 @@ const EditAssignmentModal = ({
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
                     {/* Resource Selection */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <label className="block text-sm font-medium text-ink-3 mb-2">
                             Resource *
                         </label>
-                        <select
-                            value={formData.resource_id}
-                            onChange={(e) =>
+                        <Dropdown
+                          value={String(formData.resource_id ?? '')}
+                          onChange={(__v: string) =>
                                 handleInputChange(
                                     "resource_id",
-                                    parseInt(e.target.value)
-                                )
-                            }
-                            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                                errors.resource_id
-                                    ? "border-red-300 focus:ring-red-500"
-                                    : "border-gray-300 focus:ring-blue-500"
-                            } dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100`}
-                        >
-                            <option value="">Select Resource</option>
-                            {resources.map((resource) => (
-                                <option
-                                    key={resource.resource_id}
-                                    value={resource.resource_id}
-                                >
-                                    {resource.name} - {resource.role} (
-                                    {resource.type})
-                                </option>
-                            ))}
-                        </select>
+                                    parseInt(__v)
+                                )}
+                          options={[
+                          { value: String(""), label: "Select Resource" },
+                          ...resources.map((resource) => ({ value: String(resource.resource_id), label: `${resource.name} - ${resource.role} ( ${resource.type})` })),
+                        ]}
+                          modal
+                        />
                         {errors.resource_id && (
-                            <p className="mt-1 text-sm text-red-600">
+                            <p className="mt-1 text-sm text-danger">
                                 {errors.resource_id}
                             </p>
                         )}
@@ -222,7 +212,7 @@ const EditAssignmentModal = ({
                     {/* Date Range */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label className="block text-sm font-medium text-ink-3 mb-2">
                                 Start Date *
                             </label>
                             <input
@@ -236,19 +226,19 @@ const EditAssignmentModal = ({
                                 }
                                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                                     errors.start_date
-                                        ? "border-red-300 focus:ring-red-500"
-                                        : "border-gray-300 focus:ring-blue-500"
-                                } dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100`}
+                                        ? "border-danger focus:ring-danger"
+                                        : "border-line focus:ring-info"
+                                }   `}
                             />
                             {errors.start_date && (
-                                <p className="mt-1 text-sm text-red-600">
+                                <p className="mt-1 text-sm text-danger">
                                     {errors.start_date}
                                 </p>
                             )}
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label className="block text-sm font-medium text-ink-3 mb-2">
                                 End Date *
                             </label>
                             <input
@@ -262,12 +252,12 @@ const EditAssignmentModal = ({
                                 }
                                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                                     errors.end_date
-                                        ? "border-red-300 focus:ring-red-500"
-                                        : "border-gray-300 focus:ring-blue-500"
-                                } dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100`}
+                                        ? "border-danger focus:ring-danger"
+                                        : "border-line focus:ring-info"
+                                }   `}
                             />
                             {errors.end_date && (
-                                <p className="mt-1 text-sm text-red-600">
+                                <p className="mt-1 text-sm text-danger">
                                     {errors.end_date}
                                 </p>
                             )}
@@ -276,7 +266,7 @@ const EditAssignmentModal = ({
 
                     {/* Allocation Percentage */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <label className="block text-sm font-medium text-ink-3 mb-2">
                             Allocation Percentage *
                         </label>
                         <input
@@ -292,17 +282,17 @@ const EditAssignmentModal = ({
                             }
                             className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                                 errors.allocation_percentage
-                                    ? "border-red-300 focus:ring-red-500"
-                                    : "border-gray-300 focus:ring-blue-500"
-                            } dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100`}
+                                    ? "border-danger focus:ring-danger"
+                                    : "border-line focus:ring-info"
+                            }   `}
                             placeholder="50"
                         />
                         {errors.allocation_percentage && (
-                            <p className="mt-1 text-sm text-red-600">
+                            <p className="mt-1 text-sm text-danger">
                                 {errors.allocation_percentage}
                             </p>
                         )}
-                        <p className="mt-1 text-xs text-gray-500">
+                        <p className="mt-1 text-xs text-muted">
                             Percentage allocation of this resource to the task.
                             Independent from planned hours.
                         </p>
@@ -311,7 +301,7 @@ const EditAssignmentModal = ({
                     {/* Hours */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label className="block text-sm font-medium text-ink-3 mb-2">
                                 Planned Hours *
                             </label>
                             <input
@@ -327,17 +317,17 @@ const EditAssignmentModal = ({
                                 }
                                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                                     errors.planned_hours
-                                        ? "border-red-300 focus:ring-red-500"
-                                        : "border-gray-300 focus:ring-blue-500"
-                                } dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100`}
+                                        ? "border-danger focus:ring-danger"
+                                        : "border-line focus:ring-info"
+                                }   `}
                                 placeholder="8"
                             />
                             {errors.planned_hours && (
-                                <p className="mt-1 text-sm text-red-600">
+                                <p className="mt-1 text-sm text-danger">
                                     {errors.planned_hours}
                                 </p>
                             )}
-                            <p className="mt-1 text-xs text-gray-500">
+                            <p className="mt-1 text-xs text-muted">
                                 Total hours planned for this assignment (out of{" "}
                                 {task.estimated_hours}h). Changing this will
                                 automatically update allocation percentage
@@ -345,7 +335,7 @@ const EditAssignmentModal = ({
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label className="block text-sm font-medium text-ink-3 mb-2">
                                 Actual Hours
                             </label>
                             <input
@@ -361,13 +351,13 @@ const EditAssignmentModal = ({
                                 }
                                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                                     errors.actual_hours
-                                        ? "border-red-300 focus:ring-red-500"
-                                        : "border-gray-300 focus:ring-blue-500"
-                                } dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100`}
+                                        ? "border-danger focus:ring-danger"
+                                        : "border-line focus:ring-info"
+                                }   `}
                                 placeholder="0"
                             />
                             {errors.actual_hours && (
-                                <p className="mt-1 text-sm text-red-600">
+                                <p className="mt-1 text-sm text-danger">
                                     {errors.actual_hours}
                                 </p>
                             )}
@@ -377,8 +367,8 @@ const EditAssignmentModal = ({
                     {/* Resource Info & Cost Estimation */}
                     {selectedResource && (
                         <div className="space-y-3">
-                            <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                                <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                            <div className="p-3 bg-surface-2 rounded-lg">
+                                <div className="text-sm text-muted space-y-1">
                                     <div>
                                         Rate: ${selectedResource.rate}/hour
                                     </div>
@@ -395,18 +385,18 @@ const EditAssignmentModal = ({
 
                             {/* Cost Estimation */}
                             {formData.planned_hours > 0 && (
-                                <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                                    <h4 className="text-sm font-medium text-green-900 dark:text-green-100 mb-1">
+                                <div className="p-3 bg-success-soft border border-success rounded-lg">
+                                    <h4 className="text-sm font-medium text-success mb-1">
                                         Cost Estimation
                                     </h4>
-                                    <p className="text-sm text-green-800 dark:text-green-200">
+                                    <p className="text-sm text-success">
                                         Estimated Cost: $
                                         {(
                                             selectedResource.rate *
                                             formData.planned_hours
                                         ).toFixed(2)}
                                     </p>
-                                    <p className="text-xs text-green-600 dark:text-green-400">
+                                    <p className="text-xs text-success">
                                         ({formData.planned_hours}h × $
                                         {selectedResource.rate}/hr)
                                     </p>
@@ -416,22 +406,22 @@ const EditAssignmentModal = ({
                     )}
 
                     {/* Action Buttons */}
-                    <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex justify-end space-x-3 pt-4 border-t border-line">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                            className="px-4 py-2 text-ink-3 border border-line rounded-lg hover:bg-surface-2 transition-colors"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={updating}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+                            className="px-4 py-2 bg-info text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
                         >
                             {updating ? (
                                 <>
-                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    <Spinner size={16} />
                                     <span>Updating...</span>
                                 </>
                             ) : (

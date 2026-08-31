@@ -36,13 +36,13 @@ export function StepIndicator({
                 onClick={() => clickable && onGoToStep(step.key)}
                 disabled={!clickable}
                 aria-current={active ? "step" : undefined}
-                className={`flex items-center gap-2.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-wujha-primary focus-visible:ring-offset-2 ${
+                className={`flex items-center gap-2.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-bright-primary focus-visible:ring-offset-2 ${
                   active
-                    ? "bg-wujha-primary text-white shadow-sm"
+                    ? "bg-bright-primary text-white shadow-sm"
                     : completed
-                      ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-300"
+                      ? "bg-success-soft text-success hover:bg-success-soft  "
                       : clickable
-                        ? "bg-bg-surface-alt text-text-secondary hover:bg-wujha-primary/5 hover:text-wujha-primary"
+                        ? "bg-bg-surface-alt text-text-secondary hover:bg-bright-primary/5 hover:text-bright-primary"
                         : "cursor-not-allowed bg-bg-surface-alt text-text-secondary/50"
                 }`}
               >
@@ -51,7 +51,7 @@ export function StepIndicator({
                     active
                       ? "bg-white/20 text-white"
                       : completed
-                        ? "bg-emerald-600 text-white dark:bg-emerald-500"
+                        ? "bg-success text-white "
                         : "bg-bg-surface text-text-secondary"
                   }`}
                 >

@@ -13,7 +13,7 @@ const SwaggerUI = dynamic(
       <div className="loading">
         <div className="animate-pulse text-center">
           <div className="text-xl">Loading API documentation...</div>
-          <div className="mt-4 text-gray-500">
+          <div className="mt-4 text-muted">
             Please wait while we fetch the API specification
           </div>
         </div>
@@ -49,7 +49,7 @@ export default function ApiDocs() {
           <div className="loading">
             <div className="animate-pulse text-center">
               <div className="text-xl">Loading API documentation...</div>
-              <div className="mt-4 text-gray-500">
+              <div className="mt-4 text-muted">
                 Please wait while we fetch the API specification
               </div>
             </div>

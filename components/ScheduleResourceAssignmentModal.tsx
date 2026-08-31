@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { Calendar, Plus, Users, Search } from "lucide-react";
 import axios from "axios";
+import { Spinner } from "@/components/ui/spinner";
+import { Dropdown } from "@/components/ui/dropdown";
 
 interface ScheduleTask {
   task_id: number;
@@ -179,20 +181,20 @@ const ScheduleResourceAssignmentModal = ({
       className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 p-4"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-lg mx-auto">
+      <div className="bg-surface rounded-lg shadow-lg w-full max-w-lg mx-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              <h2 className="text-xl font-bold text-ink">
                 Assign Scheduled Resource
               </h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-muted">
                 Task: {task.name}
               </p>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+              className="p-2 hover:bg-surface-2 rounded-lg"
               disabled={isSubmitting}
             >
               <Plus size={20} className="rotate-45" />
@@ -200,8 +202,8 @@ const ScheduleResourceAssignmentModal = ({
           </div>
 
           {/* Existing Assignments */}
-          <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
+          <div className="mb-6 p-4 bg-info-soft border border-info rounded-lg">
+            <h3 className="text-sm font-semibold text-info mb-2">
               Current Assignments
             </h3>
             <div className="space-y-2 mb-3">
@@ -210,10 +212,10 @@ const ScheduleResourceAssignmentModal = ({
                   key={assignment.assignment_id}
                   className="flex items-center justify-between text-sm"
                 >
-                  <span className="text-blue-800 dark:text-blue-200">
+                  <span className="text-info">
                     {assignment.resource.name} ({assignment.resource.role})
                   </span>
-                  <span className="text-blue-600 dark:text-blue-400">
+                  <span className="text-info">
                     {assignment.allocation_percentage}%  {assignment.planned_hours}h
                   </span>
                 </div>
@@ -224,71 +226,58 @@ const ScheduleResourceAssignmentModal = ({
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Resource Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-ink-3 mb-1">
                 Select Scheduled Resource *
               </label>
               {/* Resource Type Filter */}
               <div className="mb-3">
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                <label className="block text-xs font-medium text-muted mb-1">
                   Resource Type
                 </label>
-                <select
-                  value={selectedResourceType}
-                  onChange={(e) => {
-                    setSelectedResourceType(e.target.value);
+                <Dropdown
+                  value={String(selectedResourceType ?? '')}
+                  onChange={(__v: string) => {
+                    setSelectedResourceType(__v);
                     setFormData((prev) => ({ ...prev, resource_id: "" }));
                     setSearchQuery("");
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  options={[
+                  { value: String(""), label: "All Types" },
+                  ...resourceTypes.map(([type, count]) => ({ value: String(type), label: `${type.charAt(0).toUpperCase() + type.slice(1)} (${count as number} available)` })),
+                ]}
                   disabled={isSubmitting}
-                >
-                  <option value="">All Types</option>
-                  {resourceTypes.map(([type, count]) => (
-                    <option key={type} value={type}>
-                      {type.charAt(0).toUpperCase() + type.slice(1)} ({count as number} available)
-                    </option>
-                  ))}
-                </select>
+                  modal
+                />
               </div>
               {/* Search Bar */}
               <div className="mb-3 flex items-center gap-2">
-                <Search size={16} className="text-gray-400" />
+                <Search size={16} className="text-faint" />
                 <input
                   type="text"
                   placeholder="Search resources..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  className="w-full px-3 py-2 border border-line rounded-lg focus:ring-2 focus:ring-info focus:border-transparent bg-surface text-ink"
                   disabled={isSubmitting}
                 />
               </div>
-              <select
-                value={formData.resource_id}
-                onChange={(e) => handleInputChange("resource_id", e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.resource_id
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-gray-600"
-                } bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
+              <Dropdown
+                value={String(formData.resource_id ?? '')}
+                onChange={(__v: string) => handleInputChange("resource_id", __v)}
+                options={[
+                { value: String(""), label: "Choose a resource..." },
+                ...availableResources.map((resource) => ({ value: String(String(resource.resource_id)), label: `${resource.name} - ${resource.role} (${resource.type}) - $${resource.rate}/hr` })),
+              ]}
                 disabled={isSubmitting}
-              >
-                <option value="">Choose a resource...</option>
-                {availableResources.map((resource) => (
-                  <option
-                    key={resource.resource_id}
-                    value={String(resource.resource_id)}
-                  >
-                    {resource.name} - {resource.role} ({resource.type}) - ${resource.rate}/hr
-                  </option>
-                ))}
-              </select>
+                modal
+              />
               {errors.resource_id && (
-                <p className="text-red-500 text-xs mt-1">
+                <p className="text-danger text-xs mt-1">
                   {errors.resource_id}
                 </p>
               )}
               {availableResources.length === 0 && (
-                <p className="text-orange-600 text-xs mt-1">
+                <p className="text-bright text-xs mt-1">
                   {selectedResourceType || searchQuery
                     ? "No resources found matching your filters. Try adjusting the resource type or search criteria."
                     : "No available resources found. All resources may be assigned or unavailable."}
@@ -298,50 +287,50 @@ const ScheduleResourceAssignmentModal = ({
             {/* Assignment Details */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-ink-3 mb-1">
                   Assignment Start Date *
                 </label>
                 <input
                   type="date"
                   value={formData.start_date}
                   onChange={(e) => handleInputChange("start_date", e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-info focus:border-transparent ${
                     errors.start_date
-                      ? "border-red-500"
-                      : "border-gray-300 dark:border-gray-600"
-                  } bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
+                      ? "border-danger"
+                      : "border-line"
+                  } bg-surface  text-ink`}
                   disabled={isSubmitting}
                 />
                 {errors.start_date && (
-                  <p className="text-red-500 text-xs mt-1">
+                  <p className="text-danger text-xs mt-1">
                     {errors.start_date}
                   </p>
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-ink-3 mb-1">
                   Assignment End Date *
                 </label>
                 <input
                   type="date"
                   value={formData.end_date}
                   onChange={(e) => handleInputChange("end_date", e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-info focus:border-transparent ${
                     errors.end_date
-                      ? "border-red-500"
-                      : "border-gray-300 dark:border-gray-600"
-                  } bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
+                      ? "border-danger"
+                      : "border-line"
+                  } bg-surface  text-ink`}
                   disabled={isSubmitting}
                 />
                 {errors.end_date && (
-                  <p className="text-red-500 text-xs mt-1">
+                  <p className="text-danger text-xs mt-1">
                     {errors.end_date}
                   </p>
                 )}
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-ink-3 mb-1">
                 Allocation Percentage *
               </label>
               <input
@@ -350,21 +339,21 @@ const ScheduleResourceAssignmentModal = ({
                 max={100}
                 value={formData.allocation_percentage}
                 onChange={(e) => handleInputChange("allocation_percentage", parseInt(e.target.value))}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-info focus:border-transparent ${
                   errors.allocation_percentage
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-gray-600"
-                } bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
+                    ? "border-danger"
+                    : "border-line"
+                } bg-surface  text-ink`}
                 disabled={isSubmitting}
               />
               {errors.allocation_percentage && (
-                <p className="text-red-500 text-xs mt-1">
+                <p className="text-danger text-xs mt-1">
                   {errors.allocation_percentage}
                 </p>
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-ink-3 mb-1">
                 Planned Hours *
               </label>
               <input
@@ -372,18 +361,18 @@ const ScheduleResourceAssignmentModal = ({
                 min={1}
                 value={formData.planned_hours}
                 onChange={(e) => handleInputChange("planned_hours", parseInt(e.target.value))}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-info focus:border-transparent bg-surface text-ink"
                 disabled={isSubmitting}
               />
             </div>
             {errors.general && (
-              <p className="text-red-500 text-xs mt-1">{errors.general}</p>
+              <p className="text-danger text-xs mt-1">{errors.general}</p>
             )}
-            <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-end space-x-3 pt-6 border-t border-line">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                className="px-4 py-2 text-ink-3 hover:bg-surface-2 rounded-lg transition-colors"
                 disabled={isSubmitting}
               >
                 Cancel
@@ -391,11 +380,11 @@ const ScheduleResourceAssignmentModal = ({
               <button
                 type="submit"
                 disabled={isSubmitting || availableResources.length === 0}
-                className="flex items-center space-x-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center space-x-2 px-6 py-2 bg-info text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {isSubmitting ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <Spinner size={16} />
                     <span>Assigning...</span>
                   </>
                 ) : (

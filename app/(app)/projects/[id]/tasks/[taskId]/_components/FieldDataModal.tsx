@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import { Target } from "lucide-react";
 import type { Task, FieldDataEntry } from "./types";
+import { Spinner } from "@/components/ui/spinner";
+import { Dropdown } from "@/components/ui/dropdown";
 
 const FieldDataModal = ({
   task,
@@ -33,9 +35,6 @@ const FieldDataModal = ({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const isDarkMode =
-    typeof window !== "undefined" &&
-    document.documentElement.classList.contains("dark");
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -137,30 +136,20 @@ const FieldDataModal = ({
       onClick={onClose}
     >
       <div
-        className="rounded-2xl max-w-md w-full shadow-2xl flex flex-col"
+        className="rounded-2xl max-w-md w-full shadow-2xl flex flex-col glass-panel"
         style={{
-          backgroundColor: isDarkMode
-            ? "rgba(30, 41, 59, 0.95)"
-            : "rgba(255, 255, 255, 0.95)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          border: isDarkMode
-            ? "1px solid rgba(148, 163, 184, 0.2)"
-            : "1px solid rgba(255, 255, 255, 0.2)",
-          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-          maxHeight: "80vh",
-        }}
+          maxHeight: "80vh"}}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center p-6 pb-4">
-          <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mr-4">
-            <Target className="w-6 h-6 text-green-600" />
+          <div className="w-12 h-12 bg-success-soft rounded-full flex items-center justify-center mr-4">
+            <Target className="w-6 h-6 text-success" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            <h3 className="text-lg font-semibold text-ink">
               {editingEntry ? "Edit Field Data" : "Add Field Data"}
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-muted">
               {task.name}
             </p>
           </div>
@@ -169,41 +158,28 @@ const FieldDataModal = ({
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 pb-6 space-y-4">
           {/* Resource Assignment Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-ink-3 mb-1">
               Resource Assignment *
             </label>
-            <select
-              value={formData.resource_assignment_id}
-              onChange={(e) =>
+            <Dropdown
+              value={String(formData.resource_assignment_id ?? '')}
+              onChange={(__v: string) =>
                 setFormData((prev) => ({
                   ...prev,
-                  resource_assignment_id: e.target.value,
-                }))
-              }
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
-                errors.resource_assignment_id
-                  ? "border-red-500"
-                  : "border-gray-300 dark:border-slate-600"
-              } bg-white dark:bg-slate-700 text-gray-900 dark:text-white`}
-            >
-              <option value="">Select a resource assignment...</option>
-              {task.resource_assignments?.map((assignment) => (
-                <option
-                  key={assignment.assignment_id}
-                  value={assignment.assignment_id}
-                >
-                  {assignment.resource.name} ({assignment.resource.role}) -{" "}
-                  {assignment.planned_hours}h planned •{" "}
-                  {(assignment as any).progress || 0}% progress
-                </option>
-              ))}
-            </select>
+                  resource_assignment_id: __v,
+                }))}
+              options={[
+              { value: String(""), label: "Select a resource assignment..." },
+              ...(task.resource_assignments?.map((assignment) => ({ value: String(assignment.assignment_id), label: `${assignment.resource.name} (${assignment.resource.role}) -${" "} ${assignment.planned_hours}h planned •${" "} ${(assignment as any).progress || 0}% progress` })) ?? []),
+            ]}
+              modal
+            />
             {errors.resource_assignment_id && (
-              <p className="text-red-500 text-xs mt-1">
+              <p className="text-danger text-xs mt-1">
                 {errors.resource_assignment_id}
               </p>
             )}
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-muted mt-1">
               Select which resource assignment this field data is for
             </p>
           </div>
@@ -211,7 +187,7 @@ const FieldDataModal = ({
           <div className="grid grid-cols-2 gap-4">
             {/* Actual Progress */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-ink-3 mb-1">
                 {editingEntry ? "Progress (%) *" : "Additional Progress (%) *"}
               </label>
               <input
@@ -239,18 +215,18 @@ const FieldDataModal = ({
                     ? "Enter progress %"
                     : "Enter additional progress %"
                 }
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-success focus:border-transparent ${
                   errors.actual_progress
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-slate-600"
-                } bg-white dark:bg-slate-700 text-gray-900 dark:text-white`}
+                    ? "border-danger"
+                    : "border-line"
+                } bg-surface  text-ink`}
               />
               {errors.actual_progress && (
-                <p className="text-red-500 text-xs mt-1">
+                <p className="text-danger text-xs mt-1">
                   {errors.actual_progress}
                 </p>
               )}
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted mt-1">
                 {editingEntry
                   ? "Progress value for this field data entry"
                   : "Additional progress to add to the resource assignment total"}
@@ -259,7 +235,7 @@ const FieldDataModal = ({
 
             {/* Actual Hours */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-ink-3 mb-1">
                 {editingEntry ? "Hours Worked *" : "Additional Hours Worked *"}
               </label>
               <input
@@ -283,18 +259,18 @@ const FieldDataModal = ({
                 placeholder={
                   editingEntry ? "Hours worked" : "Additional hours worked"
                 }
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-success focus:border-transparent ${
                   errors.actual_hours
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-slate-600"
-                } bg-white dark:bg-slate-700 text-gray-900 dark:text-white`}
+                    ? "border-danger"
+                    : "border-line"
+                } bg-surface  text-ink`}
               />
               {errors.actual_hours && (
-                <p className="text-red-500 text-xs mt-1">
+                <p className="text-danger text-xs mt-1">
                   {errors.actual_hours}
                 </p>
               )}
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted mt-1">
                 {editingEntry
                   ? "Hours value for this field data entry"
                   : "Additional hours to add to the resource assignment total"}
@@ -305,8 +281,8 @@ const FieldDataModal = ({
           {/* Progress Calculator Display */}
           {formData.resource_assignment_id &&
             (formData.actual_progress || formData.actual_hours) && (
-              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                <h4 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
+              <div className="p-3 bg-info-soft border border-info rounded-lg">
+                <h4 className="text-sm font-medium text-info mb-2">
                   Progress Calculator
                 </h4>
                 {(() => {
@@ -351,34 +327,34 @@ const FieldDataModal = ({
                   return (
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-blue-800 dark:text-blue-200">
+                        <span className="text-info">
                           Current Progress:
                         </span>
-                        <span className="font-medium text-blue-900 dark:text-blue-100">
+                        <span className="font-medium text-info">
                           {currentProgress}%
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-blue-800 dark:text-blue-200">
+                        <span className="text-info">
                           {editingEntry ? "Change:" : "Adding:"}
                         </span>
-                        <span className="font-medium text-blue-900 dark:text-blue-100">
+                        <span className="font-medium text-info">
                           {progressChange >= 0 ? "+" : ""}
                           {progressChange}%
                         </span>
                       </div>
-                      <div className="border-t border-blue-200 dark:border-blue-700 pt-2">
+                      <div className="border-t border-info pt-2">
                         <div className="flex justify-between">
-                          <span className="font-medium text-blue-800 dark:text-blue-200">
+                          <span className="font-medium text-info">
                             New Total Progress:
                           </span>
                           <span
                             className={`font-bold ${
                               newTotalProgress > 100
-                                ? "text-red-600 dark:text-red-400"
+                                ? "text-danger"
                                 : willComplete
-                                ? "text-green-600 dark:text-green-400"
-                                : "text-blue-900 dark:text-blue-100"
+                                ? "text-success"
+                                : "text-info "
                             }`}
                           >
                             {newTotalProgress}%
@@ -389,39 +365,39 @@ const FieldDataModal = ({
                           </span>
                         </div>
                         <div className="flex justify-between mt-1">
-                          <span className="text-blue-800 dark:text-blue-200">
+                          <span className="text-info">
                             New Total Hours:
                           </span>
-                          <span className="font-medium text-blue-900 dark:text-blue-100">
+                          <span className="font-medium text-info">
                             {newTotalHours}h
                           </span>
                         </div>
 
                         {/* Cost Calculator */}
-                        <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700">
-                          <h5 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
+                        <div className="mt-3 pt-3 border-t border-info">
+                          <h5 className="text-sm font-medium text-info mb-2">
                             💰 Cost Impact
                           </h5>
                           <div className="space-y-1 text-sm">
                             <div className="flex justify-between">
-                              <span className="text-blue-800 dark:text-blue-200">
+                              <span className="text-info">
                                 Rate:
                               </span>
-                              <span className="font-medium text-blue-900 dark:text-blue-100">
+                              <span className="font-medium text-info">
                                 ${selectedAssignment.resource.rate}/hr
                               </span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-blue-800 dark:text-blue-200">
+                              <span className="text-info">
                                 Cost Change:
                               </span>
                               <span
                                 className={`font-bold ${
                                   hoursChange > 0
-                                    ? "text-orange-600 dark:text-orange-400"
+                                    ? "text-bright"
                                     : hoursChange < 0
-                                    ? "text-green-600 dark:text-green-400"
-                                    : "text-blue-900 dark:text-blue-100"
+                                    ? "text-success"
+                                    : "text-info "
                                 }`}
                               >
                                 {hoursChange >= 0 ? "+" : ""}$
@@ -430,11 +406,11 @@ const FieldDataModal = ({
                                 ).toFixed(2)}
                               </span>
                             </div>
-                            <div className="flex justify-between border-t border-blue-200 dark:border-blue-700 pt-1">
-                              <span className="font-medium text-blue-800 dark:text-blue-200">
+                            <div className="flex justify-between border-t border-info pt-1">
+                              <span className="font-medium text-info">
                                 New Total Cost:
                               </span>
-                              <span className="font-bold text-blue-900 dark:text-blue-100">
+                              <span className="font-bold text-info">
                                 $
                                 {(
                                   newTotalHours *
@@ -444,7 +420,7 @@ const FieldDataModal = ({
                             </div>
                           </div>
                           {hoursChange > 0 && (
-                            <div className="mt-2 text-xs text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-900/20 p-2 rounded border border-orange-200 dark:border-orange-800">
+                            <div className="mt-2 text-xs text-bright-deep bg-bright-soft p-2 rounded border border-bright">
                               ⚠️ This will increase project costs and update
                               budget actuals through the WBS hierarchy.
                             </div>
@@ -452,7 +428,7 @@ const FieldDataModal = ({
                         </div>
                       </div>
                       {willComplete && newTotalProgress <= 100 && (
-                        <div className="mt-2 p-2 bg-green-100 dark:bg-green-900/20 border border-green-300 dark:border-green-700 rounded text-green-800 dark:text-green-200 text-xs">
+                        <div className="mt-2 p-2 bg-success-soft border border-success rounded text-success text-xs">
                           🎉 This assignment will be marked as complete when you
                           submit this entry!
                         </div>
@@ -464,7 +440,7 @@ const FieldDataModal = ({
             )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-ink-3 mb-1">
               Notes
             </label>
             <textarea
@@ -474,12 +450,12 @@ const FieldDataModal = ({
               }
               placeholder="Add any observations or notes about the progress..."
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+              className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-success focus:border-transparent resize-none"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-ink-3 mb-1">
               Progress Status *
             </label>
             <div className="flex items-center space-x-4 mt-2">
@@ -494,9 +470,9 @@ const FieldDataModal = ({
                       is_according_to_plan: true,
                     }))
                   }
-                  className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 focus:ring-green-500 dark:focus:ring-green-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                  className="w-4 h-4 text-success bg-surface-2 border-line focus:ring-success dark:ring-offset-gray-800 focus:ring-2"
                 />
-                <span className="text-sm font-medium text-green-700 dark:text-green-300">
+                <span className="text-sm font-medium text-success">
                   On Track
                 </span>
               </label>
@@ -511,31 +487,31 @@ const FieldDataModal = ({
                       is_according_to_plan: false,
                     }))
                   }
-                  className="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 focus:ring-orange-500 dark:focus:ring-orange-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                  className="w-4 h-4 text-bright bg-surface-2 border-line focus:ring-bright dark:ring-offset-gray-800 focus:ring-2"
                 />
-                <span className="text-sm font-medium text-orange-700 dark:text-orange-300">
+                <span className="text-sm font-medium text-bright-deep">
                   Off Track
                 </span>
               </label>
             </div>
           </div>
 
-          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-slate-700">
+          <div className="flex justify-end space-x-3 pt-4 border-t border-line">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+              className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center space-x-2"
+              className="px-4 py-2 bg-info text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 flex items-center space-x-2"
             >
               {isSubmitting && (
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                <Spinner size={16} />
               )}
               <Target size={16} />
               <span>

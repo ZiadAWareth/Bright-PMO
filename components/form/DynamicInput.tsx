@@ -1,4 +1,5 @@
 import React from 'react';
+import { Dropdown } from "@/components/ui/dropdown";
 
 interface BaseInputProps {
   value: any;
@@ -36,8 +37,8 @@ type DynamicInputProps = TextInputProps | TextareaProps | SelectProps | Checkbox
 export const DynamicInput: React.FC<DynamicInputProps> = (props) => {
   const { value, onChange, disabled, className, error } = props;
   
-  const baseClass = "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100";
-  const errorClass = error ? "border-red-500" : "border-gray-300 dark:border-gray-600";
+  const baseClass = "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-info focus:border-transparent bg-surface  text-ink";
+  const errorClass = error ? "border-danger" : "border-line";
   const mergedClass = className || `${baseClass} ${errorClass}`;
 
   // Text, Number, Date inputs
@@ -79,18 +80,14 @@ export const DynamicInput: React.FC<DynamicInputProps> = (props) => {
   // Select
   if (props.type === 'select') {
     return (
-      <select
-        value={value ?? ''}
-        onChange={(e) => onChange(e.target.value)}
-        className={mergedClass}
+      <Dropdown
+        value={String(value ?? '')}
+        onChange={(__v: string) => onChange(__v)}
+        options={[
+        ...props.options.map((opt) => ({ value: String(opt.value), label: opt.label })),
+      ]}
         disabled={disabled}
-      >
-        {props.options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
+      />
     );
   }
 
@@ -103,10 +100,10 @@ export const DynamicInput: React.FC<DynamicInputProps> = (props) => {
           id={props.id}
           checked={!!value}
           onChange={(e) => onChange(e.target.checked)}
-          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+          className="w-4 h-4 text-info bg-surface-2 border-line rounded focus:ring-info"
           disabled={disabled}
         />
-        <label htmlFor={props.id} className="text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label htmlFor={props.id} className="text-sm font-medium text-ink-3">
           {props.label}
         </label>
       </div>

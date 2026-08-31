@@ -22,21 +22,21 @@ export const FormFieldWrapper: React.FC<FormFieldWrapperProps> = ({
       {label && (
         <label 
           htmlFor={htmlFor}
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          className="block text-sm font-medium text-ink-3 mb-1"
         >
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
+          {required && <span className="text-danger ml-1">*</span>}
         </label>
       )}
       
       {children}
       
       {error && (
-        <p className="text-red-500 text-xs mt-1">{error}</p>
+        <p className="text-danger text-xs mt-1">{error}</p>
       )}
       
       {helper && !error && (
-        <p className="text-xs text-gray-500 mt-1">{helper}</p>
+        <p className="text-xs text-muted mt-1">{helper}</p>
       )}
     </div>
   );

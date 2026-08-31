@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { BRAND } from "@/lib/brand";
+import { BrightMark } from "@/components/brand/bright-logo";
 
 /**
  * The product wordmark on a white "logo chip" — invisible on light surfaces,
@@ -17,19 +18,14 @@ export function BrandChip({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-2 overflow-hidden rounded-[10px] bg-[#ffffff] px-3 py-2",
+        "inline-flex items-center gap-2 overflow-hidden rounded-[10px] bg-on-brand px-3 py-2",
         className,
       )}
     >
-      <span
-        aria-hidden="true"
-        className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-wujha-primary to-wujha-primary-hover text-sm font-bold text-white"
-      >
-        {BRAND.monogram}
-      </span>
+      <BrightMark className="h-7 w-7 shrink-0 rounded-lg" />
       <span
         className={cn(
-          "text-sm font-bold tracking-tight text-[#0b1220]",
+          "text-sm font-bold tracking-tight text-brand-navy",
           textClassName,
         )}
       >

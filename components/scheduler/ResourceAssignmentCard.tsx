@@ -27,20 +27,20 @@ const ResourceAssignmentCard: React.FC<ResourceAssignmentCardProps> = ({
     };
 
     return (
-        <div className="p-3 bg-gradient-to-r from-blue-50 to-blue-50/50 dark:from-blue-900/20 dark:to-blue-800/10 border border-blue-200 dark:border-blue-800/50 rounded-md shadow-sm">
+        <div className="p-3 bg-gradient-to-r from-info-soft to-info-soft/50 border border-info rounded-md shadow-sm">
             <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2 mb-2">
-                        <div className="h-2 w-2 rounded-full bg-green-500"></div>
-                        <span className="font-semibold text-green-800 dark:text-green-200 text-sm truncate">
+                        <div className="h-2 w-2 rounded-full bg-success"></div>
+                        <span className="font-semibold text-success text-sm truncate">
                             {resource.name}
                         </span>
-                        <span className="px-2 py-0.5 bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200 rounded-full text-xs font-medium">
+                        <span className="px-2 py-0.5 bg-success-soft text-success rounded-full text-xs font-medium">
                             {resource.type}
                         </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-green-700 dark:text-green-300">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-success">
                         <div className="flex items-center">
                             <span className="font-medium mr-1">Role:</span>
                             <span>{resource.role}</span>
@@ -70,7 +70,7 @@ const ResourceAssignmentCard: React.FC<ResourceAssignmentCardProps> = ({
                             <span
                                 className={`${
                                     assignment.actual_hours >= assignment.planned_hours
-                                        ? "text-green-600 font-semibold"
+                                        ? "text-success font-semibold"
                                         : ""
                                 }`}
                             >
@@ -92,14 +92,14 @@ const ResourceAssignmentCard: React.FC<ResourceAssignmentCardProps> = ({
                     </div>
 
                     {resource.department && (
-                        <div className="mt-1 text-xs text-green-600 dark:text-green-400">
+                        <div className="mt-1 text-xs text-success">
                             <span className="font-medium">Department:</span>{" "}
                             {resource.department}
                         </div>
                     )}
 
                     {skillsText && (
-                        <div className="mt-1 text-xs text-green-600 dark:text-green-400">
+                        <div className="mt-1 text-xs text-success">
                             <span className="font-medium">Skills:</span>
                             <span className="ml-1 truncate" title={skillsText}>
                                 {skillsText}
@@ -112,18 +112,18 @@ const ResourceAssignmentCard: React.FC<ResourceAssignmentCardProps> = ({
                             <div
                                 className={`h-1.5 w-1.5 rounded-full ${
                                     resource.availability_status === "available"
-                                        ? "bg-green-500"
+                                        ? "bg-success"
                                         : resource.availability_status === "on_leave"
-                                        ? "bg-yellow-500"
-                                        : "bg-red-500"
+                                        ? "bg-warning"
+                                        : "bg-danger"
                                 }`}
                             ></div>
-                            <span className="text-green-600 dark:text-green-400 capitalize">
+                            <span className="text-success capitalize">
                                 {resource.availability_status.replace("_", " ")}
                             </span>
                         </div>
                         {resource.contact_info && (
-                            <span className="ml-2 text-green-500 dark:text-green-500 truncate">
+                            <span className="ml-2 text-success truncate">
                                 {resource.contact_info}
                             </span>
                         )}
@@ -131,7 +131,7 @@ const ResourceAssignmentCard: React.FC<ResourceAssignmentCardProps> = ({
                 </div>
 
                 <div className="ml-2 text-right space-y-1">
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                    <div className="text-xs text-muted">
                         {formatDate(assignment.start_date)} -{" "}
                         {formatDate(assignment.end_date)}
                     </div>

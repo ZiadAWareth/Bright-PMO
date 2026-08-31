@@ -32,33 +32,33 @@ const HERO_CARDS: HeroDef[] = [
     key: "portfolioValue",
     label: "Portfolio value",
     icon: Wallet,
-    iconBg: "bg-orange-50 dark:bg-orange-500/10",
-    iconColor: "text-wujha-primary",
+    iconBg: "bg-bright-soft ",
+    iconColor: "text-bright-primary",
   },
   {
     key: "actualCost",
     label: "Actual cost",
     icon: TrendingUp,
-    iconBg: "bg-indigo-50 dark:bg-indigo-500/10",
-    iconColor: "text-indigo-600 dark:text-indigo-400",
+    iconBg: "bg-accent-indigo-soft ",
+    iconColor: "text-accent-indigo ",
   },
   {
     key: "scheduleIndex",
     label: "Schedule index (SPI)",
     icon: Gauge,
-    iconBg: "bg-sky-50 dark:bg-sky-500/10",
-    iconColor: "text-sky-600 dark:text-sky-400",
+    iconBg: "bg-info-soft ",
+    iconColor: "text-info ",
     sparkSource: "completed",
-    sparkColor: "#0EA5E9",
+    sparkColor: "var(--chart-6)",
   },
   {
     key: "costIndex",
     label: "Cost index (CPI)",
     icon: Gauge,
-    iconBg: "bg-emerald-50 dark:bg-emerald-500/10",
-    iconColor: "text-emerald-600 dark:text-emerald-400",
+    iconBg: "bg-success-soft ",
+    iconColor: "text-success ",
     sparkSource: "due",
-    sparkColor: "#10B981",
+    sparkColor: "var(--success)",
   },
 ];
 
@@ -73,29 +73,29 @@ const SECONDARY_CARDS: {
     key: "openRisks",
     label: "Open risks",
     icon: AlertTriangle,
-    iconBg: "bg-rose-50 dark:bg-rose-500/10",
-    iconColor: "text-rose-600 dark:text-rose-400",
+    iconBg: "bg-danger-soft ",
+    iconColor: "text-danger ",
   },
   {
     key: "overdueTasks",
     label: "Overdue tasks",
     icon: Clock,
-    iconBg: "bg-amber-50 dark:bg-amber-500/10",
-    iconColor: "text-amber-600 dark:text-amber-400",
+    iconBg: "bg-warning-soft ",
+    iconColor: "text-warning",
   },
   {
     key: "pendingApprovals",
     label: "Pending approvals",
     icon: ClipboardCheck,
-    iconBg: "bg-slate-100 dark:bg-slate-500/10",
-    iconColor: "text-slate-600 dark:text-slate-300",
+    iconBg: "bg-surface-2 ",
+    iconColor: "text-muted ",
   },
   {
     key: "resourceUtilisation",
     label: "Resource load",
     icon: Users,
-    iconBg: "bg-violet-50 dark:bg-violet-500/10",
-    iconColor: "text-violet-600 dark:text-violet-400",
+    iconBg: "bg-accent-violet-soft ",
+    iconColor: "text-accent-violet ",
   },
 ];
 
@@ -225,8 +225,8 @@ export function KpiBand({
 function IndexBadge({ value }: { value: number }) {
   const favourable = value >= 1;
   const cls = favourable
-    ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
-    : "bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400";
+    ? "bg-success-soft text-success  "
+    : "bg-danger-soft text-danger  ";
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${cls}`}

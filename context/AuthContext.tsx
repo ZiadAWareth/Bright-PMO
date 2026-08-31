@@ -74,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     clearRefreshTimer();
     localStorage.removeItem("token");
-    localStorage.removeItem("wujha-remember-email");
+    localStorage.removeItem("bright-remember-email");
     setUser(null);
   };
 

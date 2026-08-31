@@ -1,17 +1,18 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { ArrowRight, Eye, EyeOff, Loader2 } from "lucide-react";
+import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import axiosInstance from "@/lib/axios";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { BRAND } from "@/lib/brand";
 import { loginErrorMessage, safeReturnTo, DEFAULT_HOME_PATH } from "./constants";
+import { Spinner } from "@/components/ui/spinner";
 
-const REMEMBER_EMAIL_KEY = "wujha-remember-email";
+const REMEMBER_EMAIL_KEY = "bright-remember-email";
 
 const FIELD_CLASS =
-  "h-11 w-full rounded-[11px] border border-border bg-bg-surface px-3.5 text-sm text-text-primary shadow-sm transition-colors placeholder:text-text-secondary/60 focus:border-wujha-primary focus:outline-none focus:ring-[3px] focus:ring-wujha-primary/20 disabled:opacity-60";
+  "h-11 w-full rounded-[11px] border border-border bg-bg-surface px-3.5 text-sm text-text-primary shadow-sm transition-colors placeholder:text-text-secondary/60 focus:border-bright-primary focus:outline-none focus:ring-[3px] focus:ring-bright-primary/20 disabled:opacity-60";
 
 type LoginResponse = {
   token?: string;
@@ -184,7 +185,7 @@ export function SignInForm() {
               setFormData({ ...formData, rememberMe: e.target.checked })
             }
             disabled={isLoading}
-            className="h-4 w-4 rounded border-border accent-wujha-primary"
+            className="h-4 w-4 rounded border-border accent-bright-primary"
           />
           Remember my email
         </label>
@@ -192,7 +193,7 @@ export function SignInForm() {
         {formError && (
           <div
             role="alert"
-            className="rounded-[11px] border border-wujha-danger/30 bg-wujha-danger/10 px-3.5 py-2.5 text-[13px] text-wujha-danger"
+            className="rounded-[11px] border border-bright-danger/30 bg-bright-danger/10 px-3.5 py-2.5 text-[13px] text-bright-danger"
           >
             {formError}
           </div>
@@ -201,11 +202,11 @@ export function SignInForm() {
         <button
           type="submit"
           disabled={isLoading}
-          className="group flex h-11 w-full items-center justify-center gap-2 rounded-[11px] bg-wujha-primary text-sm font-semibold text-white shadow-sm transition-all hover:bg-wujha-primary-hover focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-wujha-primary/30 disabled:opacity-60"
+          className="group flex h-11 w-full items-center justify-center gap-2 rounded-[11px] bg-bright-primary text-sm font-semibold text-white shadow-sm transition-all hover:bg-bright-primary-hover focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-bright-primary/30 disabled:opacity-60"
         >
           {isLoading ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              <Spinner size={16} />
               Signing in…
             </>
           ) : (

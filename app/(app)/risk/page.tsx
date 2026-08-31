@@ -1,13 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
     AlertTriangle,
-    Plus,
-    Search,
-    Filter,
     Edit,
     Trash2,
     Eye,
@@ -16,15 +13,51 @@ import {
     CheckCircle,
     BarChart,
     DollarSign,
+    FolderOpen,
     Save,
 } from "lucide-react";
 import axios from "axios";
-import RiskGrid from "@/components/RiskGrid";
 import { FilterBar, FilterSelect } from "@/components/ui/filter-bar";
 import ProjectCalendarView from "@/components/calendar-component";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import AddRiskWithProjectModal from "@/components/AddRiskWithProjectModal";
-import { toast } from "react-hot-toast";
+import { LoadingState, Spinner } from "@/components/ui/spinner";
+import { Dropdown } from "@/components/ui/dropdown";
+import { TabRow } from "@/components/ui/tab-row";
+import { ListPagination } from "@/components/ui/list-pagination";
+import { ViewToggle, type ListViewMode } from "@/components/ui/view-toggle";
+import { PersonCell } from "@/components/ui/person-cell";
+import {
+    EmptyState,
+    EntityCard,
+    EntityCardFooter,
+    EntityCardHeader,
+    EntityProgress,
+    EntityStat,
+    EntityStats,
+    StatGrid,
+    StatTile,
+} from "@/components/ui/entity-card";
+import {
+    ListCard,
+    ListHead,
+    ListMessage,
+    ListRow,
+    NewButton,
+    RowAction,
+    RowActions,
+    StatusBadge,
+} from "@/components/ui/form-shell";
+import { humanize, riskLevelTone, riskStatusTone } from "@/lib/status-tone";
+
+const PAGE_SIZE = 12;
+const RISK_COLUMNS = [
+    "Risk",
+    "Project",
+    "Category",
+    "Level",
+    "Status",
+    "Score",
+    "Owner",
+];
 
 interface Risk {
     risk_id: number;
@@ -83,13 +116,23 @@ const RiskPage = () => {
     const [activeTab, setActiveTab] = useState<"grid" | "calendar">("grid");
     const [showGrid, setShowGrid] = useState(true);
     const [showCalendar, setShowCalendar] = useState(false);
-    const [showEditModal, setShowEditModal] = useState(false);
-    const [riskToEdit, setRiskToEdit] = useState<Risk | null>(null);
-    const [editForm, setEditForm] = useState<Partial<Risk>>({});
-    const [isEditing, setIsEditing] = useState(false);
     const [projects, setProjects] = useState<Project[]>([]);
     const [users, setUsers] = useState<User[]>([]);
-    const [showAddModal, setShowAddModal] = useState(false);
+    const [view, setView] = useState<ListViewMode>("grid");
+    const [page, setPage] = useState(0);
+
+    // Filtering changes what "page 1" means, so reset rather than stranding the
+    // user on a page index that no longer has rows.
+    useEffect(() => setPage(0), [search, levelFilter, statusFilter, view]);
+
+    const riskPageCount = Math.max(
+        1,
+        Math.ceil(filteredRisks.length / PAGE_SIZE),
+    );
+    const visibleRisks = useMemo(
+        () => filteredRisks.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
+        [filteredRisks, page],
+    );
 
     // Dropdown options (reuse from create page)
     const approvalStatusOptions = ["Pending", "Approved for Mitigation"];
@@ -135,60 +178,34 @@ const RiskPage = () => {
             : 0;
 
     const renderStatsCards = () => (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-gray-600 dark:text-gray-400 text-sm">
-                            Total Risks
-                        </p>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {totalRisks}
-                        </p>
-                    </div>
-                    <AlertTriangle className="w-8 h-8 text-orange-500" />
-                </div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-gray-600 dark:text-gray-400 text-sm">
-                            Open Risks
-                        </p>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {openRisks}
-                        </p>
-                    </div>
-                    <BarChart className="w-8 h-8 text-blue-500" />
-                </div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-gray-600 dark:text-gray-400 text-sm">
-                            Closed Risks
-                        </p>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {closedRisks}
-                        </p>
-                    </div>
-                    <CheckCircle className="w-8 h-8 text-green-500" />
-                </div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-gray-600 dark:text-gray-400 text-sm">
-                            Avg. Risk Score
-                        </p>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {avgRiskScore}
-                        </p>
-                    </div>
-                    <DollarSign className="w-8 h-8 text-yellow-500" />
-                </div>
-            </div>
-        </div>
+        <StatGrid>
+            <StatTile
+                label="Total risks"
+                value={totalRisks}
+                hint={`${openRisks} still open`}
+                icon={<AlertTriangle className="h-4 w-4" />}
+            />
+            <StatTile
+                label="Open risks"
+                value={openRisks}
+                hint="Being tracked"
+                icon={<BarChart className="h-4 w-4" />}
+                tone={openRisks > 0 ? "warning" : "neutral"}
+            />
+            <StatTile
+                label="Closed risks"
+                value={closedRisks}
+                hint="Resolved or retired"
+                icon={<CheckCircle className="h-4 w-4" />}
+                tone={closedRisks > 0 ? "success" : "neutral"}
+            />
+            <StatTile
+                label="Avg. risk score"
+                value={avgRiskScore.toFixed(1)}
+                hint="Impact × probability"
+                icon={<DollarSign className="h-4 w-4" />}
+            />
+        </StatGrid>
     );
 
     useEffect(() => {
@@ -291,270 +308,352 @@ const RiskPage = () => {
 
     // Edit handlers
     const handleEditRisk = (risk: Risk) => {
-        setRiskToEdit(risk);
-        setEditForm(risk);
-        setShowEditModal(true);
+        router.push(`/risk/${risk.risk_id}/edit`);
     };
-    const handleEditChange = (
-        e: React.ChangeEvent<
-            HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-        >
-    ) => {
-        const { name, value } = e.target;
-        setEditForm((prev) => {
-            const updated = { ...prev, [name]: value };
-            if (name === "approvalStatus") {
-                return {
-                    ...updated,
-                    approvalStatus: value,
-                    currentStatus:
-                        value === "Approved for Mitigation"
-                            ? prev.currentStatus || "Open"
-                            : "Open",
-                };
-            }
-            return updated;
-        });
-    };
-    const calculateRiskScore = (impact: string, probability: string): number => {
-        const impactValue = impact === "high" ? 3 : impact === "medium" ? 2 : 1;
-        const probabilityValue = probability === "high" ? 3 : probability === "medium" ? 2 : 1;
-        return impactValue * probabilityValue;
-    };
-    const calculateRiskLevel = (score: number): string => {
-        if (score >= 7) return "high";
-        if (score >= 4) return "medium";
-        return "low";
-    };
-    const handleEditSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!riskToEdit) return;
-        
-        // Validate required fields
-        if (!editForm.name || !editForm.name.trim()) {
-            toast.error("Risk name is required");
-            return;
-        }
-        
-        if (!editForm.category || !editForm.category.trim()) {
-            toast.error("Category is required");
-            return;
-        }
-        
-        setIsEditing(true);
-        try {
-            // Calculate final values
-            const finalImpact = editForm.impact ?? riskToEdit.impact;
-            const finalProbability = editForm.probability ?? riskToEdit.probability;
-            const finalRiskScore = calculateRiskScore(finalImpact, finalProbability);
-            const finalRiskLevel = calculateRiskLevel(finalRiskScore);
-            await axios.patch(
-                `/api/risks/${riskToEdit.risk_id}`,
-                {
-                    project_id: editForm.project_id ?? riskToEdit.project_id,
-                    name: editForm.name.trim(),
-                    description: editForm.description ?? riskToEdit.description,
-                    identified_date:
-                        editForm.identified_date ?? riskToEdit.identified_date,
-                    impact: finalImpact,
-                    probability: finalProbability,
-                    status: editForm.status ?? riskToEdit.status,
-                    owner_id: editForm.owner_id ?? riskToEdit.owner_id,
-                    approvalStatus:
-                        editForm.approvalStatus ?? riskToEdit.approvalStatus,
-                    currentStatus: editForm.currentStatus ?? riskToEdit.currentStatus,
-                    riskScore: Number(finalRiskScore),
-                    riskLevel: finalRiskLevel,
-                    category: editForm.category ?? riskToEdit.category,
-                },
-                {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("token")}`,
-                    },
-                }
-            );
-            // Update risks in state
-            setRisks((prev) =>
-                prev.map((r) =>
-                    r.risk_id === riskToEdit.risk_id
-                        ? ({ ...r, ...editForm, riskScore: finalRiskScore, riskLevel: finalRiskLevel } as Risk)
-                        : r
-                )
-            );
-            setFilteredRisks((prev) =>
-                prev.map((r) =>
-                    r.risk_id === riskToEdit.risk_id
-                        ? ({ ...r, ...editForm, riskScore: finalRiskScore, riskLevel: finalRiskLevel } as Risk)
-                        : r
-                )
-            );
-            setShowEditModal(false);
-            toast.success("Risk updated successfully");
-        } catch (err: any) {
-            toast.error(err.response?.data?.error || "Failed to update risk");
-        } finally {
-            setIsEditing(false);
-        }
-    };
-
+    // Tab navigation config
     // Tab navigation config
     const riskTabs = [
-        { id: "grid", label: "Grid View", icon: <AlertTriangle size={16} /> },
+        { id: "grid", label: "Risks", icon: <AlertTriangle size={16} /> },
         { id: "calendar", label: "Calendar", icon: <Calendar size={16} /> },
     ];
 
-    return (
-        <DashboardLayout title="Risk Management">
-            <div className="space-y-6">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-gray-600 dark:text-gray-400">
-                            Monitor, track, and manage project risks
-                        </p>
-                    </div>
-                    <button
-                        className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
-                        onClick={() => setShowAddModal(true)}
-                    >
-                        <Plus size={18} /> New Risk
-                    </button>
-                </div>
+    const projectNameOf = (risk: Risk) =>
+        projects.find((p) => p.project_id === risk.project_id)?.name ?? "";
 
+    const ownerNameOf = (risk: Risk) => {
+        const owner = users.find((u) => u.user_id === risk.owner_id);
+        return owner
+            ? `${owner.account.first_name} ${owner.account.last_name}`.trim()
+            : "";
+    };
+
+    const rowActions = (risk: Risk) => (
+        <RowActions>
+            <RowAction
+                icon={Eye}
+                label={`View ${risk.name}`}
+                onClick={() => router.push(`/risk/${risk.risk_id}`)}
+            />
+            <RowAction
+                icon={Edit}
+                label={`Edit ${risk.name}`}
+                onClick={() => handleEditRisk(risk)}
+            />
+            <RowAction
+                icon={Trash2}
+                label={`Delete ${risk.name}`}
+                tone="danger"
+                onClick={() => handleDelete(risk)}
+            />
+        </RowActions>
+    );
+
+    const renderCard = (risk: Risk) => (
+        <EntityCard
+            key={risk.risk_id}
+            onClick={() => router.push(`/risk/${risk.risk_id}`)}
+        >
+            <EntityCardHeader
+                title={risk.name}
+                subtitle={risk.description}
+                badges={
+                    <>
+                        <StatusBadge
+                            label={humanize(risk.riskLevel)}
+                            tone={riskLevelTone(risk.riskLevel)}
+                        />
+                        <StatusBadge
+                            label={humanize(risk.currentStatus)}
+                            tone={riskStatusTone(risk.currentStatus)}
+                        />
+                        {risk.category && (
+                            <StatusBadge label={risk.category} tone="info" />
+                        )}
+                    </>
+                }
+            />
+
+            <EntityStats>
+                <EntityStat icon={<FolderOpen className="h-3.5 w-3.5" />}>
+                    {projectNameOf(risk) || "No project"}
+                </EntityStat>
+                <EntityStat icon={<BarChart className="h-3.5 w-3.5" />}>
+                    Score {risk.riskScore ?? 0}
+                </EntityStat>
+            </EntityStats>
+
+            {/*
+              * Risk score runs 1–9 (impact × probability, each 1–3), so it is
+              * scaled to a percentage for the bar. The raw score stays the
+              * printed figure — that is the number people quote.
+              */}
+            <EntityProgress
+                label="Risk score"
+                value={((risk.riskScore ?? 0) / 9) * 100}
+                display={`${risk.riskScore ?? 0} / 9`}
+                tone={
+                    riskLevelTone(risk.riskLevel) === "danger"
+                        ? "danger"
+                        : riskLevelTone(risk.riskLevel) === "warning"
+                          ? "warning"
+                          : "success"
+                }
+            />
+
+            <EntityCardFooter
+                actions={
+                    <div onClick={(e) => e.stopPropagation()}>
+                        {rowActions(risk)}
+                    </div>
+                }
+            >
+                <PersonCell
+                    name={ownerNameOf(risk) || "Unassigned"}
+                    subtitle="Owner"
+                />
+            </EntityCardFooter>
+        </EntityCard>
+    );
+
+    return (
+        <DashboardLayout
+            title="Risk Management"
+            subtitle="Monitor, track and manage project risks."
+            actions={
+                <>
+                    {activeTab === "grid" && (
+                        <ViewToggle value={view} onChange={setView} />
+                    )}
+                    <NewButton label="New risk" href="/risk/new" />
+                </>
+            }
+        >
+            <div className="space-y-6">
                 {/* Statistics Cards */}
                 {renderStatsCards()}
 
-                {/* Tab Navigation */}
-                <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl mb-6">
-                    <div className="flex items-center space-x-1 p-1 overflow-x-auto whitespace-nowrap">
-                        {riskTabs.map((tab) => (
-                            <button
-                                key={tab.id}
-                                onClick={() => {
-                                    setActiveTab(tab.id as "grid" | "calendar");
-                                    setShowGrid(tab.id === "grid");
-                                    setShowCalendar(tab.id === "calendar");
-                                }}
-                                className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                                    activeTab === tab.id
-                                        ? "bg-orange-500 text-white shadow-sm"
-                                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-slate-700"
-                                }`}
-                            >
-                                {tab.icon}
-                                <span>{tab.label}</span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Search + filters */}
-                <div className="mb-6">
-                    <FilterBar
-                        search={search}
-                        onSearch={setSearch}
-                        searchPlaceholder="Search risks by name, category or description…"
-                        resultLabel={
-                            loading
-                                ? "Loading…"
-                                : `${filteredRisks.length} ${filteredRisks.length === 1 ? "risk" : "risks"}`
-                        }
-                        activeCount={
-                            (levelFilter !== "all" ? 1 : 0) +
-                            (statusFilter !== "all" ? 1 : 0)
-                        }
-                        onClear={() => {
-                            setLevelFilter("all");
-                            setStatusFilter("all");
-                        }}
-                    >
-                        <FilterSelect
-                            label="Risk level"
-                            value={levelFilter}
-                            onChange={setLevelFilter}
-                            options={[
-                                { value: "all", label: "All levels" },
-                                { value: "high", label: "High" },
-                                { value: "medium", label: "Medium" },
-                                { value: "low", label: "Low" },
-                            ]}
-                        />
-                        <FilterSelect
-                            label="Status"
-                            value={statusFilter}
-                            onChange={setStatusFilter}
-                            options={[
-                                { value: "all", label: "All statuses" },
-                                { value: "identified", label: "Identified" },
-                                { value: "assessed", label: "Assessed" },
-                                { value: "monitoring", label: "Monitoring" },
-                                { value: "mitigated", label: "Mitigated" },
-                                { value: "escalated", label: "Escalated" },
-                                { value: "closed", label: "Closed" },
-                            ]}
-                        />
-                    </FilterBar>
-                </div>
+                <TabRow
+                    tabs={riskTabs}
+                    value={activeTab}
+                    onChange={(id) => {
+                        setActiveTab(id as "grid" | "calendar");
+                        setShowGrid(id === "grid");
+                        setShowCalendar(id === "calendar");
+                    }}
+                />
 
                 {/* Tab Content */}
-                <div className="space-y-6">
-                    {/* Grid View Content */}
-                    {activeTab === "grid" && showGrid && (
-                        <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6">
-                            {loading ? (
-                                <div className="flex items-center justify-center py-12">
-                                    <div className="flex flex-col items-center space-y-4">
-                                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                                        <p className="text-gray-600 dark:text-gray-400">Loading risks...</p>
-                                    </div>
-                                </div>
-                            ) : (
-                                <RiskGrid
-                                    risks={filteredRisks}
-                                    onRiskClick={(risk) => {
-                                        if (!showEditModal)
-                                            router.push(`/risk/${risk.risk_id}`);
-                                    }}
-                                    onEditRisk={handleEditRisk}
-                                    onDeleteRisk={handleDelete}
-                                    projectNames={Object.fromEntries(
-                                        projects.map((p) => [p.project_id, p.name])
-                                    )}
-                                    ownerNames={Object.fromEntries(
-                                        users.map((u) => [
-                                            u.user_id,
-                                            `${u.account.first_name} ${u.account.last_name}`,
-                                        ])
-                                    )}
-                                />
-                            )}
-                        </div>
-                    )}
-                    {/* Calendar View Content */}
-                    {activeTab === "calendar" && showCalendar && (
-                        <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6">
-                            {loading ? (
-                                <div className="flex items-center justify-center py-12">
-                                    <div className="flex flex-col items-center space-y-4">
-                                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                                        <p className="text-gray-600 dark:text-gray-400">Loading calendar...</p>
-                                    </div>
-                                </div>
-                            ) : (
-                                <ProjectCalendarView
-                                    events={riskEvents}
-                                    onEventClick={(event) => {
-                                        const risk = risks.find(
-                                            (r) => r.risk_id.toString() === event.id
-                                        );
-                                        if (risk)
-                                            router.push(`/risk/${risk.risk_id}`);
-                                    }}
-                                />
-                            )}
-                        </div>
-                    )}
-                </div>
+                {activeTab === "grid" && showGrid && (
+                    <div className="space-y-6">
+                        <FilterBar
+                            search={search}
+                            onSearch={setSearch}
+                            searchPlaceholder="Search risks by name, category or description…"
+                            resultLabel={
+                                loading
+                                    ? "Loading…"
+                                    : `${filteredRisks.length} ${filteredRisks.length === 1 ? "risk" : "risks"}`
+                            }
+                            activeCount={
+                                (levelFilter !== "all" ? 1 : 0) +
+                                (statusFilter !== "all" ? 1 : 0)
+                            }
+                            onClear={() => {
+                                setLevelFilter("all");
+                                setStatusFilter("all");
+                            }}
+                        >
+                            <FilterSelect
+                                label="Risk level"
+                                value={levelFilter}
+                                onChange={setLevelFilter}
+                                options={[
+                                    { value: "all", label: "All levels" },
+                                    { value: "high", label: "High" },
+                                    { value: "medium", label: "Medium" },
+                                    { value: "low", label: "Low" },
+                                ]}
+                            />
+                            <FilterSelect
+                                label="Status"
+                                value={statusFilter}
+                                onChange={setStatusFilter}
+                                options={[
+                                    { value: "all", label: "All statuses" },
+                                    { value: "identified", label: "Identified" },
+                                    { value: "assessed", label: "Assessed" },
+                                    { value: "monitoring", label: "Monitoring" },
+                                    { value: "mitigated", label: "Mitigated" },
+                                    { value: "escalated", label: "Escalated" },
+                                    { value: "closed", label: "Closed" },
+                                ]}
+                            />
+                        </FilterBar>
+
+                        {loading ? (
+                            <LoadingState />
+                        ) : filteredRisks.length === 0 ? (
+                            <EmptyState
+                                icon={<AlertTriangle className="h-10 w-10" />}
+                                title="No risks found"
+                                message={
+                                    risks.length === 0
+                                        ? "No risks have been logged yet."
+                                        : "Try adjusting your filters to see more results."
+                                }
+                                action={
+                                    risks.length > 0 ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSearch("");
+                                                setLevelFilter("all");
+                                                setStatusFilter("all");
+                                            }}
+                                            className="text-[13px] font-semibold text-bright hover:text-bright-deep"
+                                        >
+                                            Clear all filters
+                                        </button>
+                                    ) : (
+                                        <NewButton
+                                            label="New risk"
+                                            href="/risk/new"
+                                        />
+                                    )
+                                }
+                            />
+                        ) : view === "grid" ? (
+                            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+                                {visibleRisks.map(renderCard)}
+                            </div>
+                        ) : (
+                            <ListCard>
+                                <table className="w-full border-collapse">
+                                    <ListHead columns={RISK_COLUMNS} />
+                                    <tbody>
+                                        {visibleRisks.length === 0 ? (
+                                            <ListMessage
+                                                colSpan={RISK_COLUMNS.length + 1}
+                                            >
+                                                No risks on this page.
+                                            </ListMessage>
+                                        ) : (
+                                            visibleRisks.map((risk) => (
+                                                <ListRow
+                                                    key={risk.risk_id}
+                                                    onClick={() =>
+                                                        router.push(
+                                                            `/risk/${risk.risk_id}`,
+                                                        )
+                                                    }
+                                                >
+                                                    <td className="max-w-[280px] px-4 py-3">
+                                                        <div className="min-w-0">
+                                                            <div className="truncate text-[13.5px] font-medium text-ink">
+                                                                {risk.name}
+                                                            </div>
+                                                            {risk.description && (
+                                                                <div className="truncate text-[11.5px] text-faint">
+                                                                    {risk.description}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-[13.5px] text-ink-2">
+                                                        {projectNameOf(risk) || (
+                                                            <span className="text-faint">
+                                                                —
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-[13.5px] text-ink-2">
+                                                        {risk.category || (
+                                                            <span className="text-faint">
+                                                                —
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                    <td className="whitespace-nowrap px-4 py-3">
+                                                        <StatusBadge
+                                                            label={humanize(
+                                                                risk.riskLevel,
+                                                            )}
+                                                            tone={riskLevelTone(
+                                                                risk.riskLevel,
+                                                            )}
+                                                        />
+                                                    </td>
+                                                    <td className="whitespace-nowrap px-4 py-3">
+                                                        <StatusBadge
+                                                            label={humanize(
+                                                                risk.currentStatus,
+                                                            )}
+                                                            tone={riskStatusTone(
+                                                                risk.currentStatus,
+                                                            )}
+                                                        />
+                                                    </td>
+                                                    <td className="whitespace-nowrap px-4 py-3 text-[13.5px] tabular-nums text-ink-2">
+                                                        {risk.riskScore ?? 0}
+                                                    </td>
+                                                    <td className="max-w-[180px] px-4 py-3">
+                                                        {ownerNameOf(risk) ? (
+                                                            <PersonCell
+                                                                name={ownerNameOf(risk)}
+                                                            />
+                                                        ) : (
+                                                            <span className="text-[13px] text-faint">
+                                                                Unassigned
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                    <td
+                                                        className="px-4 py-3"
+                                                        onClick={(e) =>
+                                                            e.stopPropagation()
+                                                        }
+                                                    >
+                                                        {rowActions(risk)}
+                                                    </td>
+                                                </ListRow>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </ListCard>
+                        )}
+
+                        {!loading && filteredRisks.length > 0 && (
+                            <ListPagination
+                                page={page}
+                                pageCount={riskPageCount}
+                                total={filteredRisks.length}
+                                pageSize={PAGE_SIZE}
+                                onPageChange={setPage}
+                                noun="risk"
+                            />
+                        )}
+                    </div>
+                )}
+
+                {/* Calendar View Content */}
+                {activeTab === "calendar" && showCalendar && (
+                    <div className="rounded-[14px] border border-line bg-surface p-6 shadow-card">
+                        {loading ? (
+                            <LoadingState label="Loading calendar…" />
+                        ) : (
+                            <ProjectCalendarView
+                                events={riskEvents}
+                                onEventClick={(event) => {
+                                    const risk = risks.find(
+                                        (r) => r.risk_id.toString() === event.id,
+                                    );
+                                    if (risk) router.push(`/risk/${risk.risk_id}`);
+                                }}
+                            />
+                        )}
+                    </div>
+                )}
 
                 {/* Delete Modal */}
                 {showDeleteModal && riskToDelete && (
@@ -566,26 +665,26 @@ const RiskPage = () => {
                             }
                         }}
                     >
-                        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-xl">
+                        <div className="bg-surface rounded-xl p-6 max-w-md w-full mx-4 shadow-xl">
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center space-x-3">
-                                    <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
-                                        <AlertTriangle className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                                    <div className="p-2 bg-bright-soft rounded-lg">
+                                        <AlertTriangle className="h-6 w-6 text-bright" />
                                     </div>
-                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                    <h3 className="text-lg font-semibold text-ink">
                                         Delete Risk
                                     </h3>
                                 </div>
                                 <button
                                     onClick={() => setShowDeleteModal(false)}
-                                    className="text-gray-400 hover:text-orange-600 dark:hover:text-orange-400"
+                                    className="text-faint hover:text-bright"
                                 >
                                     <X size={20} />
                                 </button>
                             </div>
-                            <p className="text-gray-600 dark:text-gray-400 mb-6">
+                            <p className="text-muted mb-6">
                                 Are you sure you want to delete{" "}
-                                <span className="font-semibold text-gray-900 dark:text-gray-100">
+                                <span className="font-semibold text-ink">
                                     {riskToDelete.name}
                                 </span>
                                 ? This action cannot be undone and all
@@ -595,14 +694,14 @@ const RiskPage = () => {
                                 <button
                                     onClick={() => setShowDeleteModal(false)}
                                     disabled={isDeleting}
-                                    className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="px-4 py-2 border border-line rounded-lg text-sm font-medium text-ink-3 hover:bg-surface-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bright disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={confirmDelete}
                                     disabled={isDeleting}
-                                    className="px-4 py-2 bg-orange-600 text-white rounded-lg text-sm font-medium hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="px-4 py-2 bg-bright text-white rounded-lg text-sm font-medium hover:bg-bright-deep focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bright disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isDeleting ? "Deleting..." : "Delete Risk"}
                                 </button>
@@ -612,203 +711,7 @@ const RiskPage = () => {
                 )}
 
                 {/* Edit Modal */}
-                <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-                    <DialogContent 
-                        className="sm:max-w-md"
-                        onOpenAutoFocus={(e) => e.preventDefault()}
-                    >
-                        {riskToEdit && (
-                            <form
-                                onSubmit={handleEditSubmit}
-                                className="space-y-6"
-                            >
-                                <div className="flex items-center gap-2 mb-4">
-                                    <Edit size={20} className="text-orange-500" />
-                                    <h2 className="text-lg font-semibold text-gray-900">Edit Risk</h2>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="name">
-                                            Risk Name <span className="text-red-500">*</span>
-                                        </label>
-                                        <input
-                                            id="name"
-                                            name="name"
-                                            value={editForm.name || ""}
-                                            onChange={handleEditChange}
-                                            required
-                                            autoFocus={false}
-                                            className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100"
-                                            placeholder="Enter risk name"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="category">
-                                            Category <span className="text-red-500">*</span>
-                                        </label>
-                                        <input
-                                            id="category"
-                                            name="category"
-                                            value={editForm.category || ""}
-                                            onChange={handleEditChange}
-                                            required
-                                            className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100"
-                                            placeholder="Enter category"
-                                        />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="description">
-                                        Description
-                                    </label>
-                                    <textarea
-                                        id="description"
-                                        name="description"
-                                        value={editForm.description || ""}
-                                        onChange={handleEditChange}
-                                        rows={3}
-                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-md text-sm bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                        placeholder="Describe the risk"
-                                    />
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="impact">
-                                            Impact
-                                        </label>
-                                        <select
-                                            id="impact"
-                                            name="impact"
-                                            value={editForm.impact || "medium"}
-                                            onChange={handleEditChange}
-                                            className="w-full px-4 py-2.5 border border-gray-300 rounded-md text-sm bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                        >
-                                            <option value="high">High</option>
-                                            <option value="medium">Medium</option>
-                                            <option value="low">Low</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="probability">
-                                            Probability
-                                        </label>
-                                        <select
-                                            id="probability"
-                                            name="probability"
-                                            value={editForm.probability || "medium"}
-                                            onChange={handleEditChange}
-                                            className="w-full px-4 py-2.5 border border-gray-300 rounded-md text-sm bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                        >
-                                            <option value="high">High</option>
-                                            <option value="medium">Medium</option>
-                                            <option value="low">Low</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="approvalStatus">
-                                            Approval Status
-                                        </label>
-                                        <select
-                                            id="approvalStatus"
-                                            name="approvalStatus"
-                                            value={editForm.approvalStatus || ""}
-                                            onChange={handleEditChange}
-                                            className="w-full px-4 py-2.5 border border-gray-300 rounded-md text-sm bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                        >
-                                            {approvalStatusOptions.map((status) => (
-                                                <option key={status} value={status}>{status}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="currentStatus">
-                                            Current Status
-                                        </label>
-                                        <select
-                                            id="currentStatus"
-                                            name="currentStatus"
-                                            value={editForm.currentStatus || "Open"}
-                                            onChange={handleEditChange}
-                                            className="w-full px-4 py-2.5 border border-gray-300 rounded-md text-sm bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                            disabled={editForm.approvalStatus !== "Approved for Mitigation"}
-                                        >
-                                            {statusOptions.map((status) => (
-                                                <option key={status} value={status}>{status}</option>
-                                            ))}
-                                        </select>
-                                        {editForm.approvalStatus !== "Approved for Mitigation" && (
-                                            <span className="text-xs text-gray-500">Current Status can only be changed after approval.</span>
-                                        )}
-                                    </div>
-                                </div>
-                                {/* Calculated Risk Score Display */}
-                                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Risk Score</span>
-                                        <span className="text-lg font-bold text-orange-600">{calculateRiskScore(editForm.impact || riskToEdit.impact, editForm.probability || riskToEdit.probability)}</span>
-                                    </div>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        Based on Impact × Probability (High=3, Medium=2, Low=1)
-                                    </p>
-                                </div>
-                                <div className="flex justify-end gap-4 mt-8">
-                                    <button
-                                        type="button"
-                                        className="px-4 py-2 rounded-md text-gray-700 font-medium hover:bg-gray-100"
-                                        onClick={() => setShowEditModal(false)}
-                                        disabled={isEditing}
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="px-6 py-2 rounded-md bg-orange-500 text-white font-semibold hover:bg-orange-600 flex items-center gap-2 disabled:opacity-60"
-                                        disabled={isEditing}
-                                    >
-                                        {isEditing ? (
-                                            <>
-                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                                <span>Saving...</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Save size={18} />
-                                                <span>Save Changes</span>
-                                            </>
-                                        )}
-                                    </button>
-                                </div>
-                            </form>
-                        )}
-                    </DialogContent>
-                </Dialog>
 
-                <AddRiskWithProjectModal
-                    isOpen={showAddModal}
-                    onClose={() => setShowAddModal(false)}
-                    onSuccess={async () => {
-                        setShowAddModal(false);
-                        // Refresh risks list
-                        try {
-                            const res = await axios.get("/api/risks", {
-                                headers: {
-                                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                                },
-                            });
-                            const risksData = Array.isArray(res.data.risks)
-                                ? res.data.risks
-                                : [];
-                            setRisks(risksData);
-                            setFilteredRisks(risksData);
-                        } catch (err) {
-                            setRisks([]);
-                            setFilteredRisks([]);
-                        }
-                    }}
-                    projects={projects}
-                />
             </div>
         </DashboardLayout>
     );

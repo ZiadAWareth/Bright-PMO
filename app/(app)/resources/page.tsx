@@ -31,18 +31,59 @@ import {
   ChevronRight,
   ChevronLeft,
   Edit,
+  Eye,
   Trash2,
   MoreHorizontal,
   X,
   Grid,
   List,
 } from "lucide-react";
-import ResourceGrid from "@/components/ResourceGrid";
 import { FilterBar, FilterSelect } from "@/components/ui/filter-bar";
-import ResourceEditModal from "@/components/ResourceEditModal";
-import ConfirmationModal from "@/components/ui/confirmation-modal";
 import { toast } from "sonner";
 import axios from "axios";
+import { LoadingState, Spinner } from "@/components/ui/spinner";
+import { useConfirm } from "@/components/ui/confirm-provider";
+import { Dropdown } from "@/components/ui/dropdown";
+import { TabRow } from "@/components/ui/tab-row";
+import { ListPagination } from "@/components/ui/list-pagination";
+import { ViewToggle, type ListViewMode } from "@/components/ui/view-toggle";
+import { PersonCell } from "@/components/ui/person-cell";
+import {
+  EmptyState,
+  EntityCard,
+  EntityCardFooter,
+  EntityCardHeader,
+  EntityProgress,
+  EntityStat,
+  EntityStats,
+  StatGrid,
+  StatTile,
+} from "@/components/ui/entity-card";
+import {
+  ListCard,
+  ListHead,
+  ListMessage,
+  ListRow,
+  RowAction,
+  RowActions,
+  StatusBadge,
+} from "@/components/ui/form-shell";
+import {
+  humanize,
+  resourceStatusTone,
+  utilizationTone,
+} from "@/lib/status-tone";
+
+const PAGE_SIZE = 12;
+const RESOURCE_COLUMNS = [
+  "Name",
+  "Position",
+  "Department",
+  "Type",
+  "Status",
+  "Projects",
+  "Utilization",
+];
 
 // Types for Resource Management
 interface Resource {
@@ -121,6 +162,7 @@ type UserRole = "admin" | "project-manager" | "technical" | "pmo" | "executive";
 
 const ResourceManagementPage: React.FC = () => {
   const router = useRouter();
+  const confirm = useConfirm();
   const [userRole] = useState<UserRole>("admin"); // This would come from auth context
   const [currentUserId] = useState("user-123"); // This would come from auth context
   const [resources, setResources] = useState<Resource[]>([]);
@@ -165,6 +207,24 @@ const ResourceManagementPage: React.FC = () => {
     const matchesType = typeFilter === "all" || resource.type === typeFilter;
     return matchesSearch && matchesDepartment && matchesStatus && matchesType;
   });
+  const [view, setView] = useState<ListViewMode>("grid");
+  const [page, setPage] = useState(0);
+
+  // Filtering changes what "page 1" means, so reset rather than stranding the
+  // user on a page index that no longer has rows.
+  useEffect(
+    () => setPage(0),
+    [searchTerm, departmentFilter, statusFilter, typeFilter, view],
+  );
+
+  const resourcePageCount = Math.max(
+    1,
+    Math.ceil(filteredResources.length / PAGE_SIZE),
+  );
+  const visibleResources = filteredResources.slice(
+    page * PAGE_SIZE,
+    (page + 1) * PAGE_SIZE,
+  );
   const [showResourceRequest, setShowResourceRequest] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [totalResources, setTotalResources] = useState(0);
@@ -180,20 +240,12 @@ const ResourceManagementPage: React.FC = () => {
   const [overallocationPercentage, setOverallocationPercentage] = useState(0);
   const [overloadedResourcesCount, setOverloadedResourcesCount] = useState(0);
   const [activeTab, setActiveTab] = useState("grid");
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editingResourceId, setEditingResourceId] = useState<number | null>(
-    null
-  );
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [resourceToDelete, setResourceToDelete] = useState<Resource | null>(
-    null
-  );
 
   // Update resourceTabs to only include grid and calendar
   const resourceTabs = [
     {
       id: "grid",
-      label: "Grid View",
+      label: "View",
       icon: <Grid size={16} />,
     },
     {
@@ -619,13 +671,13 @@ const ResourceManagementPage: React.FC = () => {
             key={index}
             onClick={() => {
               if ("action" in action && action.action === "add_resource") {
-                router.push("/resources/create");
+                router.push("/resources/new");
               }
             }}
             className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
               action.variant === "primary"
-                ? "bg-orange-600 text-white hover:bg-orange-700"
-                : "border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700"
+                ? "bg-bright text-white hover:bg-bright-deep"
+                : "border border-line text-ink-3 hover:bg-surface-2"
             }`}
           >
             {action.icon}
@@ -637,88 +689,56 @@ const ResourceManagementPage: React.FC = () => {
   };
 
   const renderStatsCards = () => {
-    const activeResources = resources.filter(
-      (r) => r.status === "active"
-    ).length;
     const totalCost = resources.reduce(
       (acc, r) => acc + r.hourlyRate * r.allocatedHours,
       0
     );
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
-                {userRole === "technical"
-                  ? "My Utilization"
-                  : "Total Resources"}
-              </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {userRole === "technical" ? "78%" : totalResources}
-              </p>
-            </div>
-            <Users className="w-8 h-8 text-blue-500" />
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
-                {userRole === "technical"
-                  ? "Current Projects"
-                  : "Available Resources"}
-              </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {userRole === "technical" ? "3" : availableResources}
-              </p>
-            </div>
-            <CheckCircle className="w-8 h-8 text-green-500" />
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
-                {userRole === "executive" ? "Resource ROI" : "Overallocation"}
-              </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {userRole === "executive"
-                  ? "4.2x"
-                  : `${overallocationPercentage}%`}
-              </p>
-              {overloadedResourcesCount > 0 && (
-                <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-                  {overloadedResourcesCount} resource
-                  {overloadedResourcesCount !== 1 ? "s" : ""} overloaded
-                </p>
-              )}
-            </div>
-            <AlertTriangle className="w-8 h-8 text-red-500" />
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
-                {userRole === "executive"
-                  ? "Total Cost/Week"
-                  : "Avg Utilization"}
-              </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {userRole === "executive"
-                  ? `OMR ${Math.round(totalCost).toLocaleString()}`
-                  : `${avgUtilization}%`}
-              </p>
-            </div>
-            <DollarSign className="w-8 h-8 text-yellow-500" />
-          </div>
-        </div>
-      </div>
+      <StatGrid>
+        <StatTile
+          label={userRole === "technical" ? "My utilization" : "Total resources"}
+          value={userRole === "technical" ? "78%" : totalResources}
+          hint={
+            userRole === "technical" ? "Across your projects" : "In the pool"
+          }
+          icon={<Users className="h-4 w-4" />}
+        />
+        <StatTile
+          label={
+            userRole === "technical" ? "Current projects" : "Available resources"
+          }
+          value={userRole === "technical" ? "3" : availableResources}
+          hint="Ready to allocate"
+          icon={<CheckCircle className="h-4 w-4" />}
+          tone={availableResources > 0 ? "success" : "neutral"}
+        />
+        <StatTile
+          label={userRole === "executive" ? "Resource ROI" : "Overallocation"}
+          value={
+            userRole === "executive" ? "4.2x" : `${overallocationPercentage}%`
+          }
+          hint={
+            overloadedResourcesCount > 0
+              ? `${overloadedResourcesCount} resource${overloadedResourcesCount !== 1 ? "s" : ""} overloaded`
+              : "Nobody over capacity"
+          }
+          icon={<AlertTriangle className="h-4 w-4" />}
+          tone={overloadedResourcesCount > 0 ? "danger" : "neutral"}
+        />
+        <StatTile
+          label={
+            userRole === "executive" ? "Total cost / week" : "Avg utilization"
+          }
+          value={
+            userRole === "executive"
+              ? `OMR ${Math.round(totalCost).toLocaleString()}`
+              : `${avgUtilization}%`
+          }
+          hint="Team average"
+          icon={<DollarSign className="h-4 w-4" />}
+        />
+      </StatGrid>
     );
   };
 
@@ -840,19 +860,14 @@ const ResourceManagementPage: React.FC = () => {
     return Array.from(resourceMap.values());
   };
 
-  const handleEditSuccess = () => {
-    setShowEditModal(false);
-    setEditingResourceId(null);
-    fetchResources(); // Refresh the resource list
-  };
-
-  const handleDeleteResource = (resource: Resource) => {
-    setResourceToDelete(resource);
-    setShowDeleteModal(true);
-  };
-
-  const confirmDelete = async () => {
-    if (!resourceToDelete) return;
+  const handleDeleteResource = async (resource: Resource) => {
+    const ok = await confirm({
+      title: "Delete resource?",
+      message: `${resource.firstName} ${resource.lastName} will be removed permanently.`,
+      confirmText: "Delete",
+      tone: "danger",
+    });
+    if (!ok) return;
 
     try {
       // Get the auth token from localStorage
@@ -863,7 +878,7 @@ const ResourceManagementPage: React.FC = () => {
         return;
       }
 
-      const response = await fetch(`/api/resources/${resourceToDelete.id}`, {
+      const response = await fetch(`/api/resources/${resource.id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -897,204 +912,333 @@ const ResourceManagementPage: React.FC = () => {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+          <Spinner size={64} className="text-bright-primary" />
         </div>
       </DashboardLayout>
     );
   }
 
-  return (
-    <DashboardLayout title="Resource Management">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-gray-600 dark:text-gray-400">
-              {userRole === "admin" &&
-                "System-wide resource overview and management"}
-              {userRole === "project-manager" &&
-                "Manage resources for your projects"}
-              {userRole === "technical" &&
-                "View your workload and manage your profile"}
-              {userRole === "pmo" &&
-                "Portfolio resource governance and optimization"}
-              {userRole === "executive" &&
-                "High-level resource metrics and strategic decisions"}
-            </p>
-          </div>
-          {renderRoleSpecificControls()}
-        </div>
+  const rowActions = (resource: Resource) => (
+    <RowActions>
+      <RowAction
+        icon={Eye}
+        label={`View ${resource.firstName} ${resource.lastName}`}
+        onClick={() => router.push(`/resources/${resource.id}`)}
+      />
+      <RowAction
+        icon={Edit}
+        label={`Edit ${resource.firstName} ${resource.lastName}`}
+        onClick={() => router.push(`/resources/${resource.id}/edit`)}
+      />
+      <RowAction
+        icon={Trash2}
+        label={`Delete ${resource.firstName} ${resource.lastName}`}
+        tone="danger"
+        onClick={() => handleDeleteResource(resource)}
+      />
+    </RowActions>
+  );
 
+  const renderCard = (resource: Resource) => {
+    const fullName = `${resource.firstName} ${resource.lastName}`.trim();
+
+    return (
+      <EntityCard
+        key={resource.id}
+        onClick={() => router.push(`/resources/${resource.id}`)}
+      >
+        <EntityCardHeader
+          title={fullName}
+          subtitle={resource.position}
+          badges={
+            <>
+              <StatusBadge
+                label={humanize(resource.status)}
+                tone={resourceStatusTone(resource.status)}
+              />
+              <StatusBadge label={humanize(resource.type)} tone="info" />
+              {resource.department && (
+                <StatusBadge label={resource.department} />
+              )}
+            </>
+          }
+        />
+
+        <EntityStats>
+          <EntityStat icon={<Briefcase className="h-3.5 w-3.5" />}>
+            {resource.currentProjects?.length ?? 0}{" "}
+            {(resource.currentProjects?.length ?? 0) === 1
+              ? "project"
+              : "projects"}
+          </EntityStat>
+          <EntityStat icon={<DollarSign className="h-3.5 w-3.5" />}>
+            {resource.hourlyRate}/hr
+          </EntityStat>
+        </EntityStats>
+
+        <EntityProgress
+          label="Utilization"
+          value={Math.min(resource.utilization ?? 0, 100)}
+          display={`${Math.round(resource.utilization ?? 0)}%`}
+          tone={utilizationTone(resource.utilization ?? 0)}
+        />
+
+        <EntityCardFooter
+          actions={
+            <div onClick={(e) => e.stopPropagation()}>
+              {rowActions(resource)}
+            </div>
+          }
+        >
+          <PersonCell
+            name={fullName}
+            avatarUrl={resource.profileImage}
+            subtitle={resource.location || resource.department}
+          />
+        </EntityCardFooter>
+      </EntityCard>
+    );
+  };
+
+  return (
+    <DashboardLayout
+      title="Resource Management"
+      subtitle={
+        userRole === "admin"
+          ? "System-wide resource overview and management."
+          : userRole === "project-manager"
+            ? "Manage resources for your projects."
+            : userRole === "technical"
+              ? "View your workload and manage your profile."
+              : userRole === "pmo"
+                ? "Portfolio resource governance and optimization."
+                : "High-level resource metrics and strategic decisions."
+      }
+      actions={
+        <>
+          {activeTab === "grid" && (
+            <ViewToggle value={view} onChange={setView} />
+          )}
+          {renderRoleSpecificControls()}
+        </>
+      }
+    >
+      <div className="space-y-6">
         {/* Stats Cards */}
         {renderStatsCards()}
 
-        {/* Tab Navigation */}
-        <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl mb-6">
-          <div className="flex items-center space-x-1 p-1 overflow-x-auto whitespace-nowrap">
-            {resourceTabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveTab(tab.id);
-                  if (tab.id === "grid") {
-                    setShowResourceGrid(true);
-                    setShowResourceCalendar(false);
-                  } else if (tab.id === "calendar") {
-                    fetchResourceCalendar();
-                    setShowResourceGrid(false);
-                    setShowResourceCalendar(true);
-                  }
-                }}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  activeTab === tab.id
-                    ? "bg-orange-500 text-white shadow-sm"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-slate-700"
-                }`}
-              >
-                {tab.icon}
-                <span>{tab.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Search + filters */}
-        <div className="mb-6">
-          <FilterBar
-            search={searchTerm}
-            onSearch={setSearchTerm}
-            searchPlaceholder="Search resources by name, role or department…"
-            resultLabel={`${filteredResources.length} ${filteredResources.length === 1 ? "resource" : "resources"}`}
-            activeCount={
-              (departmentFilter !== "all" ? 1 : 0) +
-              (statusFilter !== "all" ? 1 : 0) +
-              (typeFilter !== "all" ? 1 : 0)
+        <TabRow
+          tabs={resourceTabs}
+          value={activeTab}
+          onChange={(id) => {
+            setActiveTab(id);
+            if (id === "grid") {
+              setShowResourceGrid(true);
+              setShowResourceCalendar(false);
+            } else if (id === "calendar") {
+              fetchResourceCalendar();
+              setShowResourceGrid(false);
+              setShowResourceCalendar(true);
             }
-            onClear={() => {
-              setDepartmentFilter("all");
-              setStatusFilter("all");
-              setTypeFilter("all");
-            }}
-          >
-            <FilterSelect
-              label="Department"
-              value={departmentFilter}
-              onChange={setDepartmentFilter}
-              options={[
-                { value: "all", label: "All departments" },
-                ...resourceDepartments.map((d) => ({ value: d, label: d })),
-              ]}
-            />
-            <FilterSelect
-              label="Type"
-              value={typeFilter}
-              onChange={setTypeFilter}
-              options={[
-                { value: "all", label: "All types" },
-                { value: "labor", label: "Labor" },
-                { value: "equipment", label: "Equipment" },
-                { value: "material", label: "Material" },
-              ]}
-            />
-            <FilterSelect
-              label="Status"
-              value={statusFilter}
-              onChange={setStatusFilter}
-              options={[
-                { value: "all", label: "All statuses" },
-                { value: "active", label: "Active" },
-                { value: "inactive", label: "Inactive" },
-                { value: "on-leave", label: "On leave" },
-                { value: "contractor", label: "Contractor" },
-              ]}
-            />
-          </FilterBar>
-        </div>
+          }}
+        />
 
         {/* Tab Content */}
-        <div className="space-y-6">
-          {/* Grid View Content */}
-          {activeTab === "grid" && showResourceGrid && (
-            <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  Resource Grid View
-                </h3>
-                <button
-                  onClick={() => {
-                    setShowResourceGrid(false);
-                    setActiveTab("grid");
-                  }}
-                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-
-              <ResourceGrid
-                resources={filteredResources}
-                onResourceClick={(resource) => {
-                  setSelectedResource(resource);
-                  // You can add modal or navigation logic here
-                }}
-                onEditResource={(resource) => {
-                  setEditingResourceId(parseInt(resource.id));
-                  setShowEditModal(true);
-                }}
-                onDeleteResource={handleDeleteResource}
+        {activeTab === "grid" && showResourceGrid && (
+          <div className="space-y-6">
+            <FilterBar
+              search={searchTerm}
+              onSearch={setSearchTerm}
+              searchPlaceholder="Search resources by name, role or department…"
+              resultLabel={`${filteredResources.length} ${filteredResources.length === 1 ? "resource" : "resources"}`}
+              activeCount={
+                (departmentFilter !== "all" ? 1 : 0) +
+                (statusFilter !== "all" ? 1 : 0) +
+                (typeFilter !== "all" ? 1 : 0)
+              }
+              onClear={() => {
+                setDepartmentFilter("all");
+                setStatusFilter("all");
+                setTypeFilter("all");
+              }}
+            >
+              <FilterSelect
+                label="Department"
+                value={departmentFilter}
+                onChange={setDepartmentFilter}
+                searchable={resourceDepartments.length > 10}
+                options={[
+                  { value: "all", label: "All departments" },
+                  ...resourceDepartments.map((d) => ({ value: d, label: d })),
+                ]}
               />
-            </div>
-          )}
+              <FilterSelect
+                label="Type"
+                value={typeFilter}
+                onChange={setTypeFilter}
+                options={[
+                  { value: "all", label: "All types" },
+                  { value: "labor", label: "Labor" },
+                  { value: "equipment", label: "Equipment" },
+                  { value: "material", label: "Material" },
+                ]}
+              />
+              <FilterSelect
+                label="Status"
+                value={statusFilter}
+                onChange={setStatusFilter}
+                options={[
+                  { value: "all", label: "All statuses" },
+                  { value: "active", label: "Active" },
+                  { value: "inactive", label: "Inactive" },
+                  { value: "on-leave", label: "On leave" },
+                  { value: "contractor", label: "Contractor" },
+                ]}
+              />
+            </FilterBar>
 
-          {/* Calendar View Content */}
-          {activeTab === "calendar" && showResourceCalendar && (
-            <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  Resource Allocation Calendar
-                </h3>
-                <button
-                  onClick={() => {
-                    setShowResourceCalendar(false);
-                    setActiveTab("grid");
-                  }}
-                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                >
-                  <X size={24} />
-                </button>
+            {filteredResources.length === 0 ? (
+              <EmptyState
+                icon={<Users className="h-10 w-10" />}
+                title="No resources found"
+                message={
+                  resources.length === 0
+                    ? "No resources have been added yet."
+                    : "Try adjusting your filters to see more results."
+                }
+                action={
+                  resources.length > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchTerm("");
+                        setDepartmentFilter("all");
+                        setStatusFilter("all");
+                        setTypeFilter("all");
+                      }}
+                      className="text-[13px] font-semibold text-bright hover:text-bright-deep"
+                    >
+                      Clear all filters
+                    </button>
+                  ) : undefined
+                }
+              />
+            ) : view === "grid" ? (
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+                {visibleResources.map(renderCard)}
               </div>
+            ) : (
+              <ListCard>
+                <table className="w-full border-collapse">
+                  <ListHead columns={RESOURCE_COLUMNS} />
+                  <tbody>
+                    {visibleResources.length === 0 ? (
+                      <ListMessage colSpan={RESOURCE_COLUMNS.length + 1}>
+                        No resources on this page.
+                      </ListMessage>
+                    ) : (
+                      visibleResources.map((resource) => (
+                        <ListRow
+                          key={resource.id}
+                          onClick={() =>
+                            router.push(`/resources/${resource.id}`)
+                          }
+                        >
+                          <td className="max-w-[180px] px-4 py-3">
+                            <PersonCell
+                              name={`${resource.firstName} ${resource.lastName}`.trim()}
+                              email={resource.email}
+                              avatarUrl={resource.profileImage}
+                            />
+                          </td>
+                          <td className="px-4 py-3 text-[13.5px] text-ink-2">
+                            {resource.position || (
+                              <span className="text-faint">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-[13.5px] text-ink-2">
+                            {resource.department || (
+                              <span className="text-faint">—</span>
+                            )}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3">
+                            <StatusBadge
+                              label={humanize(resource.type)}
+                              tone="info"
+                            />
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3">
+                            <StatusBadge
+                              label={humanize(resource.status)}
+                              tone={resourceStatusTone(resource.status)}
+                            />
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-[13.5px] tabular-nums text-ink-2">
+                            {resource.currentProjects?.length ?? 0}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <div className="h-1.5 w-16 overflow-hidden rounded-full bg-surface-3">
+                                <div
+                                  className={`h-full rounded-full ${
+                                    (resource.utilization ?? 0) > 100
+                                      ? "bg-danger"
+                                      : (resource.utilization ?? 0) >= 80
+                                        ? "bg-success"
+                                        : (resource.utilization ?? 0) >= 50
+                                          ? "bg-warning"
+                                          : "bg-bright"
+                                  }`}
+                                  style={{
+                                    width: `${Math.min(resource.utilization ?? 0, 100)}%`,
+                                  }}
+                                />
+                              </div>
+                              <span className="text-[12px] tabular-nums text-muted">
+                                {Math.round(resource.utilization ?? 0)}%
+                              </span>
+                            </div>
+                          </td>
+                          <td
+                            className="px-4 py-3"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {rowActions(resource)}
+                          </td>
+                        </ListRow>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </ListCard>
+            )}
 
+            {filteredResources.length > 0 && (
+              <ListPagination
+                page={page}
+                pageCount={resourcePageCount}
+                total={filteredResources.length}
+                pageSize={PAGE_SIZE}
+                onPageChange={setPage}
+                noun="resource"
+              />
+            )}
+          </div>
+        )}
+
+        {/* Calendar View Content */}
+        {activeTab === "calendar" && showResourceCalendar && (
+          <div className="rounded-[14px] border border-line bg-surface p-6 shadow-card">
+            {isLoadingCalendar ? (
+              <LoadingState label="Loading calendar…" />
+            ) : (
               <ResourceCalendarView allocations={resourceAllocations} />
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Resource Edit Modal */}
-      <ResourceEditModal
-        isOpen={showEditModal}
-        onClose={() => {
-          setShowEditModal(false);
-          setEditingResourceId(null);
-        }}
-        resourceId={editingResourceId}
-        onSuccess={handleEditSuccess}
-      />
 
-      {/* Confirmation Modal */}
-      <ConfirmationModal
-        isOpen={showDeleteModal}
-        onClose={() => {
-          setShowDeleteModal(false);
-          setResourceToDelete(null);
-        }}
-        onConfirm={confirmDelete}
-        title="Confirm Resource Deletion"
-        message={`Are you sure you want to delete ${resourceToDelete?.firstName} ${resourceToDelete?.lastName}? This action cannot be undone.`}
-        confirmText="Delete"
-        cancelText="Cancel"
-        type="danger"
-      />
     </DashboardLayout>
   );
 };
@@ -1169,12 +1313,12 @@ const ResourceCalendarView: React.FC<ResourceCalendarViewProps> = ({
       calendarDays.push(
         <div
           key={day}
-          className={`h-32 p-1 border border-gray-200 dark:border-gray-700 ${
+          className={`h-32 p-1 border border-line ${
             isToday
-              ? "bg-blue-50 dark:bg-blue-900/20"
+              ? "bg-info-soft"
               : isWeekend
-              ? "bg-gray-50 dark:bg-gray-900/50"
-              : "bg-white dark:bg-gray-800"
+              ? "bg-surface-2 "
+              : "bg-surface"
           } ${
             hasAssignments
               ? "hover:shadow-sm transition-shadow cursor-pointer"
@@ -1192,8 +1336,8 @@ const ResourceCalendarView: React.FC<ResourceCalendarViewProps> = ({
           <div
             className={`text-sm font-medium mb-1 ${
               isToday
-                ? "text-blue-600 dark:text-blue-400"
-                : "text-gray-900 dark:text-gray-100"
+                ? "text-info"
+                : "text-ink"
             }`}
           >
             {day}
@@ -1205,10 +1349,10 @@ const ResourceCalendarView: React.FC<ResourceCalendarViewProps> = ({
                 key={assignment.id}
                 className={`p-1 rounded truncate cursor-default ${
                   assignment.status === "active"
-                    ? "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200"
+                    ? "bg-success-soft text-success  "
                     : assignment.status === "planned"
-                    ? "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200"
-                    : "bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200"
+                    ? "bg-info-soft text-info  "
+                    : "bg-accent-violet-soft text-accent-violet  "
                 }`}
                 title={`${assignment.resource.name} - ${assignment.title} (${assignment.allocation}%)`}
               >
@@ -1222,7 +1366,7 @@ const ResourceCalendarView: React.FC<ResourceCalendarViewProps> = ({
               </div>
             ))}
             {dayAssignments.length > 3 && (
-              <div className="text-xs text-gray-500 dark:text-gray-400 text-center cursor-default">
+              <div className="text-xs text-muted text-center cursor-default">
                 +{dayAssignments.length - 3} more
               </div>
             )}
@@ -1260,36 +1404,29 @@ const ResourceCalendarView: React.FC<ResourceCalendarViewProps> = ({
                 )
               )
             }
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+            className="p-2 hover:bg-surface-2 rounded-lg"
           >
             <ChevronLeft size={20} />
           </button>
 
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+          <h2 className="text-xl font-semibold text-ink">
             {currentMonth.toLocaleDateString("en-US", {
               month: "long",
             })}
           </h2>
 
           {/* Year Dropdown */}
-          <select
-            value={currentMonth.getFullYear()}
-            onChange={(e) =>
+          <Dropdown
+            value={String(currentMonth.getFullYear() ?? '')}
+            onChange={(__v: string) =>
               setCurrentMonth(
-                new Date(parseInt(e.target.value), currentMonth.getMonth())
-              )
-            }
-            className="text-xl font-semibold text-gray-900 dark:text-white bg-transparent border-none outline-none cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 focus:ring-0"
-          >
-            {Array.from({ length: 21 }, (_, i) => {
+                new Date(parseInt(__v), currentMonth.getMonth())
+              )}
+            options={Array.from({ length: 21 }, (_, i) => {
               const year = new Date().getFullYear() - 10 + i;
-              return (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              );
+              return { value: String(year), label: String(year) };
             })}
-          </select>
+          />
 
           <button
             onClick={() =>
@@ -1300,7 +1437,7 @@ const ResourceCalendarView: React.FC<ResourceCalendarViewProps> = ({
                 )
               )
             }
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+            className="p-2 hover:bg-surface-2 rounded-lg"
           >
             <ChevronRight size={20} />
           </button>
@@ -1308,15 +1445,15 @@ const ResourceCalendarView: React.FC<ResourceCalendarViewProps> = ({
 
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-green-500 rounded"></div>
+            <div className="w-3 h-3 bg-success rounded"></div>
             <span className="text-sm">Active</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-blue-500 rounded"></div>
+            <div className="w-3 h-3 bg-info rounded"></div>
             <span className="text-sm">Planned</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-purple-500 rounded"></div>
+            <div className="w-3 h-3 bg-accent-violet rounded"></div>
             <span className="text-sm">Completed</span>
           </div>
         </div>
@@ -1328,7 +1465,7 @@ const ResourceCalendarView: React.FC<ResourceCalendarViewProps> = ({
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
           <div
             key={day}
-            className="h-8 flex items-center justify-center text-sm font-medium text-gray-500 dark:text-gray-400"
+            className="h-8 flex items-center justify-center text-sm font-medium text-muted"
           >
             {day}
           </div>
@@ -1340,37 +1477,37 @@ const ResourceCalendarView: React.FC<ResourceCalendarViewProps> = ({
 
       {/* Resource Details Panel */}
       {selectedResource && (
-        <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+        <div className="mt-6 p-4 bg-surface-2 rounded-lg">
+          <h3 className="text-lg font-semibold text-ink mb-2">
             {selectedResource.name}
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
-              <span className="text-gray-600 dark:text-gray-400">Role:</span>
+              <span className="text-muted">Role:</span>
               <p className="font-medium">{selectedResource.role}</p>
             </div>
             <div>
-              <span className="text-gray-600 dark:text-gray-400">
+              <span className="text-muted">
                 Department:
               </span>
               <p className="font-medium">{selectedResource.department}</p>
             </div>
             <div>
-              <span className="text-gray-600 dark:text-gray-400">
+              <span className="text-muted">
                 Availability:
               </span>
               <p
                 className={`font-medium ${
                   selectedResource.availability === "available"
-                    ? "text-green-600"
-                    : "text-red-600"
+                    ? "text-success"
+                    : "text-danger"
                 }`}
               >
                 {selectedResource.availability}
               </p>
             </div>
             <div>
-              <span className="text-gray-600 dark:text-gray-400">
+              <span className="text-muted">
                 Assignments:
               </span>
               <p className="font-medium">
@@ -1384,9 +1521,9 @@ const ResourceCalendarView: React.FC<ResourceCalendarViewProps> = ({
       {/* Day Details Modal */}
       {showDayDetails && selectedDay && (
         <div className="fixed inset-0 backdrop-blur-sm bg-white/30 dark:bg-black/30 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden shadow-2xl">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <div className="bg-surface rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden shadow-2xl">
+            <div className="flex items-center justify-between p-6 border-b border-line">
+              <h3 className="text-lg font-semibold text-ink">
                 {selectedDay.toLocaleDateString("en-US", {
                   weekday: "long",
                   year: "numeric",
@@ -1396,7 +1533,7 @@ const ResourceCalendarView: React.FC<ResourceCalendarViewProps> = ({
               </h3>
               <button
                 onClick={() => setShowDayDetails(false)}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                className="text-muted hover:text-ink-3"
               >
                 <X size={24} />
               </button>
@@ -1411,12 +1548,12 @@ const ResourceCalendarView: React.FC<ResourceCalendarViewProps> = ({
                     <div className="text-center py-8">
                       <Calendar
                         size={48}
-                        className="mx-auto text-gray-400 mb-4"
+                        className="mx-auto text-faint mb-4"
                       />
-                      <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                      <h4 className="text-lg font-medium text-ink mb-2">
                         No Assignments
                       </h4>
-                      <p className="text-gray-600 dark:text-gray-400">
+                      <p className="text-muted">
                         No resource assignments scheduled for this day.
                       </p>
                     </div>
@@ -1426,20 +1563,20 @@ const ResourceCalendarView: React.FC<ResourceCalendarViewProps> = ({
                 return (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-lg font-medium text-gray-900 dark:text-white">
+                      <h4 className="text-lg font-medium text-ink">
                         Resource Assignments ({dayAssignments.length})
                       </h4>
                       <div className="flex items-center space-x-4">
                         <div className="flex items-center space-x-2">
-                          <div className="w-3 h-3 bg-green-500 rounded"></div>
+                          <div className="w-3 h-3 bg-success rounded"></div>
                           <span className="text-sm">Active</span>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <div className="w-3 h-3 bg-blue-500 rounded"></div>
+                          <div className="w-3 h-3 bg-info rounded"></div>
                           <span className="text-sm">Planned</span>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <div className="w-3 h-3 bg-purple-500 rounded"></div>
+                          <div className="w-3 h-3 bg-accent-violet rounded"></div>
                           <span className="text-sm">Completed</span>
                         </div>
                       </div>
@@ -1451,25 +1588,25 @@ const ResourceCalendarView: React.FC<ResourceCalendarViewProps> = ({
                           key={assignment.id}
                           className={`p-4 rounded-lg border ${
                             assignment.status === "active"
-                              ? "bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-700"
+                              ? "bg-success-soft border-success  "
                               : assignment.status === "planned"
-                              ? "bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-700"
-                              : "bg-purple-50 border-purple-200 dark:bg-purple-900/20 dark:border-purple-700"
+                              ? "bg-info-soft border-info  "
+                              : "bg-accent-violet-soft border-accent-violet  "
                           }`}
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <div className="flex items-center space-x-3 mb-2">
-                                <h5 className="font-semibold text-gray-900 dark:text-white">
+                                <h5 className="font-semibold text-ink">
                                   {assignment.resource.name}
                                 </h5>
                                 <span
                                   className={`px-2 py-1 rounded-full text-xs ${
                                     assignment.status === "active"
-                                      ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                      ? "bg-success-soft text-success  "
                                       : assignment.status === "planned"
-                                      ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                                      : "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+                                      ? "bg-info-soft text-info  "
+                                      : "bg-accent-violet-soft text-accent-violet  "
                                   }`}
                                 >
                                   {assignment.status}
@@ -1478,7 +1615,7 @@ const ResourceCalendarView: React.FC<ResourceCalendarViewProps> = ({
 
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                                 <div>
-                                  <span className="text-gray-600 dark:text-gray-400">
+                                  <span className="text-muted">
                                     Role:
                                   </span>
                                   <p className="font-medium">
@@ -1486,7 +1623,7 @@ const ResourceCalendarView: React.FC<ResourceCalendarViewProps> = ({
                                   </p>
                                 </div>
                                 <div>
-                                  <span className="text-gray-600 dark:text-gray-400">
+                                  <span className="text-muted">
                                     Department:
                                   </span>
                                   <p className="font-medium">
@@ -1494,7 +1631,7 @@ const ResourceCalendarView: React.FC<ResourceCalendarViewProps> = ({
                                   </p>
                                 </div>
                                 <div>
-                                  <span className="text-gray-600 dark:text-gray-400">
+                                  <span className="text-muted">
                                     Allocation:
                                   </span>
                                   <p className="font-medium">
@@ -1504,7 +1641,7 @@ const ResourceCalendarView: React.FC<ResourceCalendarViewProps> = ({
                               </div>
 
                               <div className="mt-3">
-                                <span className="text-gray-600 dark:text-gray-400">
+                                <span className="text-muted">
                                   Assignment:
                                 </span>
                                 <p className="font-medium mt-1">
@@ -1512,7 +1649,7 @@ const ResourceCalendarView: React.FC<ResourceCalendarViewProps> = ({
                                 </p>
                               </div>
 
-                              <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                              <div className="mt-3 text-xs text-muted">
                                 <span>Period: </span>
                                 {new Date(
                                   assignment.startDate

@@ -1,63 +1,74 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BarChart3,
   Database,
   Download,
   FileSpreadsheet,
   FileText,
-  Loader2,
   Presentation,
   Table2,
   type LucideIcon,
 } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { FilterBar, FilterSelect } from "@/components/ui/filter-bar";
+import {
+  EmptyState,
+  EntityCard,
+  EntityCardFooter,
+  EntityCardHeader,
+  EntityStat,
+  EntityStats,
+} from "@/components/ui/entity-card";
+import {
+  ListCard,
+  ListHead,
+  ListMessage,
+  ListRow,
+  StatusBadge,
+} from "@/components/ui/form-shell";
+import { ListPagination } from "@/components/ui/list-pagination";
+import { ViewToggle, type ListViewMode } from "@/components/ui/view-toggle";
 
 import { generateReport } from "@/lib/reporting/generator";
 import { REPORT_TEMPLATES } from "@/lib/reporting/templates";
 import type { ReportFormat, ReportTemplate } from "@/lib/reporting/types";
+import type { BadgeTone } from "@/components/ui/form-shell";
+import { Spinner } from "@/components/ui/spinner";
 
-/** Icon + accent per output format, so the file type is readable at a glance. */
+const PAGE_SIZE = 12;
+
+/*
+ * Six columns, not seven: "Version" was its own column for a two-character
+ * value, which cost more width than it earned. It now rides along with the
+ * owner, the way the card footer already prints it.
+ */
+const TEMPLATE_COLUMNS = [
+  "Template",
+  "Category",
+  "Format",
+  "Data sources",
+  "Owner",
+];
+
+/**
+ * Icon and badge tone per output format, so the file type is readable at a
+ * glance in both views.
+ *
+ * The tone comes from the shared `BadgeTone` scale rather than a per-screen
+ * Tailwind class map: these are the same four colours every other list screen
+ * uses for status, so they should be spelled the same way.
+ */
 const FORMAT_STYLE: Record<
   ReportFormat,
-  { icon: LucideIcon; label: string; badge: string; tile: string }
+  { icon: LucideIcon; label: string; tone: BadgeTone }
 > = {
-  pdf: {
-    icon: FileText,
-    label: "PDF",
-    badge: "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300",
-    tile: "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400",
-  },
-  excel: {
-    icon: FileSpreadsheet,
-    label: "Excel",
-    badge:
-      "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
-    tile: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400",
-  },
-  powerpoint: {
-    icon: Presentation,
-    label: "PowerPoint",
-    badge:
-      "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300",
-    tile: "bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400",
-  },
-  csv: {
-    icon: Table2,
-    label: "CSV",
-    badge: "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
-    tile: "bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-400",
-  },
-  dashboard: {
-    icon: BarChart3,
-    label: "Dashboard",
-    badge:
-      "bg-slate-100 text-slate-700 dark:bg-slate-500/15 dark:text-slate-300",
-    tile: "bg-slate-100 text-slate-600 dark:bg-slate-500/10 dark:text-slate-300",
-  },
+  pdf: { icon: FileText, label: "PDF", tone: "danger" },
+  excel: { icon: FileSpreadsheet, label: "Excel", tone: "success" },
+  powerpoint: { icon: Presentation, label: "PowerPoint", tone: "brand" },
+  csv: { icon: Table2, label: "CSV", tone: "info" },
+  dashboard: { icon: BarChart3, label: "Dashboard", tone: "neutral" },
 };
 
 const humanise = (token: string) =>
@@ -71,16 +82,23 @@ const humanise = (token: string) =>
  * the only part backed by a working pipeline — `generateReport` queries live
  * PMO tables and builds the file in the browser — so the screen now leads with
  * them instead of burying them behind a tab.
+ *
+ * Structurally it follows the same shape as every other list screen: filter
+ * bar, a grid/table toggle, and pagination. Templates are a fixed set today, so
+ * the pagination rarely does anything — but a screen that looks like the others
+ * and behaves like them is worth more than one that saves a few lines by being
+ * special.
  */
 export default function ReportsPage() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [format, setFormat] = useState("all");
+  const [view, setView] = useState<ListViewMode>("grid");
+  const [page, setPage] = useState(0);
   const [downloading, setDownloading] = useState<string | null>(null);
 
   const categories = useMemo(
-    () =>
-      Array.from(new Set(REPORT_TEMPLATES.map((t) => t.category))).sort(),
+    () => Array.from(new Set(REPORT_TEMPLATES.map((t) => t.category))).sort(),
     [],
   );
   const formats = useMemo(
@@ -103,6 +121,13 @@ export default function ReportsPage() {
     });
   }, [search, category, format]);
 
+  const pageCount = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+  const paged = visible.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  // Filtering changes what "page 1" means, so reset rather than stranding the
+  // user on a page index that no longer has rows.
+  useEffect(() => setPage(0), [search, category, format, view]);
+
   const handleDownload = async (template: ReportTemplate) => {
     setDownloading(template.id);
     try {
@@ -114,135 +139,210 @@ export default function ReportsPage() {
 
   const activeCount = (category !== "all" ? 1 : 0) + (format !== "all" ? 1 : 0);
 
-  return (
-    <ProtectedRoute>
-      <DashboardLayout
-        title="Reports"
-        subtitle="Pick a template and download it — each one is built from live PMO data at the moment you click."
+  const clearFilters = () => {
+    setSearch("");
+    setCategory("all");
+    setFormat("all");
+  };
+
+  /** The download control, shared by both views so they cannot drift apart. */
+  const downloadButton = (template: ReportTemplate, compact = false) => {
+    const isDownloading = downloading === template.id;
+    return (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          void handleDownload(template);
+        }}
+        disabled={isDownloading}
+        className={
+          compact
+            ? "inline-flex h-8 items-center gap-1.5 rounded-[8px] border border-line px-2.5 text-[12.5px] font-semibold text-ink transition-colors hover:bg-surface-2 disabled:opacity-60"
+            : "inline-flex h-9 items-center gap-2 rounded-[10px] bg-bright px-4 text-[13px] font-semibold text-white transition-colors hover:bg-bright-deep disabled:opacity-60"
+        }
       >
-        <div>
-          <div className="mb-4">
-            <FilterBar
-              search={search}
-              onSearch={setSearch}
-              searchPlaceholder="Search templates by name, description or data source…"
-              resultLabel={`${visible.length} ${visible.length === 1 ? "template" : "templates"}`}
-              activeCount={activeCount}
-              onClear={() => {
-                setCategory("all");
-                setFormat("all");
-              }}
-            >
-              <FilterSelect
-                label="Category"
-                value={category}
-                onChange={setCategory}
-                options={[
-                  { value: "all", label: "All categories" },
-                  ...categories.map((c) => ({ value: c, label: humanise(c) })),
-                ]}
-              />
-              <FilterSelect
-                label="Format"
-                value={format}
-                onChange={setFormat}
-                options={[
-                  { value: "all", label: "All formats" },
-                  ...formats.map((f) => ({
-                    value: f,
-                    label: FORMAT_STYLE[f]?.label ?? humanise(f),
-                  })),
-                ]}
-              />
-            </FilterBar>
-          </div>
+        {isDownloading ? (
+          <>
+            <Spinner size={compact ? 14 : 16} />
+            {compact ? "…" : "Building…"}
+          </>
+        ) : (
+          <>
+            <Download
+              className={compact ? "h-3.5 w-3.5" : "h-4 w-4"}
+              aria-hidden="true"
+            />
+            Download
+          </>
+        )}
+      </button>
+    );
+  };
 
-          {visible.length === 0 ? (
-            <div className="rounded-[14px] border border-border bg-bg-surface p-10 text-center shadow-card">
-              <p className="text-sm text-text-secondary">
-                No template matches the current search or filter.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {visible.map((template) => {
-                const style = FORMAT_STYLE[template.format] ?? FORMAT_STYLE.pdf;
-                const Icon = style.icon;
-                const isDownloading = downloading === template.id;
+  return (
+    <DashboardLayout
+      title="Reports"
+      subtitle="Pick a template and download it — each one is built from live PMO data at the moment you click."
+      actions={<ViewToggle value={view} onChange={setView} />}
+    >
+      <div className="space-y-6">
+        <FilterBar
+          search={search}
+          onSearch={setSearch}
+          searchPlaceholder="Search templates by name, description or data source…"
+          resultLabel={`${visible.length} ${
+            visible.length === 1 ? "template" : "templates"
+          }`}
+          activeCount={activeCount}
+          onClear={() => {
+            setCategory("all");
+            setFormat("all");
+          }}
+        >
+          <FilterSelect
+            label="Category"
+            value={category}
+            onChange={setCategory}
+            options={[
+              { value: "all", label: "All categories" },
+              ...categories.map((c) => ({ value: c, label: humanise(c) })),
+            ]}
+          />
+          <FilterSelect
+            label="Format"
+            value={format}
+            onChange={setFormat}
+            options={[
+              { value: "all", label: "All formats" },
+              ...formats.map((f) => ({
+                value: f,
+                label: FORMAT_STYLE[f]?.label ?? humanise(f),
+              })),
+            ]}
+          />
+        </FilterBar>
 
-                return (
-                  <article
-                    key={template.id}
-                    className="flex flex-col rounded-[14px] border border-border bg-bg-surface p-5 shadow-card transition-all hover:border-wujha-primary/40 hover:shadow-card-lg"
+        {visible.length === 0 ? (
+          <EmptyState
+            icon={<FileText className="h-10 w-10" />}
+            title="No templates found"
+            message="No template matches the current search or filter."
+            action={
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="text-[13px] font-semibold text-bright hover:text-bright-deep"
+              >
+                Clear all filters
+              </button>
+            }
+          />
+        ) : view === "grid" ? (
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {paged.map((template) => {
+              const style = FORMAT_STYLE[template.format] ?? FORMAT_STYLE.pdf;
+
+              return (
+                <EntityCard key={template.id}>
+                  <EntityCardHeader
+                    title={template.name}
+                    subtitle={template.description}
+                    badges={
+                      <StatusBadge label={style.label} tone={style.tone} />
+                    }
+                  />
+
+                  <EntityStats>
+                    <EntityStat icon={<Database className="h-3.5 w-3.5" />}>
+                      {template.dataSource.map(humanise).join(", ") || "—"}
+                    </EntityStat>
+                    <EntityStat icon={<BarChart3 className="h-3.5 w-3.5" />}>
+                      {humanise(template.category)}
+                    </EntityStat>
+                  </EntityStats>
+
+                  <EntityCardFooter
+                    actions={downloadButton(template)}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <span
-                        className={`grid h-11 w-11 shrink-0 place-items-center rounded-[10px] ${style.tile}`}
-                      >
-                        <Icon className="h-5 w-5" aria-hidden="true" />
-                      </span>
-                      <span
-                        className={`shrink-0 rounded-md px-2 py-0.5 text-[11.5px] font-semibold ${style.badge}`}
-                      >
-                        {style.label}
-                      </span>
-                    </div>
+                    <span className="text-[11.5px] text-muted">
+                      v{template.version} · {template.createdBy}
+                    </span>
+                  </EntityCardFooter>
+                </EntityCard>
+              );
+            })}
+          </div>
+        ) : (
+          <ListCard>
+            <table className="w-full border-collapse">
+              <ListHead columns={TEMPLATE_COLUMNS} />
+              <tbody>
+                {paged.length === 0 ? (
+                  <ListMessage colSpan={TEMPLATE_COLUMNS.length + 1}>
+                    No templates on this page.
+                  </ListMessage>
+                ) : (
+                  paged.map((template) => {
+                    const style =
+                      FORMAT_STYLE[template.format] ?? FORMAT_STYLE.pdf;
 
-                    <h2 className="mt-4 text-[15px] font-semibold text-text-primary">
-                      {template.name}
-                    </h2>
-                    <p className="mt-1.5 flex-1 text-[13px]/relaxed text-text-secondary">
-                      {template.description}
-                    </p>
+                    return (
+                      <ListRow key={template.id}>
+                        <td className="max-w-[320px] px-4 py-3">
+                          <div className="truncate text-[13.5px] font-medium text-ink">
+                            {template.name}
+                          </div>
+                          <div
+                            className="truncate text-[12.5px] text-muted"
+                            title={template.description}
+                          >
+                            {template.description}
+                          </div>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-[13.5px] text-ink-2">
+                          {humanise(template.category)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <StatusBadge label={style.label} tone={style.tone} />
+                        </td>
+                        <td className="max-w-[200px] px-4 py-3 text-[13.5px] text-ink-2">
+                          <span
+                            className="block truncate"
+                            title={template.dataSource.map(humanise).join(", ")}
+                          >
+                            {template.dataSource.map(humanise).join(", ") || (
+                              <span className="text-faint">—</span>
+                            )}
+                          </span>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-[13.5px] text-ink-2">
+                          {template.createdBy}
+                          <span className="text-muted"> · v{template.version}</span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {downloadButton(template, true)}
+                        </td>
+                      </ListRow>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </ListCard>
+        )}
 
-                    <div className="mt-4 flex flex-wrap items-center gap-1.5">
-                      <span className="rounded-md bg-bg-surface-alt px-2 py-0.5 text-[11px] font-medium text-text-secondary">
-                        {humanise(template.category)}
-                      </span>
-                      {template.dataSource.map((source) => (
-                        <span
-                          key={source}
-                          className="inline-flex items-center gap-1 rounded-md bg-bg-surface-alt px-2 py-0.5 text-[11px] text-text-secondary"
-                        >
-                          <Database className="h-3 w-3" aria-hidden="true" />
-                          {humanise(source)}
-                        </span>
-                      ))}
-                    </div>
-
-                    <div className="mt-5 flex items-center justify-between gap-3 border-t border-border pt-4">
-                      <span className="text-[11.5px] text-text-secondary/80">
-                        v{template.version} · {template.createdBy}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleDownload(template)}
-                        disabled={isDownloading}
-                        className="inline-flex h-9 items-center gap-2 rounded-[10px] bg-wujha-primary px-4 text-[13px] font-semibold text-white transition-colors hover:bg-wujha-primary-hover disabled:opacity-60"
-                      >
-                        {isDownloading ? (
-                          <>
-                            <Loader2
-                              className="h-4 w-4 animate-spin"
-                              aria-hidden="true"
-                            />
-                            Building…
-                          </>
-                        ) : (
-                          <>
-                            <Download className="h-4 w-4" aria-hidden="true" />
-                            Download
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </DashboardLayout>
-    </ProtectedRoute>
+        {visible.length > 0 && (
+          <ListPagination
+            page={page}
+            pageCount={pageCount}
+            total={visible.length}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+            noun="template"
+          />
+        )}
+      </div>
+    </DashboardLayout>
   );
 }

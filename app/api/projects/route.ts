@@ -117,6 +117,10 @@ export async function GET(request: Request) {
 		include: {
 			eps: true,
 			portfolio: true,
+			// The directory shows setup progress on planning projects, so the
+			// seven completion flags come back with the list rather than
+			// costing one request per card.
+			setup: true,
 			creator: {
 				include: {
 					account: true

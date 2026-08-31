@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Sidebar from "./components/Sidebar";
-import { Toaster } from 'sonner';
+import { Toaster } from "@/components/ui/sonner";
 import TokenRefresh from "./components/TokenRefresh";
+import { ConfirmProvider } from "@/components/ui/confirm-provider";
+import { ThemeProvider } from "@/components/theme-provider";
+import { themeInitScript } from "@/lib/theme-script";
 import '@/lib/axios-config'; // Configure axios globally for cookie authentication
 
 const geistSans = Geist({
@@ -17,8 +20,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Wujha - PMO",
+  title: "Bright - PMO",
   description: "Project management system",
+  icons: {
+    icon: [{ url: "/favicon/bright-favicon.svg", type: "image/svg+xml" }],
+    shortcut: "/favicon/bright-favicon.svg",
+    apple: "/favicon/bright-favicon.svg",
+  },
 };
 
 export default function RootLayout({
@@ -27,34 +35,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    // suppressHydrationWarning: the inline script below mutates <html>'s class
+    // before React hydrates, so the server and client markup deliberately differ.
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <TokenRefresh />
-        {children}
-        <Toaster 
-          richColors 
-          position="bottom-right"
-          toastOptions={{
-            style: {
-              backgroundColor: 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              borderRadius: '16px',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-              color: '#374151',
-            },
-            classNames: {
-              toast: 'glass-toast',
-              success: 'glass-success',
-              error: 'glass-error',
-              warning: 'glass-warning',
-              info: 'glass-info'
-            }
-          }}
-        />
+        <ThemeProvider>
+          <TokenRefresh />
+          <ConfirmProvider>{children}</ConfirmProvider>
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

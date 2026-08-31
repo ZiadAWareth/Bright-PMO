@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { loginErrorMessage, safeReturnTo, DEFAULT_HOME_PATH } from "./constants";
+import { Spinner } from "@/components/ui/spinner";
 
 /**
  * IdP mode: there is no email/password UI — the browser goes straight to the
@@ -36,12 +37,12 @@ export function IdpRedirect() {
         subtitle="Single sign-on could not complete."
         backHref="/"
       >
-        <div className="rounded-[11px] border border-wujha-danger/30 bg-wujha-danger/10 px-3.5 py-3 text-[13px] text-wujha-danger">
+        <div className="rounded-[11px] border border-bright-danger/30 bg-bright-danger/10 px-3.5 py-3 text-[13px] text-bright-danger">
           {error}
         </div>
         <a
           href={retryHref}
-          className="mt-4 flex h-11 w-full items-center justify-center rounded-[11px] bg-wujha-primary text-sm font-semibold text-white shadow-sm transition-colors hover:bg-wujha-primary-hover focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-wujha-primary/30"
+          className="mt-4 flex h-11 w-full items-center justify-center rounded-[11px] bg-bright-primary text-sm font-semibold text-white shadow-sm transition-colors hover:bg-bright-primary-hover focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-bright-primary/30"
         >
           Try again
         </a>
@@ -56,7 +57,7 @@ export function IdpRedirect() {
       backHref="/"
     >
       <div className="flex items-center justify-center gap-2 py-4 text-sm text-text-secondary">
-        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+        <Spinner size={16} />
         Connecting to the identity provider
       </div>
     </AuthLayout>

@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Calendar, Plus, Users, Search, AlertTriangle } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { Dropdown } from "@/components/ui/dropdown";
 
 interface Task {
   task_id: number;
@@ -482,20 +484,20 @@ const ResourceAssignmentModal = ({
       className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 p-4"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-surface rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              <h2 className="text-xl font-bold text-ink">
                 Assign Resource
               </h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-muted">
                 Task: {task.name}
               </p>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+              className="p-2 hover:bg-surface-2 rounded-lg"
               disabled={isSubmitting}
             >
               <Plus size={20} className="rotate-45" />
@@ -504,8 +506,8 @@ const ResourceAssignmentModal = ({
 
           {/* Existing Assignments */}
           {existingAssignments.length > 0 && (
-            <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-              <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
+            <div className="mb-6 p-4 bg-info-soft border border-info rounded-lg">
+              <h3 className="text-sm font-semibold text-info mb-2">
                 Current Assignments
               </h3>
               <div className="space-y-2 mb-3">
@@ -514,10 +516,10 @@ const ResourceAssignmentModal = ({
                     key={assignment.assignment_id}
                     className="flex items-center justify-between text-sm"
                   >
-                    <span className="text-blue-800 dark:text-blue-200">
+                    <span className="text-info">
                       {assignment.resource?.name || 'Unknown Resource'} ({assignment.resource?.role || 'N/A'})
                     </span>
-                    <span className="text-blue-600 dark:text-blue-400">
+                    <span className="text-info">
                       {assignment.allocation_percentage || 0}% •{" "}
                       {assignment.planned_hours || 0}h
                     </span>
@@ -533,24 +535,24 @@ const ResourceAssignmentModal = ({
                 );
                 const remainingAllocation = 100 - totalAllocated;
                 return (
-                  <div className="border-t border-blue-200 dark:border-blue-700 pt-3">
+                  <div className="border-t border-info pt-3">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-blue-800 dark:text-blue-200 font-medium">
+                      <span className="text-info font-medium">
                         Total Allocated:
                       </span>
-                      <span className="text-blue-600 dark:text-blue-400">
+                      <span className="text-info">
                         {totalAllocated}%
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-sm mt-1">
-                      <span className="text-blue-800 dark:text-blue-200 font-medium">
+                      <span className="text-info font-medium">
                         Remaining:
                       </span>
                       <span
                         className={`font-medium ${
                           remainingAllocation > 0
-                            ? "text-green-600 dark:text-green-400"
-                            : "text-red-600 dark:text-red-400"
+                            ? "text-success"
+                            : "text-danger"
                         }`}
                       >
                         {remainingAllocation}%
@@ -558,15 +560,15 @@ const ResourceAssignmentModal = ({
                     </div>
                     {/* Progress bar */}
                     <div className="mt-2">
-                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                      <div className="w-full bg-surface-3 rounded-full h-2">
                         <div
                           className={`h-2 rounded-full transition-all duration-300 ${
-                            totalAllocated <= 100 ? "bg-blue-500" : "bg-red-500"
+                            totalAllocated <= 100 ? "bg-info" : "bg-danger"
                           }`}
                           style={{ width: `${Math.min(totalAllocated, 100)}%` }}
                         ></div>
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">
+                      <div className="text-xs text-muted mt-1 text-center">
                         {totalAllocated}% of 100% allocated
                       </div>
                     </div>
@@ -579,48 +581,44 @@ const ResourceAssignmentModal = ({
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Resource Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-ink-3 mb-1">
                 Select Resource *
               </label>
 
               {/* Resource Type Filter */}
               <div className="mb-3">
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                <label className="block text-xs font-medium text-muted mb-1">
                   Resource Type
                 </label>
-                <select
-                  value={selectedResourceType}
-                  onChange={(e) => {
-                    setSelectedResourceType(e.target.value);
+                <Dropdown
+                  value={String(selectedResourceType ?? '')}
+                  onChange={(__v: string) => {
+                    setSelectedResourceType(__v);
                     setFormData((prev) => ({ ...prev, resource_id: "" })); // Clear selected resource when type changes
                     setSearchQuery(""); // Clear search when type changes
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  options={[
+                  { value: String(""), label: "All Types" },
+                  ...resourceTypes.map(([type, count]) => ({ value: String(type), label: `${type.charAt(0).toUpperCase() + type.slice(1)} ( ${count as number} available)` })),
+                ]}
                   disabled={isSubmitting}
-                >
-                  <option value="">All Types</option>
-                  {resourceTypes.map(([type, count]) => (
-                    <option key={type} value={type}>
-                      {type.charAt(0).toUpperCase() + type.slice(1)} (
-                      {count as number} available)
-                    </option>
-                  ))}
-                </select>
+                  modal
+                />
               </div>
 
               {/* Search Bar */}
               <div className="mb-3">
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                <label className="block text-xs font-medium text-muted mb-1">
                   Search Resources
                 </label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-faint h-4 w-4" />
                   <input
                     type="text"
                     placeholder="Search by name, role, department, or skills..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-full pl-10 pr-3 py-2 border border-line rounded-lg focus:ring-2 focus:ring-info focus:border-transparent bg-surface text-ink"
                     disabled={isSubmitting}
                   />
                 </div>
@@ -629,46 +627,33 @@ const ResourceAssignmentModal = ({
               {/* Resource Dropdown */}
               <div className="mb-1">
                 <div className="flex items-center justify-between">
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">
+                  <label className="block text-xs font-medium text-muted">
                     Available Resources
                   </label>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                  <span className="text-xs text-muted">
                     {availableResources.length} resource
                     {availableResources.length !== 1 ? "s" : ""} found
                   </span>
                 </div>
               </div>
-              <select
-                value={formData.resource_id}
-                onChange={(e) =>
-                  handleInputChange("resource_id", e.target.value)
-                }
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.resource_id
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-gray-600"
-                } bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
+              <Dropdown
+                value={String(formData.resource_id ?? '')}
+                onChange={(__v: string) =>
+                  handleInputChange("resource_id", __v)}
+                options={[
+                { value: String(""), label: "Choose a resource..." },
+                ...availableResources.map((resource) => ({ value: String(resource.resource_id), label: `${resource.name} - ${resource.role} (${resource.type}) - OMR${" "} ${resource.rate.toFixed(2)}/ ${resource.type === "material" ? (resource.unit || "kg") : "hr"}` })),
+              ]}
                 disabled={isSubmitting}
-              >
-                <option value="">Choose a resource...</option>
-                {availableResources.map((resource) => (
-                  <option
-                    key={resource.resource_id}
-                    value={resource.resource_id}
-                  >
-                    {resource.name} - {resource.role} ({resource.type}) - OMR{" "}
-                    {resource.rate.toFixed(2)}/
-                    {resource.type === "material" ? (resource.unit || "kg") : "hr"}
-                  </option>
-                ))}
-              </select>
+                modal
+              />
               {errors.resource_id && (
-                <p className="text-red-500 text-xs mt-1">
+                <p className="text-danger text-xs mt-1">
                   {errors.resource_id}
                 </p>
               )}
               {availableResources.length === 0 && (
-                <p className="text-orange-600 text-xs mt-1">
+                <p className="text-bright text-xs mt-1">
                   {selectedResourceType || searchQuery
                     ? "No resources found matching your filters. Try adjusting the resource type or search criteria."
                     : "No available resources found. All resources may be assigned or unavailable."}
@@ -677,8 +662,8 @@ const ResourceAssignmentModal = ({
             </div>
 
             {/* Information Panel About Assignment Rules */}
-            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-              <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-200 flex items-center mb-2">
+            <div className="p-4 bg-info-soft border border-info rounded-lg">
+              <h4 className="text-sm font-semibold text-info flex items-center mb-2">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-4 w-4 mr-1"
@@ -695,7 +680,7 @@ const ResourceAssignmentModal = ({
                 </svg>
                 Resource Assignment Guidelines
               </h4>
-              <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-2">
+              <ul className="text-xs text-info space-y-2">
                 <li className="flex items-start">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -783,25 +768,25 @@ const ResourceAssignmentModal = ({
 
             {/* Resource Details */}
             {selectedResource && (
-              <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+              <div className="p-3 bg-surface-2 rounded-lg">
+                <h4 className="text-sm font-medium text-ink mb-2">
                   Resource Details
                 </h4>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-600 dark:text-gray-400">
+                    <span className="text-muted">
                       Department:
                     </span>
-                    <span className="ml-2 text-gray-900 dark:text-gray-100">
+                    <span className="ml-2 text-ink">
                       {selectedResource.department}
                     </span>
                   </div>
                   {selectedResource.type !== "material" && (
                     <div>
-                      <span className="text-gray-600 dark:text-gray-400">
+                      <span className="text-muted">
                         Skills:
                       </span>
-                      <span className="ml-2 text-gray-900 dark:text-gray-100">
+                      <span className="ml-2 text-ink">
                         {typeof selectedResource.skills === "object" && selectedResource.skills !== null
                           ? Object.entries(selectedResource.skills)
                               .filter(([key, value]) => value === true)
@@ -814,10 +799,10 @@ const ResourceAssignmentModal = ({
                     </div>
                   )}
                   <div>
-                    <span className="text-gray-600 dark:text-gray-400">
+                    <span className="text-muted">
                       {selectedResource.type === "material" ? "Cost" : "Rate"}:
                     </span>
-                    <span className="ml-2 text-gray-900 dark:text-gray-100">
+                    <span className="ml-2 text-ink">
                       OMR {selectedResource.rate.toFixed(2)}/
                       {selectedResource.type === "material"
                         ? (selectedResource.unit || "kg")
@@ -825,28 +810,28 @@ const ResourceAssignmentModal = ({
                     </span>
                   </div>
                   <div>
-                    <span className="text-gray-600 dark:text-gray-400">
+                    <span className="text-muted">
                       Status:
                     </span>
-                    <span className="ml-2 text-green-600 dark:text-green-400">
+                    <span className="ml-2 text-success">
                       {selectedResource.availability_status}
                     </span>
                   </div>
                   {selectedResource.type !== "material" && (
                     <div>
-                      <span className="text-gray-600 dark:text-gray-400">
+                      <span className="text-muted">
                         Capacity:
                       </span>
-                      <span className="ml-2 text-gray-900 dark:text-gray-100">
+                      <span className="ml-2 text-ink">
                         {selectedResource.capacity || 8}h/day
                       </span>
                     </div>
                   )}
                   <div>
-                    <span className="text-gray-600 dark:text-gray-400">
+                    <span className="text-muted">
                       Type:
                     </span>
-                    <span className="ml-2 text-gray-900 dark:text-gray-100">
+                    <span className="ml-2 text-ink">
                       {selectedResource.type}
                     </span>
                   </div>
@@ -856,8 +841,8 @@ const ResourceAssignmentModal = ({
                 {selectedResource.type !== "material" &&
                   formData.start_date &&
                   formData.end_date && (
-                  <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                    <div className="text-xs text-blue-800 dark:text-blue-200">
+                  <div className="mt-3 p-2 bg-info-soft border border-info rounded-lg">
+                    <div className="text-xs text-info">
                       <div className="font-medium mb-1">
                         Capacity for Assignment Period:
                       </div>
@@ -890,21 +875,21 @@ const ResourceAssignmentModal = ({
                   formData.end_date && (
                   <div className="mt-3">
                     {availabilityLoading && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                      <p className="text-xs text-muted">
                         Checking availability…
                       </p>
                     )}
                     {availabilityError && (
-                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                      <p className="text-xs text-warning">
                         {availabilityError}
                       </p>
                     )}
                     {!availabilityLoading && !availabilityError && periodAvailability && (
-                      <div className="p-2 rounded-lg border text-xs bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-600">
-                        <div className="font-medium text-gray-800 dark:text-gray-200 mb-1">
+                      <div className="p-2 rounded-lg border text-xs bg-surface-2 border-line">
+                        <div className="font-medium text-ink-2 mb-1">
                           Availability in this period
                         </div>
-                        <div className="text-gray-700 dark:text-gray-300 space-y-0.5">
+                        <div className="text-ink-3 space-y-0.5">
                           <div>
                             Already allocated:{" "}
                             <strong>{periodAvailability.total_planned_hours.toFixed(1)}h</strong> (
@@ -927,7 +912,7 @@ const ResourceAssignmentModal = ({
                         {periodAvailability.total_planned_hours + formData.planned_hours >
                           periodAvailability.total_capacity_hours &&
                           formData.planned_hours > 0 && (
-                            <div className="mt-2 flex items-start gap-1.5 p-2 rounded bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300">
+                            <div className="mt-2 flex items-start gap-1.5 p-2 rounded bg-danger-soft border border-danger text-danger">
                               <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                               <span>
                                 This assignment would exceed available capacity in this period.
@@ -945,7 +930,7 @@ const ResourceAssignmentModal = ({
             {/* Allocation Percentage (hidden for materials) */}
             {selectedResource?.type !== "material" && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-ink-3 mb-1">
                   Allocation Percentage *
                 </label>
                 <input
@@ -959,26 +944,26 @@ const ResourceAssignmentModal = ({
                       parseInt(e.target.value) || 100
                     )
                   }
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-info focus:border-transparent ${
                     errors.allocation_percentage
-                      ? "border-red-500"
-                      : "border-gray-300 dark:border-gray-600"
-                  } bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
+                      ? "border-danger"
+                      : "border-line"
+                  } bg-surface  text-ink`}
                   disabled={isSubmitting}
                 />
                 {errors.allocation_percentage && (
-                  <p className="text-red-500 text-xs mt-1">
+                  <p className="text-danger text-xs mt-1">
                     {errors.allocation_percentage}
                   </p>
                 )}
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted mt-1">
                   Percentage allocation of this resource to the task. Independent
                   from planned hours.
                 </p>
 
                 {/* Real-time allocation tracking */}
                 {existingAssignments.length > 0 && (
-                  <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-700 rounded border">
+                  <div className="mt-2 p-2 bg-surface-2 rounded border">
                     {(() => {
                       const currentTotal = existingAssignments.reduce(
                         (sum, assignment) =>
@@ -992,10 +977,10 @@ const ResourceAssignmentModal = ({
                       return (
                         <div className="text-xs">
                           <div className="flex justify-between mb-1">
-                            <span className="text-gray-600 dark:text-gray-400">
+                            <span className="text-muted">
                               Current total: {currentTotal}%
                             </span>
-                            <span className="text-gray-600 dark:text-gray-400">
+                            <span className="text-muted">
                               Adding: {formData.allocation_percentage || 0}%
                             </span>
                           </div>
@@ -1003,8 +988,8 @@ const ResourceAssignmentModal = ({
                             <span
                               className={
                                 newTotal <= 100
-                                  ? "text-gray-800 dark:text-gray-200"
-                                  : "text-red-600 dark:text-red-400"
+                                  ? "text-ink-2"
+                                  : "text-danger"
                               }
                             >
                               New total: {newTotal}%
@@ -1012,8 +997,8 @@ const ResourceAssignmentModal = ({
                             <span
                               className={
                                 remaining >= 0
-                                  ? "text-green-600 dark:text-green-400"
-                                  : "text-red-600 dark:text-red-400"
+                                  ? "text-success"
+                                  : "text-danger"
                               }
                             >
                               {remaining >= 0
@@ -1023,10 +1008,10 @@ const ResourceAssignmentModal = ({
                           </div>
                           {/* Progress bar */}
                           <div className="mt-1">
-                            <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
+                            <div className="w-full bg-surface-3 rounded-full h-1.5">
                               <div
                                 className={`h-1.5 rounded-full transition-all duration-300 ${
-                                  newTotal <= 100 ? "bg-blue-500" : "bg-red-500"
+                                  newTotal <= 100 ? "bg-info" : "bg-danger"
                                 }`}
                                 style={{ width: `${Math.min(newTotal, 100)}%` }}
                               ></div>
@@ -1045,7 +1030,7 @@ const ResourceAssignmentModal = ({
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-ink-3 mb-1">
                       Assignment Start Date *
                     </label>
                     <input
@@ -1054,22 +1039,22 @@ const ResourceAssignmentModal = ({
                       onChange={(e) =>
                         handleInputChange("start_date", e.target.value)
                       }
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-info focus:border-transparent ${
                         errors.start_date
-                          ? "border-red-500"
-                          : "border-gray-300 dark:border-gray-600"
-                      } bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
+                          ? "border-danger"
+                          : "border-line"
+                      } bg-surface  text-ink`}
                       disabled={isSubmitting}
                     />
                     {errors.start_date && (
-                      <p className="text-red-500 text-xs mt-1">
+                      <p className="text-danger text-xs mt-1">
                         {errors.start_date}
                       </p>
                     )}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-ink-3 mb-1">
                       Assignment End Date *
                     </label>
                     <input
@@ -1078,31 +1063,31 @@ const ResourceAssignmentModal = ({
                       onChange={(e) =>
                         handleInputChange("end_date", e.target.value)
                       }
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-info focus:border-transparent ${
                         errors.end_date
-                          ? "border-red-500"
-                          : "border-gray-300 dark:border-gray-600"
-                      } bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
+                          ? "border-danger"
+                          : "border-line"
+                      } bg-surface  text-ink`}
                       disabled={isSubmitting}
                     />
                     {errors.end_date && (
-                      <p className="text-red-500 text-xs mt-1">{errors.end_date}</p>
+                      <p className="text-danger text-xs mt-1">{errors.end_date}</p>
                     )}
                   </div>
                 </div>
 
                 {/* Show Task date constraints */}
-                <div className="p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+                <div className="p-3 bg-bright-soft border border-bright rounded-lg">
                   <div className="flex items-center space-x-2 mb-1">
                     <Calendar
                       size={14}
-                      className="text-orange-600 dark:text-orange-400"
+                      className="text-bright"
                     />
-                    <span className="text-sm font-medium text-orange-800 dark:text-orange-200">
+                    <span className="text-sm font-medium text-bright">
                       Task Date Constraints
                     </span>
                   </div>
-                  <div className="text-xs text-orange-700 dark:text-orange-300">
+                  <div className="text-xs text-bright-deep">
                     <div>
                       • Assignment must start on or after:{" "}
                       {formatDateForDisplay(task.start_date)}
@@ -1118,7 +1103,7 @@ const ResourceAssignmentModal = ({
 
             {/* Planned Hours (equipment/labour) or Quantity (material) */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-ink-3 mb-1">
                 {selectedResource?.type === "material"
                   ? `Quantity (${selectedResource?.unit || "kg"}) *`
                   : "Planned Hours *"}
@@ -1134,19 +1119,19 @@ const ResourceAssignmentModal = ({
                     parseFloat(e.target.value) || 0
                   )
                 }
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-info focus:border-transparent ${
                   errors.planned_hours
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-gray-600"
-                } bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
+                    ? "border-danger"
+                    : "border-line"
+                } bg-surface  text-ink`}
                 disabled={isSubmitting}
               />
               {errors.planned_hours && (
-                <p className="text-red-500 text-xs mt-1">
+                <p className="text-danger text-xs mt-1">
                   {errors.planned_hours}
                 </p>
               )}
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted mt-1">
                 {selectedResource?.type === "material"
                   ? `Amount of material for this assignment. Cost = quantity × rate per ${selectedResource?.unit || "kg"}.`
                   : `Total hours planned for this assignment (out of ${task.estimated_hours}h). Changing this will automatically update allocation percentage.`}
@@ -1157,17 +1142,17 @@ const ResourceAssignmentModal = ({
             {selectedResource && formData.planned_hours > 0 && (
               <div className="space-y-3">
                 {/* Cost Estimation */}
-                <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                  <h4 className="text-sm font-medium text-green-900 dark:text-green-100 mb-1">
+                <div className="p-3 bg-success-soft border border-success rounded-lg">
+                  <h4 className="text-sm font-medium text-success mb-1">
                     Cost Estimation
                   </h4>
-                  <p className="text-sm text-green-800 dark:text-green-200">
+                  <p className="text-sm text-success">
                     Estimated Cost: OMR{" "}
                     {((selectedResource?.rate || 0) * (formData.planned_hours || 0)).toFixed(
                       2
                     )}
                   </p>
-                  <p className="text-xs text-green-600 dark:text-green-400">
+                  <p className="text-xs text-success">
                     {selectedResource?.type === "material"
                       ? `(${formData.planned_hours || 0} ${selectedResource?.unit || "kg"} × OMR ${(selectedResource?.rate || 0).toFixed(2)}/${selectedResource?.unit || "kg"})`
                       : `(${formData.planned_hours || 0}h × OMR ${(selectedResource?.rate || 0).toFixed(2)}/hr)`}
@@ -1180,11 +1165,11 @@ const ResourceAssignmentModal = ({
 
                   if (!budgetInfo.hasBudget) {
                     return (
-                      <div className="p-3 bg-gray-50 dark:bg-gray-900/20 border border-gray-200 dark:border-gray-700 rounded-lg">
-                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <div className="p-3 bg-surface-2 border border-line rounded-lg">
+                        <h4 className="text-sm font-medium text-ink-3 mb-1">
                           Budget Information
                         </h4>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                        <p className="text-xs text-muted">
                           No budget has been set for this task.
                         </p>
                       </div>
@@ -1195,15 +1180,15 @@ const ResourceAssignmentModal = ({
                     <div
                       className={`p-3 rounded-lg border ${
                         budgetInfo.wouldExceedBudget
-                          ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
-                          : "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
+                          ? "bg-danger-soft border-danger "
+                          : "bg-info-soft border-info "
                       }`}
                     >
                       <div className="flex items-center mb-2">
                         {budgetInfo.wouldExceedBudget ? (
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4 mr-1 text-red-600"
+                            className="h-4 w-4 mr-1 text-danger"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -1218,7 +1203,7 @@ const ResourceAssignmentModal = ({
                         ) : (
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4 mr-1 text-blue-600"
+                            className="h-4 w-4 mr-1 text-info"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -1234,8 +1219,8 @@ const ResourceAssignmentModal = ({
                         <h4
                           className={`text-sm font-medium ${
                             budgetInfo.wouldExceedBudget
-                              ? "text-red-900 dark:text-red-100"
-                              : "text-blue-900 dark:text-blue-100"
+                              ? "text-danger "
+                              : "text-info "
                           }`}
                         >
                           Budget Analysis
@@ -1245,10 +1230,10 @@ const ResourceAssignmentModal = ({
                       {/* Budget Overview Section */}
                       <div className="space-y-2 text-xs mb-3">
                         <div className="flex justify-between items-center">
-                          <span className="text-gray-700 dark:text-gray-300 font-medium">
+                          <span className="text-ink-3 font-medium">
                             Task Budget (Total Available):
                           </span>
-                          <span className="font-semibold text-gray-900 dark:text-gray-100">
+                          <span className="font-semibold text-ink">
                             OMR {budgetInfo.plannedBudget.toFixed(2)}
                           </span>
                         </div>
@@ -1256,12 +1241,12 @@ const ResourceAssignmentModal = ({
 
                       {/* Current State Section */}
                       <div className="border-t border-current/20 pt-2 mb-2">
-                        <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+                        <div className="text-xs font-medium text-muted mb-1.5">
                           Current Allocations:
                         </div>
                         <div className="space-y-1 text-xs">
                           <div className="flex justify-between">
-                            <span className="text-gray-600 dark:text-gray-400">
+                            <span className="text-muted">
                               Existing Assignments:
                             </span>
                             <span className="font-medium">
@@ -1269,7 +1254,7 @@ const ResourceAssignmentModal = ({
                             </span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-600 dark:text-gray-400">
+                            <span className="text-muted">
                               This Assignment:
                             </span>
                             <span className="font-medium">
@@ -1284,42 +1269,42 @@ const ResourceAssignmentModal = ({
                         <div className="space-y-1 text-xs">
                           <div className="flex justify-between items-center">
                             <div className="flex items-center space-x-1">
-                              <span className="text-gray-600 dark:text-gray-400 font-medium">
+                              <span className="text-muted font-medium">
                                 Total Cost (All Assignments):
                               </span>
-                              <span className="text-gray-400 dark:text-gray-500 text-[10px]">
+                              <span className="text-faint text-[10px]">
                                 (Existing + This)
                               </span>
                             </div>
                             <span className={`font-semibold ${
                               budgetInfo.wouldExceedBudget
-                                ? "text-red-800 dark:text-red-200"
-                                : "text-blue-800 dark:text-blue-200"
+                                ? "text-danger"
+                                : "text-info"
                             }`}>
                               OMR {budgetInfo.totalCostWithNew.toFixed(2)}
                             </span>
                           </div>
 
                           {/* Visual calculation helper */}
-                          <div className="text-[10px] text-gray-500 dark:text-gray-400 pl-2 border-l-2 border-gray-300 dark:border-gray-600">
+                          <div className="text-[10px] text-muted pl-2 border-l-2 border-line">
                             {(budgetInfo.currentCost || 0).toFixed(2)} + {(budgetInfo.newAssignmentCost || 0).toFixed(2)} = {(budgetInfo.totalCostWithNew || 0).toFixed(2)}
                           </div>
                         </div>
 
                         {/* Budget Status */}
                         {budgetInfo.wouldExceedBudget ? (
-                          <div className="mt-2 pt-2 border-t border-red-200 dark:border-red-800">
-                            <div className="flex justify-between font-medium text-red-800 dark:text-red-200 text-xs">
+                          <div className="mt-2 pt-2 border-t border-danger">
+                            <div className="flex justify-between font-medium text-danger text-xs">
                               <span>Budget Exceeded By:</span>
                               <span>OMR {budgetInfo.budgetExcess.toFixed(2)}</span>
                             </div>
-                            <p className="text-[10px] text-red-600 dark:text-red-400 mt-1">
+                            <p className="text-[10px] text-danger mt-1">
                               Total cost exceeds available budget
                             </p>
                           </div>
                         ) : (
-                          <div className="mt-2 pt-2 border-t border-blue-200 dark:border-blue-800">
-                            <div className="flex justify-between font-medium text-blue-800 dark:text-blue-200 text-xs">
+                          <div className="mt-2 pt-2 border-t border-info">
+                            <div className="flex justify-between font-medium text-info text-xs">
                               <span>Budget Remaining After This Assignment:</span>
                               <span>
                                 OMR {(
@@ -1328,7 +1313,7 @@ const ResourceAssignmentModal = ({
                                 ).toFixed(2)}
                               </span>
                             </div>
-                            <p className="text-[10px] text-blue-600 dark:text-blue-400 mt-1">
+                            <p className="text-[10px] text-info mt-1">
                               {budgetInfo.plannedBudget > 0 
                                 ? `${((budgetInfo.budgetRemaining - budgetInfo.newAssignmentCost) / budgetInfo.plannedBudget * 100).toFixed(1)}% of budget remaining`
                                 : 'Budget information unavailable'
@@ -1340,12 +1325,12 @@ const ResourceAssignmentModal = ({
 
                         {/* Progress bar */}
                         <div className="mt-2">
-                          <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                          <div className="w-full bg-surface-3 rounded-full h-2">
                             <div
                               className={`h-2 rounded-full transition-all duration-300 ${
                                 budgetInfo.wouldExceedBudget
-                                  ? "bg-red-500"
-                                  : "bg-blue-500"
+                                  ? "bg-danger"
+                                  : "bg-info"
                               }`}
                               style={{
                                 width: `${budgetInfo.plannedBudget > 0 
@@ -1363,8 +1348,8 @@ const ResourceAssignmentModal = ({
                             <span
                               className={
                                 budgetInfo.wouldExceedBudget
-                                  ? "text-red-600 dark:text-red-400"
-                                  : "text-blue-600 dark:text-blue-400"
+                                  ? "text-danger"
+                                  : "text-info"
                               }
                             >
                               {budgetInfo.plannedBudget > 0
@@ -1380,11 +1365,11 @@ const ResourceAssignmentModal = ({
                         </div>
 
                         {budgetInfo.wouldExceedBudget && (
-                          <div className="mt-2 p-2 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded">
+                          <div className="mt-2 p-2 bg-danger-soft border border-danger rounded">
                             <div className="flex items-start">
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
-                                className="h-3 w-3 mr-1 mt-0.5 text-red-600"
+                                className="h-3 w-3 mr-1 mt-0.5 text-danger"
                                 fill="none"
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
@@ -1396,7 +1381,7 @@ const ResourceAssignmentModal = ({
                                   d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
                                 />
                               </svg>
-                              <span className="text-red-800 dark:text-red-200 font-medium">
+                              <span className="text-danger font-medium">
                                 Warning: This assignment will exceed the task
                                 budget. Consider reducing planned hours or
                                 adjusting the budget.
@@ -1411,11 +1396,11 @@ const ResourceAssignmentModal = ({
             )}
 
             {/* Form Actions */}
-            <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-end space-x-3 pt-6 border-t border-line">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                className="px-4 py-2 text-ink-3 hover:bg-surface-2 rounded-lg transition-colors"
                 disabled={isSubmitting}
               >
                 Cancel
@@ -1423,11 +1408,11 @@ const ResourceAssignmentModal = ({
               <button
                 type="submit"
                 disabled={isSubmitting || availableResources.length === 0}
-                className="flex items-center space-x-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center space-x-2 px-6 py-2 bg-info text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {isSubmitting ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <Spinner size={16} />
                     <span>Assigning...</span>
                   </>
                 ) : (

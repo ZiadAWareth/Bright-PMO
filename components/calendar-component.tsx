@@ -104,25 +104,25 @@ const ProjectCalendarView: React.FC<CalendarViewProps> = ({
       // Determine day styling based on content (priority order)
       let dayBgClass = '';
       if (isToday) {
-        dayBgClass = 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700';
+        dayBgClass = 'bg-info-soft border-info ';
       } else if (projectEvents.length > 0) {
-        dayBgClass = 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-700';
+        dayBgClass = 'bg-accent-indigo-soft  border-accent-indigo ';
       } else if (milestoneEvents.length > 0) {
-        dayBgClass = 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-700';
+        dayBgClass = 'bg-accent-violet-soft  border-accent-violet ';
       } else if (wbsEvents.length > 0) {
-        dayBgClass = 'bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-700';
+        dayBgClass = 'bg-bright-2-soft  border-bright-2-soft ';
       } else if (overdueEvents.length > 0) {
-        dayBgClass = 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700';
+        dayBgClass = 'bg-danger-soft border-danger ';
       } else if (criticalEvents.length > 0) {
-        dayBgClass = 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-700';
+        dayBgClass = 'bg-bright-soft border-bright ';
       } else if (isWeekend) {
-        dayBgClass = 'bg-gray-50 dark:bg-gray-900/50';
+        dayBgClass = 'bg-surface-2 ';
       }
 
       calendarDays.push(
         <div 
           key={day} 
-          className={`h-32 p-1 border border-gray-200 dark:border-gray-700 ${dayBgClass} ${
+          className={`h-32 p-1 border border-line ${dayBgClass} ${
             dayEvents.length > 0 ? 'cursor-pointer hover:shadow-md' : 'cursor-default'
           } transition-all`}
           onClick={() => {
@@ -136,15 +136,15 @@ const ProjectCalendarView: React.FC<CalendarViewProps> = ({
           }}
         >
           <div className={`text-sm font-medium mb-1 flex items-center justify-between ${
-            isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-gray-100'
+            isToday ? 'text-info' : 'text-ink'
           }`}>
             <span>{day}</span>
             <div className="flex items-center space-x-1">
-              {projectEvents.length > 0 && <Building size={8} className="text-indigo-500" />}
-              {wbsEvents.length > 0 && <Target size={8} className="text-teal-500" />}
-              {milestoneEvents.length > 0 && <Star size={8} className="text-purple-500" />}
-              {criticalEvents.length > 0 && <Zap size={8} className="text-orange-500" />}
-              {overdueEvents.length > 0 && <AlertTriangle size={8} className="text-red-500" />}
+              {projectEvents.length > 0 && <Building size={8} className="text-accent-indigo" />}
+              {wbsEvents.length > 0 && <Target size={8} className="text-bright-2" />}
+              {milestoneEvents.length > 0 && <Star size={8} className="text-accent-violet" />}
+              {criticalEvents.length > 0 && <Zap size={8} className="text-bright" />}
+              {overdueEvents.length > 0 && <AlertTriangle size={8} className="text-danger" />}
             </div>
           </div>
           
@@ -158,7 +158,7 @@ const ProjectCalendarView: React.FC<CalendarViewProps> = ({
               const projectEventElements = projectEvents.slice(0, Math.max(0, maxSlots - usedSlots)).map(event => (
                 <div
                   key={`project-${event.id}`}
-                  className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-200 p-1 rounded truncate flex items-center"
+                  className="bg-accent-indigo-soft text-accent-indigo p-1 rounded truncate flex items-center"
                   title={event.title}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -175,7 +175,7 @@ const ProjectCalendarView: React.FC<CalendarViewProps> = ({
               const wbsEventElements = wbsEvents.slice(0, Math.max(0, maxSlots - usedSlots)).map(event => (
                 <div
                   key={`wbs-${event.id}`}
-                  className="bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200 p-1 rounded truncate flex items-center"
+                  className="bg-bright-2-soft text-bright-2 p-1 rounded truncate flex items-center"
                   title={event.title}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -192,7 +192,7 @@ const ProjectCalendarView: React.FC<CalendarViewProps> = ({
               const milestoneEventElements = milestoneEvents.slice(0, Math.max(0, maxSlots - usedSlots)).map(event => (
                 <div
                   key={`milestone-${event.id}`}
-                  className="bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200 p-1 rounded truncate flex items-center"
+                  className="bg-accent-violet-soft text-accent-violet p-1 rounded truncate flex items-center"
                   title={event.title}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -209,7 +209,7 @@ const ProjectCalendarView: React.FC<CalendarViewProps> = ({
               const taskStartEventElements = taskStartEvents.slice(0, Math.max(0, maxSlots - usedSlots)).map(event => (
                 <div
                   key={`start-${event.id}`}
-                  className="bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200 p-1 rounded truncate flex items-center"
+                  className="bg-success-soft text-success p-1 rounded truncate flex items-center"
                   title={`Starting: ${event.title}`}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -226,7 +226,7 @@ const ProjectCalendarView: React.FC<CalendarViewProps> = ({
               const taskEndEventElements = taskEndEvents.slice(0, Math.max(0, maxSlots - usedSlots)).map(event => (
                 <div
                   key={`end-${event.id}`}
-                  className="bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200 p-1 rounded truncate flex items-center"
+                  className="bg-info-soft text-info p-1 rounded truncate flex items-center"
                   title={`Ending: ${event.title}`}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -245,8 +245,8 @@ const ProjectCalendarView: React.FC<CalendarViewProps> = ({
                   key={`ongoing-${event.id}`}
                   className={`p-1 rounded truncate flex items-center ${
                     event.type === 'critical' 
-                      ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-200'
-                      : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                      ? 'bg-bright-soft text-bright  '
+                      : 'bg-surface-2 text-ink-3  '
                   }`}
                   title={`Ongoing: ${event.title}`}
                   onClick={(e) => {
@@ -282,7 +282,7 @@ const ProjectCalendarView: React.FC<CalendarViewProps> = ({
                         setSelectedDate(currentDate);
                         setShowMoreModal(true);
                       }}
-                      className="text-blue-600 dark:text-blue-400 text-center hover:text-blue-700 dark:hover:text-blue-300 hover:underline cursor-pointer text-xs mt-1 w-full"
+                      className="text-info text-center hover:text-info hover:underline cursor-pointer text-xs mt-1 w-full"
                     >
                       +{remainingEvents} more
                     </button>
@@ -296,28 +296,28 @@ const ProjectCalendarView: React.FC<CalendarViewProps> = ({
     }
 
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-surface rounded-xl border border-line p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
             <button
               onClick={() => setCurrentMonth(new Date(year, month - 1))}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+              className="p-2 hover:bg-surface-2 rounded-lg"
             >
               <ChevronLeft size={20} />
             </button>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+            <h3 className="text-xl font-semibold text-ink">
               {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </h3>
             <button
               onClick={() => setCurrentMonth(new Date(year, month + 1))}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+              className="p-2 hover:bg-surface-2 rounded-lg"
             >
               <ChevronRight size={20} />
             </button>
           </div>
           <button
             onClick={() => setCurrentMonth(new Date())}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-4 py-2 bg-info text-white rounded-lg hover:opacity-90 transition-colors"
           >
             Today
           </button>
@@ -326,7 +326,7 @@ const ProjectCalendarView: React.FC<CalendarViewProps> = ({
         {/* Calendar Header */}
         <div className="grid grid-cols-7 gap-1 mb-2">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="h-8 flex items-center justify-center text-sm font-medium text-gray-500 dark:text-gray-400">
+            <div key={day} className="h-8 flex items-center justify-center text-sm font-medium text-muted">
               {day}
             </div>
           ))}
@@ -338,48 +338,48 @@ const ProjectCalendarView: React.FC<CalendarViewProps> = ({
         </div>
 
         {/* Calendar Legend */}
-        <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-          <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Calendar Legend</h4>
+        <div className="mt-6 p-4 bg-surface-2 rounded-lg">
+          <h4 className="text-sm font-medium text-ink mb-3">Calendar Legend</h4>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-xs">
             <div className="flex items-center space-x-2">
-              <Building size={12} className="text-indigo-500" />
-              <span className="text-gray-700 dark:text-gray-300">Project Events</span>
+              <Building size={12} className="text-accent-indigo" />
+              <span className="text-ink-3">Project Events</span>
             </div>
             <div className="flex items-center space-x-2">
-              <Target size={12} className="text-teal-500" />
-              <span className="text-gray-700 dark:text-gray-300">WBS Events</span>
+              <Target size={12} className="text-bright-2" />
+              <span className="text-ink-3">WBS Events</span>
             </div>
             <div className="flex items-center space-x-2">
-              <Flag size={12} className="text-purple-500" />
-              <span className="text-gray-700 dark:text-gray-300">Milestones</span>
+              <Flag size={12} className="text-accent-violet" />
+              <span className="text-ink-3">Milestones</span>
             </div>
             <div className="flex items-center space-x-2">
-              <Activity size={12} className="text-green-500" />
-              <span className="text-gray-700 dark:text-gray-300">Task Starts</span>
+              <Activity size={12} className="text-success" />
+              <span className="text-ink-3">Task Starts</span>
             </div>
             <div className="flex items-center space-x-2">
-              <CheckCircle size={12} className="text-blue-500" />
-              <span className="text-gray-700 dark:text-gray-300">Task Ends</span>
+              <CheckCircle size={12} className="text-info" />
+              <span className="text-ink-3">Task Ends</span>
             </div>
             <div className="flex items-center space-x-2">
-              <Clock size={12} className="text-gray-500" />
-              <span className="text-gray-700 dark:text-gray-300">Ongoing</span>
+              <Clock size={12} className="text-muted" />
+              <span className="text-ink-3">Ongoing</span>
             </div>
             <div className="flex items-center space-x-2">
-              <Zap size={12} className="text-orange-500" />
-              <span className="text-gray-700 dark:text-gray-300">Critical Path</span>
+              <Zap size={12} className="text-bright" />
+              <span className="text-ink-3">Critical Path</span>
             </div>
             <div className="flex items-center space-x-2">
-              <AlertTriangle size={12} className="text-red-500" />
-              <span className="text-gray-700 dark:text-gray-300">Overdue</span>
+              <AlertTriangle size={12} className="text-danger" />
+              <span className="text-ink-3">Overdue</span>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-blue-100 rounded border"></div>
-              <span className="text-gray-700 dark:text-gray-300">Today</span>
+              <div className="w-3 h-3 bg-info-soft rounded border"></div>
+              <span className="text-ink-3">Today</span>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-gray-100 rounded border"></div>
-              <span className="text-gray-700 dark:text-gray-300">Weekend</span>
+              <div className="w-3 h-3 bg-surface-2 rounded border"></div>
+              <span className="text-ink-3">Weekend</span>
             </div>
           </div>
         </div>
@@ -389,28 +389,28 @@ const ProjectCalendarView: React.FC<CalendarViewProps> = ({
 
   const getEventIcon = (event: CalendarEvent) => {
     switch (event.type) {
-      case 'project': return <Building size={14} className="text-indigo-500" />;
-      case 'wbs': return <Target size={14} className="text-teal-500" />;
-      case 'milestone': return <Flag size={14} className="text-purple-500" />;
-      case 'task-start': return <Activity size={14} className="text-green-500" />;
-      case 'task-end': return <CheckCircle size={14} className="text-blue-500" />;
-      case 'ongoing': return <Clock size={14} className="text-gray-500" />;
-      case 'critical': return <Zap size={14} className="text-orange-500" />;
+      case 'project': return <Building size={14} className="text-accent-indigo" />;
+      case 'wbs': return <Target size={14} className="text-bright-2" />;
+      case 'milestone': return <Flag size={14} className="text-accent-violet" />;
+      case 'task-start': return <Activity size={14} className="text-success" />;
+      case 'task-end': return <CheckCircle size={14} className="text-info" />;
+      case 'ongoing': return <Clock size={14} className="text-muted" />;
+      case 'critical': return <Zap size={14} className="text-bright" />;
       default: return <Circle size={14} />;
     }
   };
 
   const getEventColor = (event: CalendarEvent) => {
-    if (event.isOverdue) return 'text-red-600 dark:text-red-400';
+    if (event.isOverdue) return 'text-danger';
     switch (event.type) {
-      case 'project': return 'text-indigo-600 dark:text-indigo-400';
-      case 'wbs': return 'text-teal-600 dark:text-teal-400';
-      case 'milestone': return 'text-purple-600 dark:text-purple-400';
-      case 'task-start': return 'text-green-600 dark:text-green-400';
-      case 'task-end': return 'text-blue-600 dark:text-blue-400';
-      case 'ongoing': return 'text-gray-600 dark:text-gray-400';
-      case 'critical': return 'text-orange-600 dark:text-orange-400';
-      default: return 'text-gray-600 dark:text-gray-400';
+      case 'project': return 'text-accent-indigo ';
+      case 'wbs': return 'text-bright-2 ';
+      case 'milestone': return 'text-accent-violet ';
+      case 'task-start': return 'text-success';
+      case 'task-end': return 'text-info';
+      case 'ongoing': return 'text-muted';
+      case 'critical': return 'text-bright';
+      default: return 'text-muted';
     }
   };
 
@@ -442,24 +442,24 @@ const ProjectCalendarView: React.FC<CalendarViewProps> = ({
                 }}
                 className={`p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
                   event.isOverdue 
-                    ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' 
-                    : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    ? 'bg-danger-soft border-danger ' 
+                    : 'bg-surface-2 border-line hover:bg-surface-2'
                 }`}
               >
                 <div className="flex items-start space-x-3">
                   <div className="mt-0.5">
                     {getEventIcon(event)}
-                    {event.isOverdue && <AlertTriangle size={14} className="text-red-500 mt-1" />}
+                    {event.isOverdue && <AlertTriangle size={14} className="text-danger mt-1" />}
                   </div>
                   <div className="flex-1">
                     <h4 className={`font-medium ${getEventColor(event)}`}>
                       {event.title}
-                      {event.isOverdue && <span className="ml-2 text-xs text-red-600 dark:text-red-400">(Overdue)</span>}
+                      {event.isOverdue && <span className="ml-2 text-xs text-danger">(Overdue)</span>}
                     </h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="text-xs text-muted mt-1">
                       {new Date(event.startDate).toLocaleDateString()} - {new Date(event.endDate).toLocaleDateString()}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 capitalize mt-0.5">
+                    <p className="text-xs text-muted capitalize mt-0.5">
                       {event.type.replace('-', ' ')}
                     </p>
                     {/* Show risk-specific information */}
@@ -467,50 +467,50 @@ const ProjectCalendarView: React.FC<CalendarViewProps> = ({
                       <div className="flex flex-wrap gap-2 mt-2">
                         {event.status && (
                           <span className={`text-xs px-2 py-0.5 rounded-full ${
-                            event.status.toLowerCase() === 'open' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
-                            event.status.toLowerCase() === 'closed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-                            'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                            event.status.toLowerCase() === 'open' ? 'bg-warning-soft text-warning  ' :
+                            event.status.toLowerCase() === 'closed' ? 'bg-success-soft text-success  ' :
+                            'bg-info-soft text-info  '
                           }`}>
                             {event.status}
                           </span>
                         )}
                         {event.category && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-accent-violet-soft text-accent-violet">
                             {event.category}
                           </span>
                         )}
                         {event.impact && (
                           <span className={`text-xs px-2 py-0.5 rounded-full ${
-                            event.impact.toLowerCase() === 'high' || event.impact.toLowerCase() === 'critical' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
-                            event.impact.toLowerCase() === 'medium' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' :
-                            'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+                            event.impact.toLowerCase() === 'high' || event.impact.toLowerCase() === 'critical' ? 'bg-danger-soft text-danger  ' :
+                            event.impact.toLowerCase() === 'medium' ? 'bg-bright-soft text-bright  ' :
+                            'bg-surface-2 text-ink-2  '
                           }`}>
                             Impact: {event.impact}
                           </span>
                         )}
                         {event.probability && (
                           <span className={`text-xs px-2 py-0.5 rounded-full ${
-                            event.probability.toLowerCase() === 'high' || event.probability.toLowerCase() === 'very high' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
-                            event.probability.toLowerCase() === 'medium' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' :
-                            'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+                            event.probability.toLowerCase() === 'high' || event.probability.toLowerCase() === 'very high' ? 'bg-danger-soft text-danger  ' :
+                            event.probability.toLowerCase() === 'medium' ? 'bg-bright-soft text-bright  ' :
+                            'bg-surface-2 text-ink-2  '
                           }`}>
                             Probability: {event.probability}
                           </span>
                         )}
                         {event.riskScore !== undefined && (
                           <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
-                            event.riskScore >= 15 ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
-                            event.riskScore >= 8 ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' :
-                            'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                            event.riskScore >= 15 ? 'bg-danger-soft text-danger  ' :
+                            event.riskScore >= 8 ? 'bg-bright-soft text-bright  ' :
+                            'bg-success-soft text-success  '
                           }`}>
                             Score: {event.riskScore}
                           </span>
                         )}
                         {event.riskLevel && (
                           <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
-                            event.riskLevel.toLowerCase() === 'high' || event.riskLevel.toLowerCase() === 'critical' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
-                            event.riskLevel.toLowerCase() === 'medium' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' :
-                            'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                            event.riskLevel.toLowerCase() === 'high' || event.riskLevel.toLowerCase() === 'critical' ? 'bg-danger-soft text-danger  ' :
+                            event.riskLevel.toLowerCase() === 'medium' ? 'bg-bright-soft text-bright  ' :
+                            'bg-success-soft text-success  '
                           }`}>
                             {event.riskLevel}
                           </span>
@@ -522,7 +522,7 @@ const ProjectCalendarView: React.FC<CalendarViewProps> = ({
               </div>
             ))}
             {selectedDayEvents.length === 0 && (
-              <p className="text-center text-gray-500 dark:text-gray-400 py-8">
+              <p className="text-center text-muted py-8">
                 No events on this day
               </p>
             )}

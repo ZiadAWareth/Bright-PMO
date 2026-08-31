@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
+
 import { useRouter, useParams } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
@@ -21,12 +21,11 @@ import {
   X,
   CheckSquare,
   Upload,
-  FileSpreadsheet,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
 import { ProjectSetup } from "@/types/project";
-import BudgetTemplateManager from "@/components/BudgetTemplateManager";
+import { Spinner } from "@/components/ui/spinner";
 
 interface Budget {
   budget_id: number;
@@ -129,7 +128,6 @@ const ProjectBudgetPage = () => {
   const [saving, setSaving] = useState(false);
   const errorRef = useRef<HTMLDivElement>(null);
   const [setup, setSetup] = useState<ProjectSetup | null>(null);
-  const [showTemplateModal, setShowTemplateModal] = useState(false);
 
   // Check if user has permission to edit budget
   const canEditBudget = () => {
@@ -706,40 +704,40 @@ const ProjectBudgetPage = () => {
     // Color schemes based on level
     const colorSchemes = [
       {
-        gradient: "from-blue-500 to-blue-600",
-        bg: "bg-blue-500",
-        light: "bg-blue-50 dark:bg-blue-900/10",
-        border: "border-blue-200 dark:border-blue-800",
+        gradient: "from-info to-info",
+        bg: "bg-info",
+        light: "bg-info-soft ",
+        border: "border-info ",
       },
       {
-        gradient: "from-emerald-500 to-emerald-600",
-        bg: "bg-emerald-500",
-        light: "bg-emerald-50 dark:bg-emerald-900/10",
-        border: "border-emerald-200 dark:border-emerald-800",
+        gradient: "from-success to-success",
+        bg: "bg-success",
+        light: "bg-success-soft ",
+        border: "border-success ",
       },
       {
-        gradient: "from-purple-500 to-purple-600",
-        bg: "bg-purple-500",
-        light: "bg-purple-50 dark:bg-purple-900/10",
-        border: "border-purple-200 dark:border-purple-800",
+        gradient: "from-accent-violet to-accent-violet",
+        bg: "bg-accent-violet",
+        light: "bg-accent-violet-soft ",
+        border: "border-accent-violet ",
       },
       {
-        gradient: "from-orange-500 to-orange-600",
-        bg: "bg-orange-500",
-        light: "bg-orange-50 dark:bg-orange-900/10",
-        border: "border-orange-200 dark:border-orange-800",
+        gradient: "from-bright to-bright-deep",
+        bg: "bg-bright",
+        light: "bg-bright-soft ",
+        border: "border-bright ",
       },
       {
-        gradient: "from-pink-500 to-pink-600",
-        bg: "bg-pink-500",
-        light: "bg-pink-50 dark:bg-pink-900/10",
-        border: "border-pink-200 dark:border-pink-800",
+        gradient: "from-accent-pink to-accent-pink",
+        bg: "bg-accent-pink",
+        light: "bg-accent-pink-soft ",
+        border: "border-accent-pink ",
       },
       {
-        gradient: "from-indigo-500 to-indigo-600",
-        bg: "bg-indigo-500",
-        light: "bg-indigo-50 dark:bg-indigo-900/10",
-        border: "border-indigo-200 dark:border-indigo-800",
+        gradient: "from-accent-indigo to-accent-indigo",
+        bg: "bg-accent-indigo",
+        light: "bg-accent-indigo-soft ",
+        border: "border-accent-indigo ",
       },
     ];
     const colorScheme = colorSchemes[level % colorSchemes.length];
@@ -764,7 +762,7 @@ const ProjectBudgetPage = () => {
               <div className="flex items-center space-x-3">
                 <div className="flex items-center space-x-2">
                   <div
-                    className={`w-3 h-3 rounded-full bg-white shadow-md`}
+                    className={`w-3 h-3 rounded-full bg-surface shadow-md`}
                   ></div>
                 </div>
 
@@ -855,8 +853,8 @@ const ProjectBudgetPage = () => {
                       <div
                         className={`font-bold ${
                           budget.variance >= 0
-                            ? "text-green-300"
-                            : "text-red-300"
+                            ? "text-white"
+                            : "text-white"
                         }`}
                       >
                         OMR {budget.variance.toLocaleString()}
@@ -909,10 +907,10 @@ const ProjectBudgetPage = () => {
 
     // Consistent color scheme for all tasks
     const taskColorScheme = {
-      gradient: "from-slate-500 to-slate-600",
-      bg: "bg-slate-500",
-      light: "bg-slate-50 dark:bg-slate-900/10",
-      border: "border-slate-200 dark:border-slate-800",
+      gradient: "from-muted to-muted",
+      bg: "bg-muted",
+      light: "bg-surface-2 ",
+      border: "border-line ",
     };
 
     return (
@@ -943,11 +941,11 @@ const ProjectBudgetPage = () => {
                       {task.name}
                     </h4>
                     {task.is_milestone ? (
-                      <span className="px-2 py-1 bg-yellow-500/30 backdrop-blur-sm text-yellow-200 rounded-full text-xs border border-yellow-400/50">
+                      <span className="px-2 py-1 bg-warning/30 backdrop-blur-sm text-white rounded-full text-xs border border-warning/50">
                         Milestone
                       </span>
                     ) : task.is_critical_path ? (
-                      <span className="px-2 py-1 bg-red-500/30 backdrop-blur-sm text-red-200 rounded-full text-xs border border-red-400/50">
+                      <span className="px-2 py-1 bg-danger/30 backdrop-blur-sm text-white rounded-full text-xs border border-danger/50">
                         Critical
                       </span>
                     ) : (
@@ -956,7 +954,7 @@ const ProjectBudgetPage = () => {
                       </span>
                     )}
                     {task.is_milestone && task.is_critical_path && (
-                      <span className="px-2 py-1 bg-red-500/30 backdrop-blur-sm text-red-200 rounded-full text-xs border border-red-400/50">
+                      <span className="px-2 py-1 bg-danger/30 backdrop-blur-sm text-white rounded-full text-xs border border-danger/50">
                         Critical
                       </span>
                     )}
@@ -1031,8 +1029,8 @@ const ProjectBudgetPage = () => {
                       <div
                         className={`font-bold ${
                           taskBudget.variance >= 0
-                            ? "text-green-300"
-                            : "text-red-300"
+                            ? "text-white"
+                            : "text-white"
                         }`}
                       >
                         OMR {taskBudget.variance.toLocaleString()}
@@ -1065,21 +1063,21 @@ const ProjectBudgetPage = () => {
                 router.push(`/projects/${projectId}`);
               }
             }}
-            className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+            className="p-2 rounded-lg text-faint hover:text-muted hover:bg-surface-2 transition-colors"
           >
             <ArrowLeft size={20} />
           </button>
           <div>
             <div className="flex items-center space-x-3">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              <h1 className="text-2xl font-bold text-ink">
                 Project Budget
               </h1>
               {user && (
                 <span
                   className={`px-2 py-1 rounded-full text-xs font-medium ${
                     canEditBudget()
-                      ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                      : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                      ? "bg-success-soft text-success  "
+                      : "bg-warning-soft text-warning  "
                   }`}
                 >
                   {user.role.name}{" "}
@@ -1088,49 +1086,29 @@ const ProjectBudgetPage = () => {
               )}
             </div>
             {project && (
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-muted">
                 {project.name} ({project.project_code})
               </p>
             )}
           </div>
         </div>
 
-        {/* Budget Management Actions */}
-        <div className="flex items-center space-x-2">
-          {canEditBudget() ? (
-            <button
-              onClick={() => setShowTemplateModal(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors"
-            >
-              <FileSpreadsheet size={16} />
-              <span>Bulk Edit</span>
-            </button>
-          ) : (
-            <div
-              className="flex items-center space-x-2 px-4 py-2 bg-gray-400 text-gray-600 rounded-lg cursor-not-allowed opacity-75"
-              title="You don't have permission to edit budgets. Only PMO, PJM, or ADMIN users can modify budget data."
-            >
-              <FileSpreadsheet size={16} />
-              <span>Bulk Edit</span>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Error Message */}
       {error && (
-        <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg shadow-sm">
+        <div className="mb-6 p-4 bg-danger-soft border border-danger rounded-lg shadow-sm">
           <div className="flex items-start space-x-3">
-            <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+            <AlertTriangle className="w-5 h-5 text-danger mt-0.5 flex-shrink-0" />
             <div className="flex-1">
-              <h3 className="text-sm font-medium text-red-800 dark:text-red-200 mb-1">
+              <h3 className="text-sm font-medium text-danger mb-1">
                 Budget Validation Error
               </h3>
-              <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+              <p className="text-sm text-danger">{error}</p>
             </div>
             <button
               onClick={() => setError(null)}
-              className="text-red-400 hover:text-red-600 transition-colors"
+              className="text-danger hover:text-danger transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -1140,14 +1118,14 @@ const ProjectBudgetPage = () => {
 
       {/* Access Control Notice */}
       {!canEditBudget() && (
-        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg shadow-sm">
+        <div className="mb-6 p-4 bg-info-soft border border-info rounded-lg shadow-sm">
           <div className="flex items-start space-x-3">
-            <AlertTriangle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+            <AlertTriangle className="w-5 h-5 text-info mt-0.5 flex-shrink-0" />
             <div className="flex-1">
-              <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
+              <h3 className="text-sm font-medium text-info mb-1">
                 Read-Only Access
               </h3>
-              <p className="text-sm text-blue-700 dark:text-blue-300">
+              <p className="text-sm text-info">
                 You have read-only access to this budget page. Only users with
                 PMO, PJM, or ADMIN roles can edit budget data.
               </p>
@@ -1158,35 +1136,35 @@ const ProjectBudgetPage = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 flex items-center space-x-3">
-          <DollarSign className="w-8 h-8 text-green-600" />
+        <div className="bg-surface rounded-xl shadow p-4 flex items-center space-x-3">
+          <DollarSign className="w-8 h-8 text-success" />
           <div>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-muted">
               Total Planned
             </p>
-            <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            <p className="text-lg font-semibold text-ink">
               OMR {totalPlanned.toLocaleString()}
             </p>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 flex items-center space-x-3">
-          <BarChart3 className="w-8 h-8 text-blue-600" />
+        <div className="bg-surface rounded-xl shadow p-4 flex items-center space-x-3">
+          <BarChart3 className="w-8 h-8 text-info" />
           <div>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-muted">
               Total Actual
             </p>
-            <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            <p className="text-lg font-semibold text-ink">
               OMR {totalActual.toLocaleString()}
             </p>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 flex items-center space-x-3">
-          <Calendar className="w-8 h-8 text-purple-600" />
+        <div className="bg-surface rounded-xl shadow p-4 flex items-center space-x-3">
+          <Calendar className="w-8 h-8 text-accent-violet" />
           <div>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-muted">
               Total Variance
             </p>
-            <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            <p className="text-lg font-semibold text-ink">
               OMR {totalVariance.toLocaleString()}
             </p>
           </div>
@@ -1197,14 +1175,14 @@ const ProjectBudgetPage = () => {
       <div className="space-y-4">
         {loading ? (
           <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-2 text-gray-600 dark:text-gray-400">
+            <Spinner size={32} className="mx-auto text-bright-primary" />
+            <p className="mt-2 text-muted">
               Loading budget data...
             </p>
           </div>
         ) : wbsData.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-muted">
               No WBS items found for this project.
             </p>
           </div>
@@ -1224,7 +1202,7 @@ const ProjectBudgetPage = () => {
                 router.push(`/projects/${projectId}`);
               }
             }}
-            className="flex items-center space-x-2 px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            className="flex items-center space-x-2 px-6 py-3 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors"
           >
             <ArrowLeft size={16} />
             <span>{showNavButtons ? "Back to Setup" : "Back to Project"}</span>
@@ -1263,8 +1241,8 @@ const ProjectBudgetPage = () => {
             }}
             className={`flex items-center space-x-2 px-6 py-3 rounded-lg transition-colors ${
               canEditBudget()
-                ? "bg-blue-600 text-white hover:bg-blue-700"
-                : "bg-gray-400 text-gray-600 cursor-not-allowed opacity-75"
+                ? "bg-info text-white hover:opacity-90"
+                : "bg-faint text-muted cursor-not-allowed opacity-75"
             }`}
             disabled={!canEditBudget()}
             title={
@@ -1279,34 +1257,6 @@ const ProjectBudgetPage = () => {
         </div>
       )}
 
-      {/* Budget Template Modal */}
-      {showTemplateModal &&
-        createPortal(
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-              <div className="p-6 border-b border-gray-200 dark:border-slate-700">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                    Budget Bulk Editor
-                  </h2>
-                  <button
-                    onClick={() => setShowTemplateModal(false)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                  >
-                    <X size={20} className="text-gray-500" />
-                  </button>
-                </div>
-              </div>
-              <div className="p-6 overflow-y-auto">
-                <BudgetTemplateManager
-                  projectId={parseInt(projectId)}
-                  onBudgetUpdated={refreshBudgetData}
-                />
-              </div>
-            </div>
-          </div>,
-          document.body
-        )}
     </DashboardLayout>
   );
 };

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { TeamUserSelect } from "./TeamUserSelect";
 import { toast } from "sonner";
 import axios from "axios";
+import { Dropdown } from "@/components/ui/dropdown";
 
 interface UserOption {
     user_id: number;
@@ -184,7 +185,7 @@ export default function AssignMitigationModal({
                     <DialogTitle>{mitigation ? "Edit Mitigation" : "Assign Risk Mitigation"}</DialogTitle>
                 </DialogHeader>
                 {error && (
-                    <div className="bg-red-100 text-red-700 rounded p-2 mb-3">
+                    <div className="bg-danger-soft text-danger rounded p-2 mb-3">
                         {error}
                     </div>
                 )}
@@ -204,18 +205,15 @@ export default function AssignMitigationModal({
                         <label className="block text-sm font-medium mb-1">
                             Task
                         </label>
-                        <select
-                            value={taskId}
-                            onChange={(e) => setTaskId(e.target.value)}
-                            className="w-full px-3 py-2 border rounded"
-                        >
-                            <option value="">Select a task</option>
-                            {tasks.map((task) => (
-                                <option key={task.task_id} value={task.task_id}>
-                                    {task.name}
-                                </option>
-                            ))}
-                        </select>
+                        <Dropdown
+                          value={String(taskId ?? '')}
+                          onChange={(__v: string) => setTaskId(__v)}
+                          options={[
+                          { value: String(""), label: "Select a task" },
+                          ...tasks.map((task) => ({ value: String(task.task_id), label: task.name })),
+                        ]}
+                          modal
+                        />
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">
@@ -267,17 +265,14 @@ export default function AssignMitigationModal({
                         <label className="block text-sm font-medium mb-1">
                             Status
                         </label>
-                        <select
-                            value={status}
-                            onChange={(e) => setStatus(e.target.value)}
-                            className="w-full px-3 py-2 border rounded"
-                        >
-                            {statusOptions.map((opt) => (
-                                <option key={opt.value} value={opt.value}>
-                                    {opt.label}
-                                </option>
-                            ))}
-                        </select>
+                        <Dropdown
+                          value={String(status ?? '')}
+                          onChange={(__v: string) => setStatus(__v)}
+                          options={[
+                          ...statusOptions.map((opt) => ({ value: String(opt.value), label: opt.label })),
+                        ]}
+                          modal
+                        />
                     </div>
                     <div className="flex justify-end gap-2">
                         <Button
@@ -290,7 +285,7 @@ export default function AssignMitigationModal({
                         </Button>
                         <Button
                             type="submit"
-                            className="ml-2 bg-orange-600 text-white"
+                            className="ml-2 bg-bright text-white"
                             disabled={loading}
                         >
                             {loading

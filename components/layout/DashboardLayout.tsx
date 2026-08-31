@@ -26,8 +26,12 @@ interface DashboardLayoutProps {
     subtitle?: React.ReactNode;
     /** Overrides the icon derived from the route. */
     icon?: LucideIcon;
-    /** Buttons for the right of the header card, e.g. a "New …" CTA. */
+    /** Buttons for the right of the header, e.g. a "New …" CTA. */
     actions?: React.ReactNode;
+    /** Renders a back link above the title. Detail screens set this. */
+    backHref?: string;
+    /** Text for the back link, e.g. "Back to Projects". */
+    backLabel?: string;
     /** Strip below the title row — counts, status pills. */
     meta?: React.ReactNode;
     /** Opt out entirely, for screens that build their own heading. */
@@ -89,6 +93,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     subtitle,
     icon,
     actions,
+    backHref,
+    backLabel,
     meta,
     hideHeader,
 }) => {
@@ -98,11 +104,13 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     return (
         <>
             {showHeader && (
-                <div className="mb-6">
+                <div className="mb-5">
                     <PageHeader
                         icon={icon ?? iconForPath(pathname)}
                         title={title!}
                         subtitle={subtitle}
+                        backHref={backHref}
+                        backLabel={backLabel}
                         actions={actions}
                         meta={meta}
                     />

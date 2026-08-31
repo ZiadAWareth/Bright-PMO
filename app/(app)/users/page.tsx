@@ -1,45 +1,59 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
-  Users,
-  Search,
-  Filter,
-  Download,
-  UserPlus,
-  TrendingUp,
   AlertTriangle,
-  Clock,
-  Activity,
-  Building,
+  Briefcase,
   CheckCircle,
-  XCircle,
+  Clock,
+  Eye,
+  TrendingUp,
+  Users,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { toast } from "sonner";
 import axios from "axios";
+import { toast } from "sonner";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 import { FilterBar, FilterSelect } from "@/components/ui/filter-bar";
+import { ListPagination } from "@/components/ui/list-pagination";
+import { ViewToggle, type ListViewMode } from "@/components/ui/view-toggle";
+import { PersonCell } from "@/components/ui/person-cell";
+import { LoadingState } from "@/components/ui/spinner";
+import { useDebounce } from "@/hooks/useDebounce";
+import {
+  EmptyState,
+  EntityCard,
+  EntityCardFooter,
+  EntityCardHeader,
+  EntityProgress,
+  EntityStat,
+  EntityStats,
+  StatGrid,
+  StatTile,
+} from "@/components/ui/entity-card";
+import {
+  ListCard,
+  ListHead,
+  ListMessage,
+  ListRow,
+  NewButton,
+  RowAction,
+  RowActions,
+  StatusBadge,
+} from "@/components/ui/form-shell";
+import { capacityTone, humanize, utilizationTone } from "@/lib/status-tone";
+
+const PAGE_SIZE = 12;
+const COLUMNS = [
+  "Name",
+  "Department",
+  "Role",
+  "Status",
+  "Projects",
+  "Tasks",
+  "Utilization",
+  "Capacity",
+];
 
 interface UserWorkload {
   user_id: number;
@@ -56,238 +70,237 @@ interface UserWorkload {
   capacity_status: string;
 }
 
+interface FilterState {
+  search: string;
+  department: string;
+  role: string;
+  capacity: string;
+}
+
+const EMPTY_FILTERS: FilterState = {
+  search: "",
+  department: "",
+  role: "",
+  capacity: "",
+};
+
 export default function UsersPage() {
   const router = useRouter();
+
   const [users, setUsers] = useState<UserWorkload[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [departmentFilter, setDepartmentFilter] = useState("all");
-  const [roleFilter, setRoleFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [capacityFilter, setCapacityFilter] = useState("all");
+  const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
+  const [view, setView] = useState<ListViewMode>("list");
+  const [page, setPage] = useState(0);
+  const debouncedSearch = useDebounce(filters.search, 300);
+
+  useEffect(
+    () => setPage(0),
+    [debouncedSearch, filters.department, filters.role, filters.capacity],
+  );
 
   useEffect(() => {
-    fetchUsers();
+    (async () => {
+      try {
+        setLoading(true);
+        const res = await axios.get("/api/users/workload", {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        });
+        setUsers(Array.isArray(res.data) ? res.data : []);
+      } catch (error) {
+        console.error("Error fetching users workload:", error);
+        toast.error("Failed to load users");
+        setUsers([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem("token");
+  const departments = useMemo(
+    () =>
+      Array.from(new Set(users.map((u) => u.department).filter(Boolean))).sort(),
+    [users],
+  );
+  const roles = useMemo(
+    () => Array.from(new Set(users.map((u) => u.role).filter(Boolean))).sort(),
+    [users],
+  );
 
-      const workloadResponse = await axios.get("/api/users/workload", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setUsers(workloadResponse.data);
-    } catch (error) {
-      console.error("Error fetching users workload:", error);
-      toast.error("Failed to load users");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const filtered = useMemo(() => {
+    const q = debouncedSearch.trim().toLowerCase();
+    return users.filter((user) => {
+      const matchesSearch =
+        !q ||
+        user.name.toLowerCase().includes(q) ||
+        user.email.toLowerCase().includes(q) ||
+        (user.department ?? "").toLowerCase().includes(q);
 
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch =
-      searchTerm === "" ||
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.department.toLowerCase().includes(searchTerm.toLowerCase());
+      return (
+        matchesSearch &&
+        (!filters.department || user.department === filters.department) &&
+        (!filters.role || user.role === filters.role) &&
+        (!filters.capacity || user.capacity_status === filters.capacity)
+      );
+    });
+  }, [
+    users,
+    debouncedSearch,
+    filters.department,
+    filters.role,
+    filters.capacity,
+  ]);
 
-    const matchesDepartment =
-      departmentFilter === "all" || user.department === departmentFilter;
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const visible = useMemo(
+    () => filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
+    [filtered, page],
+  );
 
-    const matchesRole = roleFilter === "all" || user.role === roleFilter;
+  const activeFilterCount =
+    (filters.department ? 1 : 0) +
+    (filters.role ? 1 : 0) +
+    (filters.capacity ? 1 : 0);
 
-    const matchesStatus = statusFilter === "all" || user.status === statusFilter;
+  const stats = useMemo(
+    () => ({
+      total: users.length,
+      active: users.filter((u) => u.status === "active").length,
+      overloaded: users.filter((u) => u.capacity_status === "overloaded").length,
+      available: users.filter((u) => u.capacity_status === "available").length,
+      avgUtilization: users.length
+        ? users.reduce((sum, u) => sum + u.utilization_percentage, 0) /
+          users.length
+        : 0,
+    }),
+    [users],
+  );
 
-    const matchesCapacity =
-      capacityFilter === "all" || user.capacity_status === capacityFilter;
+  const rowActions = (user: UserWorkload) => (
+    <RowActions>
+      <RowAction
+        icon={Eye}
+        label={`View ${user.name}`}
+        onClick={() => router.push(`/users/${user.user_id}`)}
+      />
+    </RowActions>
+  );
 
-    return (
-      matchesSearch &&
-      matchesDepartment &&
-      matchesRole &&
-      matchesStatus &&
-      matchesCapacity
-    );
-  });
+  const renderCard = (user: UserWorkload) => (
+    <EntityCard
+      key={user.user_id}
+      onClick={() => router.push(`/users/${user.user_id}`)}
+    >
+      <EntityCardHeader
+        title={user.name}
+        subtitle={user.email}
+        badges={
+          <>
+            <StatusBadge
+              label={humanize(user.capacity_status)}
+              tone={capacityTone(user.capacity_status)}
+            />
+            <StatusBadge
+              label={humanize(user.status)}
+              tone={user.status === "active" ? "success" : "neutral"}
+            />
+            {user.role && <StatusBadge label={user.role} tone="info" />}
+          </>
+        }
+      />
 
-  const departments = Array.from(new Set(users.map((u) => u.department)));
-  const roles = Array.from(new Set(users.map((u) => u.role)));
+      <EntityStats>
+        <EntityStat icon={<Briefcase className="h-3.5 w-3.5" />}>
+          {user.total_projects}{" "}
+          {user.total_projects === 1 ? "project" : "projects"}
+        </EntityStat>
+        <EntityStat icon={<Clock className="h-3.5 w-3.5" />}>
+          {user.total_hours_logged.toFixed(1)}h logged
+        </EntityStat>
+      </EntityStats>
 
-  const getCapacityBadge = (status: string) => {
-    const colors: Record<string, string> = {
-      available: "bg-blue-500",
-      under_utilized: "bg-yellow-500",
-      optimal: "bg-green-500",
-      overloaded: "bg-red-500",
-    };
-    return (
-      <Badge className={colors[status] || "bg-gray-400"}>
-        {status.replace("_", " ").toUpperCase()}
-      </Badge>
-    );
-  };
+      <EntityProgress
+        label="Utilization"
+        value={Math.min(user.utilization_percentage, 100)}
+        display={`${user.utilization_percentage.toFixed(0)}%`}
+        tone={utilizationTone(user.utilization_percentage)}
+      />
 
-  const exportToCSV = () => {
-    const headers = [
-      "Name",
-      "Email",
-      "Department",
-      "Role",
-      "Status",
-      "Projects",
-      "Active Tasks",
-      "Hours Allocated",
-      "Hours Logged",
-      "Utilization %",
-      "Capacity Status",
-    ];
-
-    const rows = filteredUsers.map((user) => [
-      user.name,
-      user.email,
-      user.department,
-      user.role,
-      user.status,
-      user.total_projects,
-      user.active_tasks,
-      user.total_hours_allocated.toFixed(2),
-      user.total_hours_logged.toFixed(2),
-      user.utilization_percentage.toFixed(1),
-      user.capacity_status,
-    ]);
-
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-
-    const link = document.createElement("a");
-    link.href = encodeURI(csvContent);
-    link.download = `users_workload_${new Date().toISOString().split("T")[0]}.csv`;
-    link.click();
-  };
-
-  // Statistics
-  const stats = {
-    total: users.length,
-    active: users.filter((u) => u.status === "active").length,
-    overloaded: users.filter((u) => u.capacity_status === "overloaded").length,
-    available: users.filter((u) => u.capacity_status === "available").length,
-  };
-
-  if (loading) {
-    return (
-      <DashboardLayout title="User Management">
-        <div className="flex items-center justify-center h-screen">
-          <div className="text-center">
-            <Activity className="h-12 w-12 animate-spin mx-auto mb-4" />
-            <p>Loading users...</p>
-          </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
+      <EntityCardFooter
+        actions={
+          <div onClick={(e) => e.stopPropagation()}>{rowActions(user)}</div>
+        }
+      >
+        <PersonCell
+          name={user.name}
+          subtitle={user.department || "No department"}
+        />
+      </EntityCardFooter>
+    </EntityCard>
+  );
 
   return (
-    <DashboardLayout title="User Management">
-      <div className="container mx-auto p-6 space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <p className="text-muted-foreground">
-            Manage team members, track workload, and optimize resource allocation
-          </p>
-          <Button onClick={exportToCSV}>
-            <Download className="mr-2 h-4 w-4" />
-            Export CSV
-          </Button>
-        </div>
+    <DashboardLayout
+      title="User Management"
+      subtitle="Team members, their workload and how much capacity is left."
+      actions={
+        <>
+          <ViewToggle value={view} onChange={setView} />
+          <NewButton label="New user" href="/users/new" />
+        </>
+      }
+    >
+      <div className="space-y-6">
+        <StatGrid>
+          <StatTile
+            label="Total users"
+            value={stats.total}
+            hint={`${stats.active} active`}
+            icon={<Users className="h-4 w-4" />}
+          />
+          <StatTile
+            label="Available"
+            value={stats.available}
+            hint="Ready for assignments"
+            icon={<CheckCircle className="h-4 w-4" />}
+            tone={stats.available > 0 ? "success" : "neutral"}
+          />
+          <StatTile
+            label="Overloaded"
+            value={stats.overloaded}
+            hint="Need rebalancing"
+            icon={<AlertTriangle className="h-4 w-4" />}
+            tone={stats.overloaded > 0 ? "danger" : "neutral"}
+          />
+          <StatTile
+            label="Avg utilization"
+            value={`${stats.avgUtilization.toFixed(1)}%`}
+            hint="Team average"
+            icon={<TrendingUp className="h-4 w-4" />}
+          />
+        </StatGrid>
 
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
-              <p className="text-xs text-muted-foreground">
-                {stats.active} active
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Available</CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.available}</div>
-              <p className="text-xs text-muted-foreground">
-                Ready for assignments
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Overloaded</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-red-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.overloaded}</div>
-              <p className="text-xs text-muted-foreground">
-                Need rebalancing
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Avg Utilization
-              </CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {users.length > 0
-                  ? (
-                      users.reduce((sum, u) => sum + u.utilization_percentage, 0) /
-                      users.length
-                    ).toFixed(1)
-                  : 0}
-                %
-              </div>
-              <p className="text-xs text-muted-foreground">Team average</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Search + filters */}
         <FilterBar
-          search={searchTerm}
-          onSearch={setSearchTerm}
+          search={filters.search}
+          onSearch={(v) => setFilters({ ...filters, search: v })}
           searchPlaceholder="Search users by name, email or department…"
-          resultLabel={`${filteredUsers.length} ${filteredUsers.length === 1 ? "user" : "users"}`}
-          activeCount={
-            (departmentFilter !== "all" ? 1 : 0) +
-            (roleFilter !== "all" ? 1 : 0) +
-            (capacityFilter !== "all" ? 1 : 0)
+          resultLabel={
+            loading
+              ? "Loading…"
+              : `${filtered.length} ${filtered.length === 1 ? "user" : "users"}`
           }
-          onClear={() => {
-            setDepartmentFilter("all");
-            setRoleFilter("all");
-            setCapacityFilter("all");
-          }}
+          activeCount={activeFilterCount}
+          onClear={() =>
+            setFilters({ ...filters, department: "", role: "", capacity: "" })
+          }
         >
           <FilterSelect
             label="Department"
-            value={departmentFilter}
-            onChange={setDepartmentFilter}
+            value={filters.department || "all"}
+            onChange={(v) =>
+              setFilters({ ...filters, department: v === "all" ? "" : v })
+            }
+            searchable={departments.length > 10}
             options={[
               { value: "all", label: "All departments" },
               ...departments.map((d) => ({ value: d, label: d })),
@@ -295,8 +308,11 @@ export default function UsersPage() {
           />
           <FilterSelect
             label="Role"
-            value={roleFilter}
-            onChange={setRoleFilter}
+            value={filters.role || "all"}
+            onChange={(v) =>
+              setFilters({ ...filters, role: v === "all" ? "" : v })
+            }
+            searchable={roles.length > 10}
             options={[
               { value: "all", label: "All roles" },
               ...roles.map((r) => ({ value: r, label: r })),
@@ -304,8 +320,10 @@ export default function UsersPage() {
           />
           <FilterSelect
             label="Capacity"
-            value={capacityFilter}
-            onChange={setCapacityFilter}
+            value={filters.capacity || "all"}
+            onChange={(v) =>
+              setFilters({ ...filters, capacity: v === "all" ? "" : v })
+            }
             options={[
               { value: "all", label: "All capacities" },
               { value: "available", label: "Available" },
@@ -316,95 +334,124 @@ export default function UsersPage() {
           />
         </FilterBar>
 
-        {/* Users Table */}
-        <Card>
-          <CardContent className="pt-6">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Projects</TableHead>
-                  <TableHead>Active Tasks</TableHead>
-                  <TableHead>Hours Allocated</TableHead>
-                  <TableHead>Hours Logged</TableHead>
-                  <TableHead>Utilization</TableHead>
-                  <TableHead>Capacity</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8">
-                      No users found
-                    </TableCell>
-                  </TableRow>
+        {loading ? (
+          <LoadingState />
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            icon={<Users className="h-10 w-10" />}
+            title="No users found"
+            message={
+              activeFilterCount > 0 || filters.search
+                ? "Try adjusting your filters to see more results."
+                : "No users have been added yet."
+            }
+            action={
+              activeFilterCount > 0 || filters.search ? (
+                <button
+                  type="button"
+                  onClick={() => setFilters(EMPTY_FILTERS)}
+                  className="text-[13px] font-semibold text-bright hover:text-bright-deep"
+                >
+                  Clear all filters
+                </button>
+              ) : undefined
+            }
+          />
+        ) : view === "grid" ? (
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {visible.map(renderCard)}
+          </div>
+        ) : (
+          <ListCard>
+            <table className="w-full border-collapse">
+              <ListHead columns={COLUMNS} />
+              <tbody>
+                {visible.length === 0 ? (
+                  <ListMessage colSpan={COLUMNS.length + 1}>
+                    No users on this page.
+                  </ListMessage>
                 ) : (
-                  filteredUsers.map((user) => (
-                    <TableRow
+                  visible.map((user) => (
+                    <ListRow
                       key={user.user_id}
-                      className="cursor-pointer hover:bg-muted/50"
                       onClick={() => router.push(`/users/${user.user_id}`)}
                     >
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <Link
-                          href={`/users/${user.user_id}`}
-                          className="block hover:underline focus:outline-none focus:underline"
-                        >
-                          <div className="font-medium">{user.name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {user.email}
-                          </div>
-                        </Link>
-                      </TableCell>
-                      <TableCell>{user.department}</TableCell>
-                      <TableCell>{user.role}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            user.status === "active" ? "default" : "secondary"
-                          }
-                        >
-                          {user.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{user.total_projects}</TableCell>
-                      <TableCell>{user.active_tasks}</TableCell>
-                      <TableCell>{user.total_hours_allocated.toFixed(1)}h</TableCell>
-                      <TableCell>{user.total_hours_logged.toFixed(1)}h</TableCell>
-                      <TableCell>
+                      <td className="max-w-[180px] px-4 py-3">
+                        <PersonCell name={user.name} email={user.email} />
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-[13.5px] text-ink-2">
+                        {user.department || (
+                          <span className="text-faint">—</span>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-[13.5px] text-ink-2">
+                        {user.role || <span className="text-faint">—</span>}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3">
+                        <StatusBadge
+                          label={humanize(user.status)}
+                          tone={user.status === "active" ? "success" : "neutral"}
+                        />
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-[13.5px] tabular-nums text-ink-2">
+                        {user.total_projects}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-[13.5px] tabular-nums text-ink-2">
+                        {user.active_tasks}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <div className="w-20 bg-gray-200 rounded-full h-2">
+                          <div className="h-1.5 w-16 overflow-hidden rounded-full bg-surface-3">
                             <div
-                              className={`h-2 rounded-full ${
+                              className={`h-full rounded-full ${
                                 user.utilization_percentage > 100
-                                  ? "bg-red-500"
-                                  : user.utilization_percentage > 80
-                                  ? "bg-green-500"
-                                  : user.utilization_percentage > 50
-                                  ? "bg-yellow-500"
-                                  : "bg-blue-500"
+                                  ? "bg-danger"
+                                  : user.utilization_percentage >= 80
+                                    ? "bg-success"
+                                    : user.utilization_percentage >= 50
+                                      ? "bg-warning"
+                                      : "bg-bright"
                               }`}
                               style={{
                                 width: `${Math.min(user.utilization_percentage, 100)}%`,
                               }}
                             />
                           </div>
-                          <span className="text-sm">
+                          <span className="text-[12px] tabular-nums text-muted">
                             {user.utilization_percentage.toFixed(0)}%
                           </span>
                         </div>
-                      </TableCell>
-                      <TableCell>{getCapacityBadge(user.capacity_status)}</TableCell>
-                    </TableRow>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3">
+                        <StatusBadge
+                          label={humanize(user.capacity_status)}
+                          tone={capacityTone(user.capacity_status)}
+                        />
+                      </td>
+                      <td
+                        className="px-4 py-3"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {rowActions(user)}
+                      </td>
+                    </ListRow>
                   ))
                 )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+              </tbody>
+            </table>
+          </ListCard>
+        )}
+
+        {!loading && filtered.length > 0 && (
+          <ListPagination
+            page={page}
+            pageCount={pageCount}
+            total={filtered.length}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+            noun="user"
+          />
+        )}
       </div>
     </DashboardLayout>
   );

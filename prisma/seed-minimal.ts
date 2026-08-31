@@ -1313,7 +1313,8 @@ async function main() {
         expected_task_completion_rate: 90,
         max_budget_threshold_violation: 2
       }
-    ]
+    ],
+    skipDuplicates: true
   });
 
   console.log('Minimal seed complete.');

@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowLeft, FileSpreadsheet, FileText, Loader2 } from "lucide-react";
+import { ArrowLeft, FileSpreadsheet, FileText } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 export function GeneratePanel({
   table,
@@ -79,17 +80,17 @@ export function GeneratePanel({
             type="button"
             onClick={() => onGenerate("pdf")}
             disabled={generating !== null}
-            className="group flex items-center gap-3 rounded-xl border border-border p-4 text-left transition-all hover:border-wujha-primary hover:shadow-sm disabled:opacity-60"
+            className="group flex items-center gap-3 rounded-xl border border-border p-4 text-left transition-all hover:border-bright-primary hover:shadow-sm disabled:opacity-60"
           >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-danger-soft text-danger">
               {generating === "pdf" ? (
-                <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+                <Spinner size={20} />
               ) : (
                 <FileText className="h-5 w-5" aria-hidden="true" />
               )}
             </span>
             <span className="min-w-0">
-              <span className="block font-medium text-text-primary group-hover:text-wujha-primary">
+              <span className="block font-medium text-text-primary group-hover:text-bright-primary">
                 {generating === "pdf" ? "Generating…" : "Download PDF"}
               </span>
               <span className="block text-xs text-text-secondary">
@@ -102,17 +103,17 @@ export function GeneratePanel({
             type="button"
             onClick={() => onGenerate("excel")}
             disabled={generating !== null}
-            className="group flex items-center gap-3 rounded-xl border border-border p-4 text-left transition-all hover:border-wujha-primary hover:shadow-sm disabled:opacity-60"
+            className="group flex items-center gap-3 rounded-xl border border-border p-4 text-left transition-all hover:border-bright-primary hover:shadow-sm disabled:opacity-60"
           >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-success-soft text-success">
               {generating === "excel" ? (
-                <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+                <Spinner size={20} />
               ) : (
                 <FileSpreadsheet className="h-5 w-5" aria-hidden="true" />
               )}
             </span>
             <span className="min-w-0">
-              <span className="block font-medium text-text-primary group-hover:text-wujha-primary">
+              <span className="block font-medium text-text-primary group-hover:text-bright-primary">
                 {generating === "excel" ? "Generating…" : "Download Excel"}
               </span>
               <span className="block text-xs text-text-secondary">
@@ -126,7 +127,7 @@ export function GeneratePanel({
       <button
         type="button"
         onClick={onBack}
-        className="inline-flex h-11 items-center gap-2 rounded-xl border border-border px-5 text-sm font-medium text-text-secondary transition-colors hover:border-wujha-primary hover:text-text-primary"
+        className="inline-flex h-11 items-center gap-2 rounded-xl border border-border px-5 text-sm font-medium text-text-secondary transition-colors hover:border-bright-primary hover:text-text-primary"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
         Back to columns

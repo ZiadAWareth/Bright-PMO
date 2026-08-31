@@ -89,11 +89,7 @@ export function useProjectData(params: Promise<{ id: string }>) {
     const [showBOMModal, setShowBOMModal] = useState(false);
     const [bomData, setBomData] = useState<BOMData | null>(null);
     const [isGeneratingBOM, setIsGeneratingBOM] = useState(false);
-    const [isExportingBOM, setIsExportingBOM] = useState(false);
 
-    const isDarkMode =
-        typeof window !== "undefined" &&
-        document.documentElement.classList.contains("dark");
 
     // --- Handlers ---
 
@@ -227,83 +223,7 @@ export function useProjectData(params: Promise<{ id: string }>) {
         }
     };
 
-    const exportBOMToPDF = async () => {
-        if (!bomData) return;
 
-        setIsExportingBOM(true);
-        try {
-            const response = await axios.post(
-                `/api/projects/${projectId}/bom/export/pdf`,
-                {},
-                {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                        )}`,
-                    },
-                    responseType: "blob",
-                }
-            );
-
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement("a");
-            link.href = url;
-            link.setAttribute(
-                "download",
-                `${project?.project_code || projectId}_BOM.pdf`
-            );
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
-
-            toast.success("BOM exported to PDF successfully!");
-        } catch (error: any) {
-            console.error("Error exporting BOM to PDF:", error);
-            toast.error("Failed to export BOM to PDF");
-        } finally {
-            setIsExportingBOM(false);
-        }
-    };
-
-    const exportBOMToExcel = async () => {
-        if (!bomData) return;
-
-        setIsExportingBOM(true);
-        try {
-            const response = await axios.post(
-                `/api/projects/${projectId}/bom/export/excel`,
-                {},
-                {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                        )}`,
-                    },
-                    responseType: "blob",
-                }
-            );
-
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement("a");
-            link.href = url;
-            link.setAttribute(
-                "download",
-                `${project?.project_code || projectId}_BOM.xlsx`
-            );
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
-
-            toast.success("BOM exported to Excel successfully!");
-        } catch (error: any) {
-            console.error("Error exporting BOM to Excel:", error);
-            toast.error("Failed to export BOM to Excel");
-        } finally {
-            setIsExportingBOM(false);
-        }
-    };
 
     const handleAddTeamMember = async (data: Record<string, any>) => {
         try {
@@ -586,7 +506,7 @@ export function useProjectData(params: Promise<{ id: string }>) {
     const handleActionClick = (action: string) => {
         switch (action) {
             case "edit":
-                setShowEditModal(true);
+                router.push(`/projects/${projectId}/edit`);
                 break;
             case "generate_bom":
                 generateBOM();
@@ -1329,12 +1249,6 @@ export function useProjectData(params: Promise<{ id: string }>) {
     }, [projectId]);
 
     useEffect(() => {
-        if (project && project.status === "planning") {
-            router.replace(`/projects/${projectId}/setup`);
-        }
-    }, [project, projectId, router]);
-
-    useEffect(() => {
         if (!projectId) return;
 
         const fetchProjectApprovals = async () => {
@@ -1397,7 +1311,6 @@ export function useProjectData(params: Promise<{ id: string }>) {
         loading,
         projectId,
         currentUserId,
-        isDarkMode,
 
         // UI flags
         isStarred,
@@ -1492,7 +1405,6 @@ export function useProjectData(params: Promise<{ id: string }>) {
         setShowBOMModal,
         bomData,
         isGeneratingBOM,
-        isExportingBOM,
 
         // Handlers
         handleHealthScoreUpdate,
@@ -1500,8 +1412,6 @@ export function useProjectData(params: Promise<{ id: string }>) {
         calculateProjectHealth,
         refreshProjectAndApprovals,
         generateBOM,
-        exportBOMToPDF,
-        exportBOMToExcel,
         handleAddTeamMember,
         handleDeleteTeamMember,
         handleDeleteProject,

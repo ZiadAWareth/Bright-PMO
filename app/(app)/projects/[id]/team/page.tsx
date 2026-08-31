@@ -7,14 +7,15 @@ import {
     Users,
     ArrowLeft,
     Trash2,
-    CheckCircle,
     UserPlus,
-    CheckSquare,
     ChevronDown,
     ChevronRight,
     Package,
     X,
     Edit,
+    ListChecks,
+    Gauge,
+    AlertTriangle,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
@@ -25,6 +26,18 @@ import ResourceAssignmentModal from "@/components/scheduler/ResourceAssignmentMo
 import { useDepartments } from "@/hooks/useDepartments";
 import { useEmployees } from "@/hooks/useEmployees";
 import { SearchableDropdown } from "@/components/form/SearchableDropdown";
+import { Spinner } from "@/components/ui/spinner";
+import { useConfirm } from "@/components/ui/confirm-provider";
+import { Dropdown } from "@/components/ui/dropdown";
+import { UserAvatar } from "@/components/ui/person-cell";
+import { StatusBadge } from "@/components/ui/form-shell";
+import {
+    EntityCard,
+    EntityCardFooter,
+    EntityProgress,
+    StatGrid,
+    StatTile,
+} from "@/components/ui/entity-card";
 
 // Helper to get WBS breadcrumb for a task
 function getWBSBreadcrumb(task: any, wbsList: any[]): string {
@@ -39,19 +52,6 @@ function getWBSBreadcrumb(task: any, wbsList: any[]): string {
     return path.join(" / ");
 }
 
-const userColorScheme = {
-    gradient: "from-blue-500 to-blue-600",
-    bg: "bg-blue-500",
-    light: "bg-blue-50 dark:bg-blue-900/10",
-    border: "border-blue-200 dark:border-blue-800",
-};
-const resourceColorScheme = {
-    gradient: "from-green-500 to-green-600",
-    bg: "bg-green-500",
-    light: "bg-green-50 dark:bg-green-900/10",
-    border: "border-green-200 dark:border-green-800",
-};
-
 // Team member roles (app enum – exclude PJM and Admin)
 const TEAM_MEMBER_ROLES = [
     "PMO", "FIN", "PROC", "ENG", "SITE", "QAQC", "IT", "DIR", "HR", "LEGAL", "SYSTEM",
@@ -60,6 +60,7 @@ const TEAM_MEMBER_ROLES = [
 const TeamResourcesPage = () => {
     const params = useParams();
     const router = useRouter();
+    const confirm = useConfirm();
     const projectId = params.id as string;
 
     const [project, setProject] = useState<ProjectWithRelations | null>(null);
@@ -85,12 +86,10 @@ const TeamResourcesPage = () => {
     const [userRole, setUserRole] = useState<string>("");
     const [currentUserId, setCurrentUserId] = useState<number | null>(null);
     const [resources, setResources] = useState<any[]>([]);
-    const [expandedSections, setExpandedSections] = useState<
-        Record<string, { users: boolean; resources: boolean }>
-    >({});
     const [expandedTasks, setExpandedTasks] = useState<Record<number, boolean>>(
         {}
     );
+    const [showAllTasks, setShowAllTasks] = useState(false);
     const [allUsers, setAllUsers] = useState<any[]>([]);
     const [userSearchQuery, setUserSearchQuery] = useState("");
     const [isLoadingUsers, setIsLoadingUsers] = useState(false);
@@ -396,23 +395,6 @@ const TeamResourcesPage = () => {
         await fetchProject();
     };
 
-    // Helper to toggle expand/collapse for a section
-    const toggleSection = (taskId: number, section: "users" | "resources") => {
-        setExpandedSections((prev) => ({
-            ...prev,
-            [taskId]: {
-                users:
-                    section === "users"
-                        ? !prev[taskId]?.users
-                        : prev[taskId]?.users ?? true,
-                resources:
-                    section === "resources"
-                        ? !prev[taskId]?.resources
-                        : prev[taskId]?.resources ?? true,
-            },
-        }));
-    };
-
     // Helper to toggle expand/collapse for a task card
     const toggleTaskExpand = (taskId: number) => {
         setExpandedTasks((prev) => ({
@@ -644,229 +626,261 @@ const TeamResourcesPage = () => {
         return (
             <DashboardLayout>
                 <div className="flex items-center justify-center h-screen">
-                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+                    <Spinner size={64} className="text-bright-primary" />
                 </div>
             </DashboardLayout>
         );
     }
 
+    const canManageTeam = ["PJM", "PMO", "ADMIN"].includes(userRole);
+    const avgWorkload = teamMembers.length
+        ? Math.round(
+              teamMembers.reduce((sum, tm) => sum + (tm.workload || 0), 0) /
+                  teamMembers.length
+          )
+        : 0;
+    const overloadedCount = teamMembers.filter(
+        (tm) => (tm.workload || 0) > 90
+    ).length;
+    const tasksWithAssignments = (project?.tasks || []).filter(
+        (task) =>
+            (taskAssignments[task.task_id]?.length || 0) > 0 ||
+            (resourceAssignments[task.task_id]?.length || 0) > 0
+    );
+    const visibleTasks = showAllTasks
+        ? project?.tasks || []
+        : tasksWithAssignments;
+
     return (
         <DashboardLayout title="Team & Resources">
             <div className="space-y-6">
-                <div className="flex items-center justify-between mb-2">
-                    <h1 className="text-2xl font-bold">My Team</h1>
-                </div>
-                {/* Team Members List */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden shadow">
-                    <div className="px-6 py-4 bg-gradient-to-r from-blue-500 to-blue-400 text-white flex items-center justify-between rounded-t-xl">
-                        <div className="flex items-center">
-                            <Users className="mr-2" />
-                            <h2 className="text-lg font-semibold">
-                                Project Team
-                            </h2>
+                {canManageTeam && (
+                    <div className="flex items-center justify-end">
+                        <button
+                            onClick={() => setShowAddMemberModal(true)}
+                            className="flex items-center gap-2 rounded-lg bg-bright px-4 py-2 font-semibold text-white shadow transition-colors hover:bg-bright-deep"
+                        >
+                            <UserPlus size={18} />
+                            <span>Add Team Member</span>
+                        </button>
+                    </div>
+                )}
+
+                <StatGrid>
+                    <StatTile
+                        label="Team Size"
+                        value={teamMembers.length}
+                        icon={<Users className="h-5 w-5" />}
+                        tone="brand"
+                    />
+                    <StatTile
+                        label="Avg Workload"
+                        value={`${avgWorkload}%`}
+                        icon={<Gauge className="h-5 w-5" />}
+                        tone={
+                            avgWorkload > 90
+                                ? "danger"
+                                : avgWorkload > 75
+                                ? "warning"
+                                : "success"
+                        }
+                    />
+                    <StatTile
+                        label="Overloaded"
+                        value={overloadedCount}
+                        hint="Members over 90% workload"
+                        icon={<AlertTriangle className="h-5 w-5" />}
+                        tone={overloadedCount > 0 ? "danger" : "neutral"}
+                    />
+                    <StatTile
+                        label="Staffed Tasks"
+                        value={`${tasksWithAssignments.length}/${project?.tasks?.length || 0}`}
+                        icon={<ListChecks className="h-5 w-5" />}
+                        tone="neutral"
+                    />
+                </StatGrid>
+
+                {/* Team roster */}
+                <div>
+                    <h2 className="mb-3 text-[15px] font-semibold text-ink">
+                        Project Team
+                    </h2>
+                    {teamMembers.length === 0 ? (
+                        <div className="rounded-[14px] border border-dashed border-line bg-surface px-6 py-12 text-center">
+                            <Users className="mx-auto mb-4 h-12 w-12 text-faint" />
+                            <p className="mb-1 text-[14px] text-muted">
+                                No team members yet
+                            </p>
+                            <p className="text-[13px] text-faint">
+                                Click "Add Team Member" to get started
+                            </p>
                         </div>
-                        {["PJM", "PMO", "ADMIN"].includes(userRole) && (
+                    ) : (
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            {teamMembers.map((tm) => (
+                                <EntityCard key={tm.user_id}>
+                                    <div className="mb-3 flex items-start gap-3">
+                                        <UserAvatar
+                                            name={`${tm.user?.account?.first_name || ""} ${tm.user?.account?.last_name || ""}`}
+                                            className="h-11 w-11 text-[15px]"
+                                        />
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex items-center gap-2">
+                                                <p className="truncate text-[14.5px] font-semibold text-ink">
+                                                    {tm.user.account.first_name}{" "}
+                                                    {tm.user.account.last_name}
+                                                </p>
+                                                {tm.is_lead && (
+                                                    <StatusBadge label="Lead" tone="success" />
+                                                )}
+                                            </div>
+                                            <p className="truncate text-[12px] text-muted">
+                                                @{tm.user.username}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {(tm.role || tm.department) && (
+                                        <p className="mb-3 truncate text-[12.5px] text-muted">
+                                            {[tm.role, tm.department]
+                                                .filter(Boolean)
+                                                .join(" · ")}
+                                        </p>
+                                    )}
+
+                                    <EntityProgress
+                                        label="Workload"
+                                        value={tm.workload || 0}
+                                        tone={
+                                            (tm.workload || 0) > 90
+                                                ? "danger"
+                                                : (tm.workload || 0) > 75
+                                                ? "warning"
+                                                : "success"
+                                        }
+                                    />
+
+                                    {canManageTeam && (
+                                        <EntityCardFooter
+                                            actions={
+                                                <>
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditingMember(tm);
+                                                            setAddMemberForm({
+                                                                user_id: tm.user_id.toString(),
+                                                                role: tm.role || "",
+                                                                department: tm.department || "",
+                                                                workload: (tm.workload || 0).toString(),
+                                                                is_lead: tm.is_lead || false,
+                                                            });
+                                                            setShowEditMemberModal(true);
+                                                        }}
+                                                        disabled={deletingMemberId === tm.user_id}
+                                                        className="rounded-md p-1.5 text-muted transition-colors hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+                                                        title="Edit team member"
+                                                    >
+                                                        <Edit size={14} />
+                                                    </button>
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (
+                                                                await confirm({
+                                                                    title: "Remove team member?",
+                                                                    message: `${tm.user.account.first_name} ${tm.user.account.last_name} will lose access to this project.`,
+                                                                    confirmText: "Remove",
+                                                                    tone: "danger",
+                                                                })
+                                                            ) {
+                                                                setDeletingMemberId(tm.user_id);
+                                                                try {
+                                                                    const token =
+                                                                        localStorage.getItem(
+                                                                            "token"
+                                                                        );
+                                                                    await axios.delete(
+                                                                        `/api/projects/${projectId}/assign`,
+                                                                        {
+                                                                            data: {
+                                                                                userIds: [
+                                                                                    tm.user_id,
+                                                                                ],
+                                                                            },
+                                                                            headers: {
+                                                                                Authorization: `Bearer ${token}`,
+                                                                            },
+                                                                        }
+                                                                    );
+                                                                    toast.success(
+                                                                        "Team member removed successfully"
+                                                                    );
+                                                                    await fetchProject();
+                                                                } catch (e: any) {
+                                                                    console.error(
+                                                                        "Error removing team member:",
+                                                                        e
+                                                                    );
+                                                                    const errorMessage =
+                                                                        e.response?.data
+                                                                            ?.error ||
+                                                                        e.message ||
+                                                                        "Failed to remove team member";
+                                                                    toast.error(
+                                                                        errorMessage
+                                                                    );
+                                                                } finally {
+                                                                    setDeletingMemberId(null);
+                                                                }
+                                                            }
+                                                        }}
+                                                        disabled={deletingMemberId === tm.user_id}
+                                                        className="rounded-md p-1.5 text-muted transition-colors hover:bg-danger-soft hover:text-danger disabled:cursor-not-allowed disabled:opacity-50"
+                                                        title="Remove team member"
+                                                    >
+                                                        {deletingMemberId === tm.user_id ? (
+                                                            <Spinner size={12} />
+                                                        ) : (
+                                                            <Trash2 size={14} />
+                                                        )}
+                                                    </button>
+                                                </>
+                                            }
+                                        />
+                                    )}
+                                </EntityCard>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* Tasks & assignments */}
+                <div className="mt-10">
+                    <div className="mb-3 flex items-center justify-between">
+                        <h2 className="text-[15px] font-semibold text-ink">
+                            Task Assignments
+                        </h2>
+                        {(project?.tasks?.length || 0) > tasksWithAssignments.length && (
                             <button
-                                onClick={() => setShowAddMemberModal(true)}
-                                className="flex items-center space-x-2 px-4 py-2 bg-white text-blue-600 rounded-md hover:bg-blue-100 transition-colors font-semibold shadow"
+                                type="button"
+                                onClick={() => setShowAllTasks((v) => !v)}
+                                className="text-[13px] font-medium text-bright transition-colors hover:text-bright-deep"
                             >
-                                <UserPlus size={18} />
-                                <span>Add Team Member</span>
+                                {showAllTasks
+                                    ? "Show only staffed tasks"
+                                    : `Show all tasks (${project?.tasks?.length || 0})`}
                             </button>
                         )}
                     </div>
-                    <div className="p-6">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                            {teamMembers.map((tm) => (
-                                <div
-                                    key={tm.user_id}
-                                    className="relative flex flex-col bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow border border-blue-100 dark:border-blue-800"
-                                >
-                                    {/* Action buttons - only show for authorized roles */}
-                                    {["PJM", "PMO", "ADMIN"].includes(userRole) && (
-                                        <div className="absolute top-2 right-2 flex items-center space-x-1">
-                                            <button
-                                                onClick={() => {
-                                                    setEditingMember(tm);
-                                                    setAddMemberForm({
-                                                        user_id: tm.user_id.toString(),
-                                                        role: tm.role || "",
-                                                        department: tm.department || "",
-                                                        workload: (tm.workload || 0).toString(),
-                                                        is_lead: tm.is_lead || false,
-                                                    });
-                                                    setShowEditMemberModal(true);
-                                                }}
-                                                disabled={deletingMemberId === tm.user_id}
-                                                className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                title="Edit team member"
-                                            >
-                                                <Edit size={14} />
-                                            </button>
-                                            <button
-                                                onClick={async () => {
-                                                    if (
-                                                        confirm(
-                                                            `Are you sure you want to remove ${tm.user.account.first_name} ${tm.user.account.last_name} from the team?`
-                                                        )
-                                                    ) {
-                                                        setDeletingMemberId(tm.user_id);
-                                                        try {
-                                                            const token =
-                                                                localStorage.getItem(
-                                                                    "token"
-                                                                );
-                                                            await axios.delete(
-                                                                `/api/projects/${projectId}/assign`,
-                                                                {
-                                                                    data: {
-                                                                        userIds: [
-                                                                            tm.user_id,
-                                                                        ],
-                                                                    },
-                                                                    headers: {
-                                                                        Authorization: `Bearer ${token}`,
-                                                                    },
-                                                                }
-                                                            );
-                                                            toast.success(
-                                                                "Team member removed successfully"
-                                                            );
-                                                            await fetchProject();
-                                                        } catch (e: any) {
-                                                            console.error(
-                                                                "Error removing team member:",
-                                                                e
-                                                            );
-                                                            const errorMessage =
-                                                                e.response?.data
-                                                                    ?.error ||
-                                                                e.message ||
-                                                                "Failed to remove team member";
-                                                            toast.error(
-                                                                errorMessage
-                                                            );
-                                                        } finally {
-                                                            setDeletingMemberId(null);
-                                                        }
-                                                    }
-                                                }}
-                                                disabled={deletingMemberId === tm.user_id}
-                                                className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed relative"
-                                                title="Remove team member"
-                                            >
-                                                {deletingMemberId === tm.user_id ? (
-                                                    <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-red-500 border-t-transparent"></div>
-                                                ) : (
-                                                    <Trash2 size={14} />
-                                                )}
-                                            </button>
-                                        </div>
-                                    )}
-                                    {/* Avatar with initials */}
-                                    <div className="flex items-center mb-3">
-                                        <div className="w-12 h-12 rounded-full bg-blue-200 dark:bg-blue-800 flex items-center justify-center font-bold text-blue-700 dark:text-blue-300 text-lg mr-3">
-                                            {(() => {
-                                                const first =
-                                                    tm.user?.account
-                                                        ?.first_name?.[0] || "";
-                                                const last =
-                                                    tm.user?.account
-                                                        ?.last_name?.[0] || "";
-                                                return (
-                                                    first + last
-                                                ).toUpperCase();
-                                            })()}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="font-semibold text-blue-900 dark:text-blue-100 truncate">
-                                                {tm.user.account.first_name}{" "}
-                                                {tm.user.account.last_name}
-                                            </div>
-                                            <div className="text-xs text-blue-700 dark:text-blue-300 truncate">
-                                                @{tm.user.username}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {/* Role and Department */}
-                                    {(tm.role || tm.department) && (
-                                        <div className="mb-2 space-y-1">
-                                            {tm.role && (
-                                                <div className="text-xs text-blue-600 dark:text-blue-400">
-                                                    <span className="font-medium">
-                                                        Role:
-                                                    </span>{" "}
-                                                    {tm.role}
-                                                </div>
-                                            )}
-                                            {tm.department && (
-                                                <div className="text-xs text-blue-600 dark:text-blue-400">
-                                                    <span className="font-medium">
-                                                        Dept:
-                                                    </span>{" "}
-                                                    {tm.department}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                    {/* Workload */}
-                                    <div className="mb-2">
-                                        <div className="flex items-center justify-between text-xs mb-1">
-                                            <span className="text-blue-600 dark:text-blue-400 font-medium">
-                                                Workload:
-                                            </span>
-                                            <span className="text-blue-900 dark:text-blue-100 font-semibold">
-                                                {tm.workload || 0}%
-                                            </span>
-                                        </div>
-                                        <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2">
-                                            <div
-                                                className={`h-2 rounded-full ${
-                                                    (tm.workload || 0) > 90
-                                                        ? "bg-red-500"
-                                                        : (tm.workload || 0) >
-                                                          75
-                                                        ? "bg-yellow-500"
-                                                        : "bg-green-500"
-                                                }`}
-                                                style={{
-                                                    width: `${tm.workload || 0}%`,
-                                                }}
-                                            ></div>
-                                        </div>
-                                    </div>
-                                    {/* Lead badge */}
-                                    {tm.is_lead && (
-                                        <div className="mt-2">
-                                            <span className="inline-flex items-center px-2 py-0.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-xs rounded-full font-medium">
-                                                <CheckCircle
-                                                    size={12}
-                                                    className="mr-1"
-                                                />
-                                                Team Lead
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                            {teamMembers.length === 0 && (
-                                <div className="col-span-full text-center py-12">
-                                    <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                                    <p className="text-gray-500 dark:text-gray-400 text-lg mb-2">
-                                        No team members yet
-                                    </p>
-                                    <p className="text-gray-400 dark:text-gray-500 text-sm">
-                                        Click "Add Team Member" to get started
-                                    </p>
-                                </div>
-                            )}
+                    {visibleTasks.length === 0 ? (
+                        <div className="rounded-[14px] border border-dashed border-line bg-surface px-6 py-12 text-center">
+                            <ListChecks className="mx-auto mb-4 h-12 w-12 text-faint" />
+                            <p className="text-[14px] text-muted">
+                                No tasks have users or resources assigned yet.
+                            </p>
                         </div>
-                    </div>
-                </div>
-                {/* Flat Task List with Budget-Style Cards */}
-                <h1 className="text-2xl font-bold mt-10 mb-2">Tasks</h1>
-                <div className="space-y-4">
-                    {project?.tasks?.map((task) => {
+                    ) : (
+                <div className="space-y-3">
+                    {visibleTasks.map((task) => {
                         const isTaskExpanded =
                             expandedTasks[task.task_id] !== false;
                         const availableUsers = teamMembers.filter(
@@ -876,577 +890,234 @@ const TeamResourcesPage = () => {
                                 )
                         );
                         return (
-                            <div key={task.task_id} className="mt-4">
-                                <div className="rounded-xl overflow-hidden">
-                                    {/* Task Header with Gradient */}
-                                    <div
-                                        className={`px-6 py-4 bg-gradient-to-r from-orange-400 to-orange-300 text-orange-900 relative overflow-hidden cursor-pointer`}
+                            <div
+                                key={task.task_id}
+                                className="rounded-[14px] border border-line bg-surface shadow-card overflow-hidden"
+                            >
+                                <div className="overflow-hidden">
+                                    {/* Task Header */}
+                                    <button
+                                        type="button"
+                                        className="flex w-full items-center justify-between gap-3 px-5 py-3.5 text-left transition-colors hover:bg-surface-2"
                                         onClick={() =>
                                             toggleTaskExpand(task.task_id)
                                         }
                                     >
-                                        <div className="absolute inset-0 bg-white/10 opacity-20"></div>
-                                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-16 translate-x-16"></div>
-                                        <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-12 -translate-x-12"></div>
-                                        <div className="flex items-center justify-between relative z-10">
-                                            <div className="flex items-center space-x-3">
-                                                <div className="flex items-center space-x-2">
-                                                    <div className="w-3 h-3 rounded-full bg-white"></div>
-                                                </div>
-                                                <div>
-                                                    <div className="flex items-center space-x-3 mb-1">
-                                                        <h4 className="text-base font-bold text-white drop-shadow-sm">
-                                                            {task.name}
-                                                        </h4>
-                                                        {task.is_milestone ? (
-                                                            <span className="px-2 py-1 bg-yellow-500/30 backdrop-blur-sm text-yellow-200 rounded-full text-xs border border-yellow-400/50">
-                                                                Milestone
-                                                            </span>
-                                                        ) : task.is_critical_path ? (
-                                                            <span className="px-2 py-1 bg-red-500/30 backdrop-blur-sm text-red-200 rounded-full text-xs border border-red-400/50">
-                                                                Critical
-                                                            </span>
-                                                        ) : (
-                                                            <span className="px-2 py-1 bg-white/20 backdrop-blur-sm text-white rounded-full text-xs border border-white/30">
-                                                                Task
-                                                            </span>
-                                                        )}
-                                                        {task.is_milestone &&
-                                                            task.is_critical_path && (
-                                                                <span className="px-2 py-1 bg-red-500/30 backdrop-blur-sm text-red-200 rounded-full text-xs border border-red-400/50">
-                                                                    Critical
-                                                                </span>
-                                                            )}
-                                                    </div>
-                                                    {/* WBS Breadcrumb */}
-                                                    <div className="text-xs text-white/70 mt-1">
-                                                        {getWBSBreadcrumb(
-                                                            task,
-                                                            project?.wbs || []
-                                                        )}
-                                                    </div>
-                                                </div>
+                                        <div className="min-w-0 flex-1">
+                                            <div className="mb-1 flex flex-wrap items-center gap-2">
+                                                <h4 className="text-[14px] font-semibold text-ink">
+                                                    {task.name}
+                                                </h4>
+                                                {task.is_milestone && (
+                                                    <StatusBadge label="Milestone" tone="warning" />
+                                                )}
+                                                {task.is_critical_path && (
+                                                    <StatusBadge label="Critical" tone="danger" />
+                                                )}
                                             </div>
-                                            <div className="flex items-center space-x-4">
-                                                <span className="text-xs text-blue-700 bg-blue-100 px-2 py-1 rounded-full">
-                                                    {taskAssignments[
-                                                        task.task_id
-                                                    ]?.length || 0}{" "}
-                                                    Users
-                                                </span>
-                                                <span className="text-xs text-green-700 bg-green-100 px-2 py-1 rounded-full">
-                                                    {resourceAssignments[
-                                                        task.task_id
-                                                    ]?.length || 0}{" "}
-                                                    Resources
-                                                </span>
-                                                <button
-                                                    className="ml-4 p-1 rounded-full bg-white/20 hover:bg-white/30 transition-colors flex items-center justify-center"
-                                                    tabIndex={-1}
-                                                >
-                                                    {isTaskExpanded ? (
-                                                        <ChevronDown
-                                                            size={18}
-                                                            className="text-blue-100"
-                                                        />
-                                                    ) : (
-                                                        <ChevronRight
-                                                            size={18}
-                                                            className="text-blue-100"
-                                                        />
-                                                    )}
-                                                </button>
+                                            <div className="text-[12px] text-muted">
+                                                {getWBSBreadcrumb(
+                                                    task,
+                                                    project?.wbs || []
+                                                )}
                                             </div>
                                         </div>
-                                    </div>
+                                        <div className="flex shrink-0 items-center gap-3">
+                                            <span className="text-[11.5px] text-muted">
+                                                {taskAssignments[task.task_id]?.length || 0}{" "}
+                                                {taskAssignments[task.task_id]?.length === 1
+                                                    ? "User"
+                                                    : "Users"}
+                                            </span>
+                                            <span className="text-[11.5px] text-muted">
+                                                {resourceAssignments[task.task_id]?.length || 0}{" "}
+                                                {resourceAssignments[task.task_id]?.length === 1
+                                                    ? "Resource"
+                                                    : "Resources"}
+                                            </span>
+                                            {isTaskExpanded ? (
+                                                <ChevronDown size={18} className="text-faint" />
+                                            ) : (
+                                                <ChevronRight size={18} className="text-faint" />
+                                            )}
+                                        </div>
+                                    </button>
                                     {/* Users/Resources Sections (only if expanded) */}
                                     {isTaskExpanded && (
-                                        <>
-                                            {/* Users Section */}
-                                            <div
-                                                style={{ marginLeft: 32 }}
-                                                className="mt-2"
-                                            >
-                                                <div
-                                                    className={`rounded-xl overflow-hidden shadow border ${userColorScheme.border} mb-2`}
-                                                >
-                                                    <div
-                                                        className={`flex items-center justify-between px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-400 text-white cursor-pointer select-none`}
-                                                        onClick={() =>
-                                                            toggleSection(
-                                                                task.task_id,
-                                                                "users"
-                                                            )
-                                                        }
-                                                    >
-                                                        <div className="flex items-center space-x-2">
-                                                            <Users size={16} />
-                                                            <span className="font-semibold">
-                                                                Assigned Users
-                                                            </span>
-                                                        </div>
-                                                        {expandedSections[
-                                                            task.task_id
-                                                        ]?.users !== false ? (
-                                                            <ChevronDown
-                                                                size={18}
-                                                                className="text-white"
-                                                            />
-                                                        ) : (
-                                                            <ChevronRight
-                                                                size={18}
-                                                                className="text-white"
-                                                            />
-                                                        )}
+                                        <div className="space-y-4 border-t border-line-2 px-5 py-4">
+                                            {/* Assigned Users */}
+                                            <div>
+                                                <div className="mb-2 flex items-center justify-between">
+                                                    <div className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-faint">
+                                                        <Users size={13} />
+                                                        <span>Assigned Users</span>
                                                     </div>
-                                                    {expandedSections[
-                                                        task.task_id
-                                                    ]?.users !== false && (
-                                                        <div className="p-4 bg-white dark:bg-gray-800">
-                                                            <div className="flex justify-end mb-2 flex-col items-end">
-                                                                {[
-                                                                    "PJM",
-                                                                    "PMO",
-                                                                    "ADMIN",
-                                                                ].includes(
-                                                                    userRole
-                                                                ) && (
-                                                                    <AddEntityModal
-                                                                        entityName="Task Assignment"
-                                                                        fields={[
-                                                                            {
-                                                                                name: "user_id",
-                                                                                label: "Team Member",
-                                                                                type: "select",
-                                                                                required:
-                                                                                    true,
-                                                                                options:
-                                                                                    availableUsers.map(
-                                                                                        (
-                                                                                            tm
-                                                                                        ) => {
-                                                                                            const name = `${
-                                                                                                tm.user?.account?.first_name || ""
-                                                                                            } ${
-                                                                                                tm.user?.account?.last_name || ""
-                                                                                            }`.trim();
-                                                                                            const username = tm.user?.username || "";
-                                                                                            const role = tm.role || "";
-                                                                                            const rolePart = role ? ` · ${role}` : "";
-                                                                                            return {
-                                                                                                value: tm.user_id.toString(),
-                                                                                                label: `${name} (${username})${rolePart}`,
-                                                                                            };
-                                                                                        }
-                                                                                    ),
-                                                                            },
-                                                                        ]}
-                                                                        onSubmit={async (
-                                                                            data
-                                                                        ) => {
-                                                                            await handleAddUserAssignment(
-                                                                                task.task_id,
-                                                                                parseInt(
-                                                                                    data.user_id
-                                                                                )
-                                                                            );
-                                                                        }}
-                                                                        triggerButton={
-                                                                            <button
-                                                                                className={`flex items-center gap-2 px-3 py-1 rounded-lg font-medium shadow transition-colors
-                                      ${
-                                          availableUsers.length === 0
-                                              ? "bg-blue-50 text-blue-300 opacity-60 cursor-not-allowed"
-                                              : "bg-white hover:bg-blue-100 text-blue-600"
-                                      }`}
-                                                                                title="Assign User"
-                                                                                disabled={
-                                                                                    availableUsers.length ===
-                                                                                    0
-                                                                                }
-                                                                                aria-disabled={
-                                                                                    availableUsers.length ===
-                                                                                    0
-                                                                                }
-                                                                            >
-                                                                                <Plus
-                                                                                    size={
-                                                                                        18
-                                                                                    }
-                                                                                />
-                                                                                <span>
-                                                                                    Assign
-                                                                                    User
-                                                                                </span>
-                                                                            </button>
-                                                                        }
-                                                                    />
-                                                                )}
-                                                                {availableUsers.length ===
-                                                                    0 &&
-                                                                    [
-                                                                        "PJM",
-                                                                        "PMO",
-                                                                        "ADMIN",
-                                                                    ].includes(
-                                                                        userRole
-                                                                    ) && (
-                                                                        <div className="mt-2 text-xs text-blue-400 bg-blue-50 rounded px-3 py-1">
-                                                                            No
-                                                                            team
-                                                                            members
-                                                                            left
-                                                                            to
-                                                                            assign.
-                                                                        </div>
-                                                                    )}
-                                                            </div>
-                                                            <div className="flex flex-wrap gap-2">
-                                                                {(
-                                                                    taskAssignments[
-                                                                        task
-                                                                            .task_id
-                                                                    ] || []
-                                                                ).length ===
-                                                                0 ? (
-                                                                    <div className="text-blue-400 bg-blue-50 rounded px-3 py-2 text-sm w-full text-center">
-                                                                        No team
-                                                                        members
-                                                                        assigned
-                                                                        to this
-                                                                        task
-                                                                        yet.
-                                                                    </div>
-                                                                ) : (
-                                                                    (
-                                                                        taskAssignments[
-                                                                            task
-                                                                                .task_id
-                                                                        ] || []
-                                                                    ).map(
-                                                                        (
-                                                                            assn
-                                                                        ) => (
-                                                                            <div
-                                                                                key={
-                                                                                    assn.user_id
-                                                                                }
-                                                                                className="flex items-center w-full bg-blue-50 dark:bg-blue-900/10 rounded-lg px-4 py-2 mb-2 shadow-sm"
-                                                                            >
-                                                                                {/* Avatar with initials */}
-                                                                                <div className="w-9 h-9 rounded-full bg-blue-200 flex items-center justify-center font-bold text-blue-700 text-base mr-3">
-                                                                                    {(() => {
-                                                                                        const first =
-                                                                                            assn
-                                                                                                .user
-                                                                                                ?.account
-                                                                                                ?.first_name?.[0] ||
-                                                                                            "";
-                                                                                        const last =
-                                                                                            assn
-                                                                                                .user
-                                                                                                ?.account
-                                                                                                ?.last_name?.[0] ||
-                                                                                            "";
-                                                                                        return (
-                                                                                            first +
-                                                                                            last
-                                                                                        ).toUpperCase();
-                                                                                    })()}
-                                                                                </div>
-                                                                                {/* User info and badge row */}
-                                                                                <div className="flex flex-1 flex-row items-center min-w-0 gap-3">
-                                                                                    {/* Info stacked */}
-                                                                                    <div className="flex flex-col min-w-0">
-                                                                                        <div className="font-semibold text-blue-900 truncate">
-                                                                                            {
-                                                                                                assn
-                                                                                                    .user
-                                                                                                    ?.account
-                                                                                                    ?.first_name
-                                                                                            }{" "}
-                                                                                            {
-                                                                                                assn
-                                                                                                    .user
-                                                                                                    ?.account
-                                                                                                    ?.last_name
-                                                                                            }
-                                                                                        </div>
-                                                                                        <div className="text-xs text-blue-700 truncate">
-                                                                                            @
-                                                                                            {
-                                                                                                assn
-                                                                                                    .user
-                                                                                                    ?.username
-                                                                                            }
-                                                                                        </div>
-                                                                                    </div>
-                                                                                    {/* Role badge vertically centered */}
-                                                                                    {assn
-                                                                                        .user
-                                                                                        ?.role
-                                                                                        ?.name && (
-                                                                                        <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-base rounded-full font-semibold whitespace-nowrap self-center ml-4 min-w-[80px] text-center">
-                                                                                            {
-                                                                                                assn
-                                                                                                    .user
-                                                                                                    .role
-                                                                                                    .name
-                                                                                            }
-                                                                                        </span>
-                                                                                    )}
-                                                                                </div>
-                                                                                {/* Remove icon */}
-                                                                                {[
-                                                                                    "PJM",
-                                                                                    "PMO",
-                                                                                    "ADMIN",
-                                                                                ].includes(
-                                                                                    userRole
-                                                                                ) && (
-                                                                                    <button
-                                                                                        onClick={() =>
-                                                                                            handleRemoveUserAssignment(
-                                                                                                task.task_id,
-                                                                                                assn.user_id
-                                                                                            )
-                                                                                        }
-                                                                                        className="ml-4 text-red-500 hover:text-red-700 p-2 rounded-full transition-colors"
-                                                                                        title="Remove"
-                                                                                    >
-                                                                                        <Trash2
-                                                                                            size={
-                                                                                                16
-                                                                                            }
-                                                                                        />
-                                                                                    </button>
-                                                                                )}
-                                                                            </div>
-                                                                        )
-                                                                    )
-                                                                )}
-                                                            </div>
-                                                        </div>
+                                                    {canManageTeam && (
+                                                        <AddEntityModal
+                                                            entityName="Task Assignment"
+                                                            fields={[
+                                                                {
+                                                                    name: "user_id",
+                                                                    label: "Team Member",
+                                                                    type: "select",
+                                                                    required: true,
+                                                                    options: availableUsers.map((tm) => {
+                                                                        const name = `${
+                                                                            tm.user?.account?.first_name || ""
+                                                                        } ${
+                                                                            tm.user?.account?.last_name || ""
+                                                                        }`.trim();
+                                                                        const username = tm.user?.username || "";
+                                                                        const role = tm.role || "";
+                                                                        const rolePart = role ? ` · ${role}` : "";
+                                                                        return {
+                                                                            value: tm.user_id.toString(),
+                                                                            label: `${name} (${username})${rolePart}`,
+                                                                        };
+                                                                    }),
+                                                                },
+                                                            ]}
+                                                            onSubmit={async (data) => {
+                                                                await handleAddUserAssignment(
+                                                                    task.task_id,
+                                                                    parseInt(data.user_id)
+                                                                );
+                                                            }}
+                                                            triggerButton={
+                                                                <button
+                                                                    className="flex items-center gap-1.5 rounded-md px-2 py-1 text-[12.5px] font-medium text-bright transition-colors hover:bg-bright-soft disabled:cursor-not-allowed disabled:text-faint disabled:hover:bg-transparent"
+                                                                    title="Assign User"
+                                                                    disabled={availableUsers.length === 0}
+                                                                    aria-disabled={availableUsers.length === 0}
+                                                                >
+                                                                    <Plus size={14} />
+                                                                    <span>Assign</span>
+                                                                </button>
+                                                            }
+                                                        />
                                                     )}
                                                 </div>
-                                            </div>
-                                            {/* Resources Section */}
-                                            <div
-                                                style={{ marginLeft: 32 }}
-                                                className="mb-4"
-                                            >
-                                                <div
-                                                    className={`rounded-xl overflow-hidden shadow border ${resourceColorScheme.border} mb-2`}
-                                                >
-                                                    <div
-                                                        className={`flex items-center justify-between px-4 py-2 bg-gradient-to-r from-green-500 to-green-400 text-white cursor-pointer select-none`}
-                                                        onClick={() =>
-                                                            toggleSection(
-                                                                task.task_id,
-                                                                "resources"
-                                                            )
-                                                        }
-                                                    >
-                                                        <div className="flex items-center space-x-2">
-                                                            <Package
-                                                                size={16}
-                                                            />
-                                                            <span className="font-semibold">
-                                                                Assigned
-                                                                Resources
-                                                            </span>
-                                                        </div>
-                                                        {expandedSections[
-                                                            task.task_id
-                                                        ]?.resources !==
-                                                        false ? (
-                                                            <ChevronDown
-                                                                size={18}
-                                                                className="text-white"
-                                                            />
-                                                        ) : (
-                                                            <ChevronRight
-                                                                size={18}
-                                                                className="text-white"
-                                                            />
-                                                        )}
-                                                    </div>
-                                                    {expandedSections[
-                                                        task.task_id
-                                                    ]?.resources !== false && (
-                                                        <div className="p-4 bg-white dark:bg-gray-800">
-                                                            <div className="flex justify-end mb-2 flex-col items-end">
-                                                                {[
-                                                                    "PJM",
-                                                                    "PMO",
-                                                                    "ADMIN",
-                                                                ].includes(
-                                                                    userRole
-                                                                ) && (
+                                                {(taskAssignments[task.task_id] || []).length === 0 ? (
+                                                    <p className="text-[12.5px] text-faint">
+                                                        No team members assigned to this task yet.
+                                                    </p>
+                                                ) : (
+                                                    <div className="space-y-1.5">
+                                                        {(taskAssignments[task.task_id] || []).map((assn) => (
+                                                            <div
+                                                                key={assn.user_id}
+                                                                className="flex items-center gap-3 rounded-[10px] bg-surface-2 px-3 py-2"
+                                                            >
+                                                                <UserAvatar
+                                                                    name={`${assn.user?.account?.first_name || ""} ${assn.user?.account?.last_name || ""}`}
+                                                                    className="h-8 w-8 text-[12px]"
+                                                                />
+                                                                <div className="min-w-0 flex-1">
+                                                                    <p className="truncate text-[13px] font-medium text-ink">
+                                                                        {assn.user?.account?.first_name}{" "}
+                                                                        {assn.user?.account?.last_name}
+                                                                    </p>
+                                                                    <p className="truncate text-[11px] text-muted">
+                                                                        @{assn.user?.username}
+                                                                    </p>
+                                                                </div>
+                                                                {assn.user?.role?.name && (
+                                                                    <StatusBadge label={assn.user.role.name} tone="info" />
+                                                                )}
+                                                                {canManageTeam && (
                                                                     <button
-                                                                        className="flex items-center gap-2 px-3 py-1 rounded-lg font-medium shadow transition-colors bg-white hover:bg-green-100 text-green-600"
-                                                                        title="Assign Resource"
-                                                                        disabled={
-                                                                            false
+                                                                        onClick={() =>
+                                                                            handleRemoveUserAssignment(
+                                                                                task.task_id,
+                                                                                assn.user_id
+                                                                            )
                                                                         }
-                                                                        aria-disabled={
-                                                                            false
-                                                                        }
-                                                                        onClick={() => {
-                                                                            setSelectedTask(
-                                                                                task
-                                                                            );
-                                                                            setResourceAssignmentModalOpen(
-                                                                                true
-                                                                            );
-                                                                        }}
+                                                                        className="rounded-md p-1.5 text-muted transition-colors hover:bg-danger-soft hover:text-danger"
+                                                                        title="Remove"
                                                                     >
-                                                                        <Plus
-                                                                            size={
-                                                                                18
-                                                                            }
-                                                                        />
-                                                                        <span>
-                                                                            Assign
-                                                                            Resource
-                                                                        </span>
+                                                                        <Trash2 size={14} />
                                                                     </button>
                                                                 )}
                                                             </div>
-                                                            <div className="flex flex-wrap gap-2">
-                                                                {(
-                                                                    resourceAssignments[
-                                                                        task
-                                                                            .task_id
-                                                                    ] || []
-                                                                ).length ===
-                                                                0 ? (
-                                                                    <div className="text-green-400 bg-green-50 rounded px-3 py-2 text-sm w-full text-center">
-                                                                        No
-                                                                        resources
-                                                                        assigned
-                                                                        to this
-                                                                        task
-                                                                        yet.
-                                                                    </div>
-                                                                ) : (
-                                                                    (
-                                                                        resourceAssignments[
-                                                                            task
-                                                                                .task_id
-                                                                        ] || []
-                                                                    ).map(
-                                                                        (
-                                                                            assn
-                                                                        ) => (
-                                                                            <div
-                                                                                key={
-                                                                                    assn.assignment_id
-                                                                                }
-                                                                                className="flex items-center w-full bg-green-50 dark:bg-green-900/10 rounded-lg px-4 py-2 mb-2 shadow-sm"
-                                                                            >
-                                                                                {/* Info and badge row */}
-                                                                                <div className="flex flex-1 flex-row items-center min-w-0 gap-3">
-                                                                                    {/* Info stacked */}
-                                                                                    <div className="flex flex-col min-w-0">
-                                                                                        <div className="font-semibold text-green-900 truncate">
-                                                                                            {
-                                                                                                assn
-                                                                                                    .resource
-                                                                                                    ?.name
-                                                                                            }
-                                                                                        </div>
-                                                                                        <div className="flex gap-6 text-xs text-green-800">
-                                                                                            <span>
-                                                                                                Allocation:{" "}
-                                                                                                <span className="font-bold">
-                                                                                                    {
-                                                                                                        assn.allocation_percentage
-                                                                                                    }
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
 
-                                                                                                    %
-                                                                                                </span>
-                                                                                            </span>
-                                                                                            <span>
-                                                                                                Planned:{" "}
-                                                                                                <span className="font-bold">
-                                                                                                    {
-                                                                                                        assn.planned_hours
-                                                                                                    }
-
-                                                                                                    h
-                                                                                                </span>
-                                                                                            </span>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                    {/* Badge vertically centered */}
-                                                                                    {assn
-                                                                                        .resource
-                                                                                        ?.type && (
-                                                                                        <span className="px-2 py-0.5 bg-green-100 text-green-700 text-sm rounded-full font-medium whitespace-nowrap self-center ml-4 min-w-[100px] text-center">
-                                                                                            {
-                                                                                                assn
-                                                                                                    .resource
-                                                                                                    .type
-                                                                                            }
-                                                                                        </span>
-                                                                                    )}
-                                                                                </div>
-                                                                                {/* Remove icon */}
-                                                                                {[
-                                                                                    "PJM",
-                                                                                    "PMO",
-                                                                                    "ADMIN",
-                                                                                ].includes(
-                                                                                    userRole
-                                                                                ) && (
-                                                                                    <button
-                                                                                        onClick={async () => {
-                                                                                            const token =
-                                                                                                localStorage.getItem(
-                                                                                                    "token"
-                                                                                                );
-                                                                                            await axios.delete(
-                                                                                                `/api/resourceAssignments/${assn.assignment_id}`,
-                                                                                                {
-                                                                                                    headers:
-                                                                                                        {
-                                                                                                            Authorization: `Bearer ${token}`,
-                                                                                                        },
-                                                                                                }
-                                                                                            );
-                                                                                            toast.success(
-                                                                                                "Resource unassigned"
-                                                                                            );
-                                                                                            fetchResourceAssignments(
-                                                                                                task.task_id
-                                                                                            );
-                                                                                        }}
-                                                                                        className="ml-4 text-red-500 hover:text-red-700 p-2 rounded-full transition-colors"
-                                                                                        title="Remove"
-                                                                                    >
-                                                                                        <Trash2
-                                                                                            size={
-                                                                                                16
-                                                                                            }
-                                                                                        />
-                                                                                    </button>
-                                                                                )}
-                                                                            </div>
-                                                                        )
-                                                                    )
-                                                                )}
-                                                            </div>
-                                                        </div>
+                                            {/* Assigned Resources */}
+                                            <div>
+                                                <div className="mb-2 flex items-center justify-between">
+                                                    <div className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-faint">
+                                                        <Package size={13} />
+                                                        <span>Assigned Resources</span>
+                                                    </div>
+                                                    {canManageTeam && (
+                                                        <button
+                                                            className="flex items-center gap-1.5 rounded-md px-2 py-1 text-[12.5px] font-medium text-bright transition-colors hover:bg-bright-soft"
+                                                            title="Assign Resource"
+                                                            onClick={() => {
+                                                                setSelectedTask(task);
+                                                                setResourceAssignmentModalOpen(true);
+                                                            }}
+                                                        >
+                                                            <Plus size={14} />
+                                                            <span>Assign</span>
+                                                        </button>
                                                     )}
                                                 </div>
+                                                {(resourceAssignments[task.task_id] || []).length === 0 ? (
+                                                    <p className="text-[12.5px] text-faint">
+                                                        No resources assigned to this task yet.
+                                                    </p>
+                                                ) : (
+                                                    <div className="space-y-1.5">
+                                                        {(resourceAssignments[task.task_id] || []).map((assn) => (
+                                                            <div
+                                                                key={assn.assignment_id}
+                                                                className="flex items-center gap-3 rounded-[10px] bg-surface-2 px-3 py-2"
+                                                            >
+                                                                <div className="min-w-0 flex-1">
+                                                                    <p className="truncate text-[13px] font-medium text-ink">
+                                                                        {assn.resource?.name}
+                                                                    </p>
+                                                                    <p className="text-[11px] text-muted">
+                                                                        Allocation: {assn.allocation_percentage}% ·
+                                                                        Planned: {assn.planned_hours}h
+                                                                    </p>
+                                                                </div>
+                                                                {assn.resource?.type && (
+                                                                    <StatusBadge label={assn.resource.type} tone="success" />
+                                                                )}
+                                                                {canManageTeam && (
+                                                                    <button
+                                                                        onClick={async () => {
+                                                                            const token = localStorage.getItem("token");
+                                                                            await axios.delete(
+                                                                                `/api/resourceAssignments/${assn.assignment_id}`,
+                                                                                { headers: { Authorization: `Bearer ${token}` } }
+                                                                            );
+                                                                            toast.success("Resource unassigned");
+                                                                            fetchResourceAssignments(task.task_id);
+                                                                        }}
+                                                                        className="rounded-md p-1.5 text-muted transition-colors hover:bg-danger-soft hover:text-danger"
+                                                                        title="Remove"
+                                                                    >
+                                                                        <Trash2 size={14} />
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
-                                        </>
+                                        </div>
                                     )}
                                 </div>
                             </div>
                         );
                     })}
+                </div>
+                    )}
                 </div>
                 {/* Navigation Buttons */}
                 {showNavButtons && (
@@ -1455,7 +1126,7 @@ const TeamResourcesPage = () => {
                             onClick={() =>
                                 router.push(`/projects/${projectId}/setup`)
                             }
-                            className="flex items-center space-x-2 px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                            className="flex items-center space-x-2 px-6 py-3 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors"
                         >
                             <ArrowLeft size={16} />
                             <span>Back to Setup</span>
@@ -1484,7 +1155,7 @@ const TeamResourcesPage = () => {
                                     );
                                 }
                             }}
-                            className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            className="flex items-center space-x-2 px-6 py-3 bg-info text-white rounded-lg hover:opacity-90 transition-colors"
                         >
                             <span>Next: Risk Management</span>
                             <Plus size={16} />
@@ -1507,7 +1178,7 @@ const TeamResourcesPage = () => {
                         }
                     }}
                 >
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full mx-4 p-8 border border-white/20 dark:border-gray-700/50 relative">
+                    <div className="bg-surface rounded-2xl shadow-2xl max-w-2xl w-full mx-4 p-8 border border-white/20 relative">
                         <button
                             onClick={() => {
                                 setShowAddMemberModal(false);
@@ -1517,15 +1188,15 @@ const TeamResourcesPage = () => {
                                 setMemberSearchTerm("");
                                 setDepartmentSearchTerm("");
                             }}
-                            className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                            className="absolute top-4 right-4 p-2 hover:bg-surface-2 rounded-lg"
                         >
                             <X size={22} />
                         </button>
                         <div className="flex items-center mb-8">
-                            <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl flex items-center justify-center mr-3">
+                            <div className="w-10 h-10 bg-gradient-to-r from-bright to-danger rounded-xl flex items-center justify-center mr-3">
                                 <Plus className="w-5 h-5 text-white" />
                             </div>
-                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                            <h2 className="text-2xl font-bold text-ink">
                                 Add New Team Member
                             </h2>
                         </div>
@@ -1535,9 +1206,9 @@ const TeamResourcesPage = () => {
                         >
                             <div className="grid grid-cols-2 gap-6">
                                 <div className="group col-span-2">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                    <label className="block text-sm font-semibold text-ink-3 mb-2">
                                         User
-                                        <span className="text-red-500">*</span>
+                                        <span className="text-danger">*</span>
                                     </label>
                                     <div className="flex gap-1 mb-2">
                                         <button
@@ -1550,8 +1221,8 @@ const TeamResourcesPage = () => {
                                             }}
                                             className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium ${
                                                 memberSource === "pmo"
-                                                    ? "bg-orange-600 text-white"
-                                                    : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                                                    ? "bg-bright text-white"
+                                                    : "bg-surface-2 text-ink-3"
                                             }`}
                                         >
                                             From PMO
@@ -1565,8 +1236,8 @@ const TeamResourcesPage = () => {
                                             }}
                                             className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium ${
                                                 memberSource === "hr"
-                                                    ? "bg-orange-600 text-white"
-                                                    : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                                                    ? "bg-bright text-white"
+                                                    : "bg-surface-2 text-ink-3"
                                             }`}
                                         >
                                             From HR
@@ -1600,16 +1271,16 @@ const TeamResourcesPage = () => {
                                                     setMemberListOpen(true);
                                                 }}
                                                 onFocus={() => setMemberListOpen(true)}
-                                                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white"
+                                                className="w-full px-4 py-3 border border-line rounded-xl bg-white/80 text-ink"
                                             />
                                             {selectedHrEmployee && (
-                                                <div className="mt-2 p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg text-sm text-gray-700 dark:text-gray-300">
+                                                <div className="mt-2 p-2 bg-bright-soft rounded-lg text-sm text-ink-3">
                                                     Selected: {getEmployeeFullName(selectedHrEmployee)} (
                                                     {selectedHrEmployee.email})
                                                 </div>
                                             )}
                                             {memberListOpen && !employeesLoading && filteredEmployees.length > 0 && (
-                                                <div className="absolute z-10 mt-1 w-full max-h-48 overflow-y-auto bg-white dark:bg-gray-800 border rounded-lg shadow-lg">
+                                                <div className="absolute z-10 mt-1 w-full max-h-48 overflow-y-auto bg-surface border rounded-lg shadow-lg">
                                                     {filteredEmployees.slice(0, 20).map((emp: any) => (
                                                         <button
                                                             key={emp?._id ?? emp?.id}
@@ -1624,7 +1295,7 @@ const TeamResourcesPage = () => {
                                                                 );
                                                                 setMemberListOpen(false);
                                                             }}
-                                                            className="w-full flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
+                                                            className="w-full flex items-center p-2 hover:bg-surface-2 text-left"
                                                         >
                                                             {getEmployeeFullName(emp)} •{" "}
                                                             {emp?.email ?? ""}
@@ -1636,9 +1307,9 @@ const TeamResourcesPage = () => {
                                     )}
                                 </div>
                                 <div className="group">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                    <label className="block text-sm font-semibold text-ink-3 mb-2">
                                         Workload (%)
-                                        <span className="text-red-500">*</span>
+                                        <span className="text-danger">*</span>
                                     </label>
                                     <input
                                         type="number"
@@ -1653,46 +1324,41 @@ const TeamResourcesPage = () => {
                                             )
                                         }
                                         required
-                                        className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300 group-hover:border-orange-300"
+                                        className="w-full px-4 py-3 border border-line rounded-xl bg-white/80 text-ink focus:ring-2 focus:ring-bright focus:border-transparent transition-all duration-300 group-hover:border-bright"
                                         placeholder="100"
                                     />
                                     {workloadAvailable != null && memberSource === "pmo" && (
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        <p className="text-xs text-muted mt-1">
                                             Available: {workloadAvailable}%
                                         </p>
                                     )}
                                 </div>
                                 <div className="group">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                    <label className="block text-sm font-semibold text-ink-3 mb-2">
                                         Role
-                                        <span className="text-red-500">*</span>
+                                        <span className="text-danger">*</span>
                                     </label>
-                                    <select
-                                        value={addMemberForm.role}
-                                        onChange={(e) =>
+                                    <Dropdown
+                                      value={String(addMemberForm.role ?? '')}
+                                      onChange={(__v: string) =>
                                             handleAddMemberFormChange(
                                                 "role",
-                                                e.target.value
-                                            )
-                                        }
-                                        required
-                                        className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                                    >
-                                        <option value="">Select role...</option>
-                                        {availableRoles.map((name) => (
-                                            <option key={name} value={name}>
-                                                {name}
-                                            </option>
-                                        ))}
-                                    </select>
+                                                __v
+                                            )}
+                                      options={[
+                                      { value: String(""), label: "Select role..." },
+                                      ...availableRoles.map((name) => ({ value: String(name), label: name })),
+                                    ]}
+                                      required={true}
+                                    />
                                 </div>
                                 <div className="group" ref={departmentDropdownRef}>
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                    <label className="block text-sm font-semibold text-ink-3 mb-2">
                                         Department
-                                        <span className="text-red-500">*</span>
+                                        <span className="text-danger">*</span>
                                     </label>
                                     {memberSource === "hr" ? (
-                                        <div className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                                        <div className="w-full px-4 py-3 border border-line rounded-xl bg-surface-2 text-ink-3">
                                             {addMemberForm.department || "—"}
                                         </div>
                                     ) : (
@@ -1743,7 +1409,7 @@ const TeamResourcesPage = () => {
                                                     : "Search or select department"
                                             }
                                             disabled={departmentsLoading}
-                                            className="w-full px-4 py-3 border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-700/80 focus:ring-orange-500"
+                                            className="w-full px-4 py-3 border-line rounded-xl bg-white/80 focus:ring-bright"
                                         />
                                     )}
                                 </div>
@@ -1757,18 +1423,18 @@ const TeamResourcesPage = () => {
                                                 e.target.checked
                                             )
                                         }
-                                        className="accent-orange-500 w-5 h-5 cursor-pointer"
+                                        className="accent-bright w-5 h-5 cursor-pointer"
                                         id="is_lead"
                                     />
                                     <label
                                         htmlFor="is_lead"
-                                        className="text-sm text-gray-700 dark:text-gray-300 font-semibold cursor-pointer"
+                                        className="text-sm text-ink-3 font-semibold cursor-pointer"
                                     >
                                         Set as Team Lead
                                     </label>
                                 </div>
                             </div>
-                            <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200 dark:border-gray-600">
+                            <div className="flex justify-end space-x-4 pt-6 border-t border-line">
                                 <button
                                     type="button"
                                     onClick={() => {
@@ -1779,19 +1445,19 @@ const TeamResourcesPage = () => {
                                         setMemberSearchTerm("");
                                         setDepartmentSearchTerm("");
                                     }}
-                                    className="px-6 py-3 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-300 border border-gray-200 dark:border-gray-600"
+                                    className="px-6 py-3 text-muted hover:text-ink-2 font-medium rounded-xl hover:bg-surface-2 transition-all duration-300 border border-line"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={isAddingMember || (memberSource === "hr" && !selectedHrEmployee)}
-                                    className="group relative overflow-hidden bg-gradient-to-r from-orange-500 to-red-500 text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 hover:from-orange-600 hover:to-red-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                                    className="group relative overflow-hidden bg-gradient-to-r from-bright to-danger text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 hover:from-bright-deep hover:to-danger disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                                 >
-                                    <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+                                    <div className="absolute inset-0 bg-surface opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
                                     <span className="relative flex items-center justify-center space-x-2">
                                         {isAddingMember && (
-                                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                                            <Spinner size={16} />
                                         )}
                                         <span>{isAddingMember ? "Adding..." : "Add"}</span>
                                     </span>
@@ -1812,7 +1478,7 @@ const TeamResourcesPage = () => {
                         }
                     }}
                 >
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full mx-4 p-8 border border-white/20 dark:border-gray-700/50 relative">
+                    <div className="bg-surface rounded-2xl shadow-2xl max-w-2xl w-full mx-4 p-8 border border-white/20 relative">
                         <button
                             onClick={() => {
                                 setShowEditMemberModal(false);
@@ -1825,21 +1491,21 @@ const TeamResourcesPage = () => {
                                     is_lead: false,
                                 });
                             }}
-                            className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                            className="absolute top-4 right-4 p-2 hover:bg-surface-2 rounded-lg"
                         >
                             <X size={22} />
                         </button>
                         <div className="flex items-center mb-8">
-                            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mr-3">
+                            <div className="w-10 h-10 bg-gradient-to-r from-info to-info rounded-xl flex items-center justify-center mr-3">
                                 <Edit className="w-5 h-5 text-white" />
                             </div>
-                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                            <h2 className="text-2xl font-bold text-ink">
                                 Edit Team Member
                             </h2>
                         </div>
-                        <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                                Editing: <span className="font-semibold text-gray-900 dark:text-white">
+                        <div className="mb-4 p-4 bg-info-soft rounded-lg">
+                            <p className="text-sm text-muted">
+                                Editing: <span className="font-semibold text-ink">
                                     {editingMember.user.account.first_name} {editingMember.user.account.last_name}
                                 </span>
                             </p>
@@ -1850,9 +1516,9 @@ const TeamResourcesPage = () => {
                         >
                             <div className="grid grid-cols-2 gap-6">
                                 <div className="group">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                    <label className="block text-sm font-semibold text-ink-3 mb-2">
                                         Workload (%)
-                                        <span className="text-red-500">*</span>
+                                        <span className="text-danger">*</span>
                                     </label>
                                     <input
                                         type="number"
@@ -1867,14 +1533,14 @@ const TeamResourcesPage = () => {
                                             )
                                         }
                                         required
-                                        className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 group-hover:border-blue-300"
+                                        className="w-full px-4 py-3 border border-line rounded-xl bg-white/80 text-ink focus:ring-2 focus:ring-info focus:border-transparent transition-all duration-300 group-hover:border-info"
                                         placeholder="100"
                                     />
                                 </div>
                                 <div className="group">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                    <label className="block text-sm font-semibold text-ink-3 mb-2">
                                         Role
-                                        <span className="text-red-500">*</span>
+                                        <span className="text-danger">*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -1886,14 +1552,14 @@ const TeamResourcesPage = () => {
                                             )
                                         }
                                         required
-                                        className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 group-hover:border-blue-300"
+                                        className="w-full px-4 py-3 border border-line rounded-xl bg-white/80 text-ink focus:ring-2 focus:ring-info focus:border-transparent transition-all duration-300 group-hover:border-info"
                                         placeholder="e.g. Developer"
                                     />
                                 </div>
                                 <div className="group">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                    <label className="block text-sm font-semibold text-ink-3 mb-2">
                                         Department
-                                        <span className="text-red-500">*</span>
+                                        <span className="text-danger">*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -1905,7 +1571,7 @@ const TeamResourcesPage = () => {
                                             )
                                         }
                                         required
-                                        className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 group-hover:border-blue-300"
+                                        className="w-full px-4 py-3 border border-line rounded-xl bg-white/80 text-ink focus:ring-2 focus:ring-info focus:border-transparent transition-all duration-300 group-hover:border-info"
                                         placeholder="e.g. Engineering"
                                     />
                                 </div>
@@ -1916,18 +1582,18 @@ const TeamResourcesPage = () => {
                                         onChange={(e) =>
                                             handleAddMemberFormChange("is_lead", e.target.checked)
                                         }
-                                        className="accent-blue-500 w-5 h-5 cursor-pointer"
+                                        className="accent-info w-5 h-5 cursor-pointer"
                                         id="is_lead_edit"
                                     />
                                     <label
                                         htmlFor="is_lead_edit"
-                                        className="text-sm text-gray-700 dark:text-gray-300 font-semibold cursor-pointer"
+                                        className="text-sm text-ink-3 font-semibold cursor-pointer"
                                     >
                                         Set as Team Lead
                                     </label>
                                 </div>
                             </div>
-                            <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200 dark:border-gray-600">
+                            <div className="flex justify-end space-x-4 pt-6 border-t border-line">
                                 <button
                                     type="button"
                                     onClick={() => {
@@ -1941,19 +1607,19 @@ const TeamResourcesPage = () => {
                                             is_lead: false,
                                         });
                                     }}
-                                    className="px-6 py-3 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-300 border border-gray-200 dark:border-gray-600"
+                                    className="px-6 py-3 text-muted hover:text-ink-2 font-medium rounded-xl hover:bg-surface-2 transition-all duration-300 border border-line"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={isUpdatingMember}
-                                    className="group relative overflow-hidden bg-gradient-to-r from-blue-500 to-blue-600 text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                                    className="group relative overflow-hidden bg-gradient-to-r from-info to-info text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 hover:from-info hover:to-info disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                                 >
-                                    <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+                                    <div className="absolute inset-0 bg-surface opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
                                     <span className="relative flex items-center justify-center space-x-2">
                                         {isUpdatingMember && (
-                                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                                            <Spinner size={16} />
                                         )}
                                         <span>{isUpdatingMember ? "Updating..." : "Update"}</span>
                                     </span>

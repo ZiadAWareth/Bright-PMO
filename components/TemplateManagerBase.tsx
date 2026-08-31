@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import axios from "axios";
+import { Spinner } from "@/components/ui/spinner";
 
 export interface DownloadConfig {
   url: string;
@@ -86,7 +87,7 @@ export const DownloadButton: React.FC<{
   >
     {isDownloading ? (
       <>
-        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+        <Spinner size={16} className="mr-2" />
         Generating Template...
       </>
     ) : (
@@ -192,13 +193,6 @@ export function handleSecurityAwareUploadError(
     toast.error(errorMessage);
   }
 }
-
-const GRID_COLS: Record<number, string> = {
-  3: "grid-cols-3",
-  4: "grid-cols-4",
-  5: "grid-cols-5",
-  6: "grid-cols-6",
-};
 
 const TemplateManagerBase: React.FC<TemplateManagerBaseProps> = ({
   downloadConfig,
@@ -323,13 +317,10 @@ const TemplateManagerBase: React.FC<TemplateManagerBaseProps> = ({
     }
   };
 
-  const tabCount = 3 + extraTabs.length;
-  const gridColsClass = GRID_COLS[tabCount] || "grid-cols-3";
-
   return (
     <div className="space-y-6">
       <Tabs defaultValue="download" className="w-full">
-        <TabsList className={`grid w-full ${gridColsClass}`}>
+        <TabsList variant="line">
           <TabsTrigger value="download">Download Template</TabsTrigger>
           <TabsTrigger value="upload">Upload Data</TabsTrigger>
           {extraTabs.map((tab) => (
@@ -410,7 +401,7 @@ const TemplateManagerBase: React.FC<TemplateManagerBaseProps> = ({
                   >
                     {isUploading ? (
                       <>
-                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        <Spinner size={16} className="mr-2" />
                         Processing...
                       </>
                     ) : (

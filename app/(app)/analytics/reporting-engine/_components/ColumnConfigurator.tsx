@@ -1,7 +1,8 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, Filter, Link2, ListChecks, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Filter, Link2, ListChecks } from "lucide-react";
 import type { ReportColumn } from "./types";
+import { Spinner } from "@/components/ui/spinner";
 
 interface Props {
   table: string;
@@ -55,12 +56,12 @@ export function ColumnConfigurator({
       <section className="rounded-2xl border border-border bg-bg-surface p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-wujha-primary/10 text-wujha-primary">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-bright-primary/10 text-bright-primary">
               <ListChecks className="h-5 w-5" aria-hidden="true" />
             </div>
             <div>
               <h2 className="text-base font-semibold text-text-primary">
-                Columns from <span className="text-wujha-primary">{table}</span>
+                Columns from <span className="text-bright-primary">{table}</span>
               </h2>
               <p className="text-xs text-text-secondary">
                 {selectedColumns.length} of {columns.length} selected
@@ -73,7 +74,7 @@ export function ColumnConfigurator({
               type="button"
               onClick={onSelectAll}
               disabled={loading || columns.length === 0}
-              className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:border-wujha-primary hover:text-wujha-primary disabled:opacity-50"
+              className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:border-bright-primary hover:text-bright-primary disabled:opacity-50"
             >
               Select all
             </button>
@@ -81,7 +82,7 @@ export function ColumnConfigurator({
               type="button"
               onClick={onClear}
               disabled={selectedColumns.length === 0}
-              className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:border-wujha-primary hover:text-wujha-primary disabled:opacity-50"
+              className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:border-bright-primary hover:text-bright-primary disabled:opacity-50"
             >
               Clear
             </button>
@@ -107,7 +108,7 @@ export function ColumnConfigurator({
                   <label
                     className={`flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm transition-colors ${
                       checked
-                        ? "border-wujha-primary/50 bg-wujha-primary/5"
+                        ? "border-bright-primary/50 bg-bright-primary/5"
                         : "border-border hover:bg-bg-surface-alt"
                     }`}
                   >
@@ -115,7 +116,7 @@ export function ColumnConfigurator({
                       type="checkbox"
                       checked={checked}
                       onChange={() => onToggleColumn(column.name)}
-                      className="h-4 w-4 shrink-0 rounded border-border accent-wujha-primary"
+                      className="h-4 w-4 shrink-0 rounded border-border accent-bright-primary"
                     />
                     <span className="min-w-0 flex-1 truncate text-text-primary">
                       {column.name}
@@ -136,7 +137,7 @@ export function ColumnConfigurator({
       {/* Related tables (joins) */}
       <section className="rounded-2xl border border-border bg-bg-surface p-6">
         <div className="mb-4 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-wujha-secondary/10 text-wujha-secondary">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-bright-secondary/10 text-bright-secondary">
             <Link2 className="h-5 w-5" aria-hidden="true" />
           </div>
           <div>
@@ -165,16 +166,13 @@ export function ColumnConfigurator({
                       type="checkbox"
                       checked={selected}
                       onChange={() => onToggleRelatedTable(related)}
-                      className="h-4 w-4 shrink-0 rounded border-border accent-wujha-primary"
+                      className="h-4 w-4 shrink-0 rounded border-border accent-bright-primary"
                     />
                     <span className="min-w-0 flex-1 truncate text-sm font-medium text-text-primary">
                       {related}
                     </span>
                     {loadingRelated[related] && (
-                      <Loader2
-                        className="h-4 w-4 animate-spin text-text-secondary"
-                        aria-hidden="true"
-                      />
+                      <Spinner size={16} className="text-text-secondary" />
                     )}
                     {selected && !loadingRelated[related] && (
                       <span className="shrink-0 text-xs text-text-secondary">
@@ -192,7 +190,7 @@ export function ColumnConfigurator({
                             <label
                               className={`flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-2 text-[13px] transition-colors ${
                                 checked
-                                  ? "border-wujha-primary/50 bg-wujha-primary/5"
+                                  ? "border-bright-primary/50 bg-bright-primary/5"
                                   : "border-border hover:bg-bg-surface-alt"
                               }`}
                             >
@@ -202,7 +200,7 @@ export function ColumnConfigurator({
                                 onChange={() =>
                                   onToggleRelatedColumn(related, column.name)
                                 }
-                                className="h-3.5 w-3.5 shrink-0 rounded border-border accent-wujha-primary"
+                                className="h-3.5 w-3.5 shrink-0 rounded border-border accent-bright-primary"
                               />
                               <span className="truncate text-text-primary">
                                 {column.name}
@@ -242,7 +240,7 @@ export function ColumnConfigurator({
           value={whereClause}
           onChange={(e) => onWhereClauseChange(e.target.value)}
           placeholder="status = 'execution' AND budget_amount &gt; 100000"
-          className="h-11 w-full rounded-xl border border-border bg-bg-surface px-3.5 font-mono text-sm text-text-primary transition-colors placeholder:font-sans placeholder:text-text-secondary/60 focus:border-wujha-primary focus:outline-none focus:ring-[3px] focus:ring-wujha-primary/20"
+          className="h-11 w-full rounded-xl border border-border bg-bg-surface px-3.5 font-mono text-sm text-text-primary transition-colors placeholder:font-sans placeholder:text-text-secondary/60 focus:border-bright-primary focus:outline-none focus:ring-[3px] focus:ring-bright-primary/20"
         />
       </section>
 
@@ -250,7 +248,7 @@ export function ColumnConfigurator({
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex h-11 items-center gap-2 rounded-xl border border-border px-5 text-sm font-medium text-text-secondary transition-colors hover:border-wujha-primary hover:text-text-primary"
+          className="inline-flex h-11 items-center gap-2 rounded-xl border border-border px-5 text-sm font-medium text-text-secondary transition-colors hover:border-bright-primary hover:text-text-primary"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           Back
@@ -259,7 +257,7 @@ export function ColumnConfigurator({
           type="button"
           onClick={onNext}
           disabled={selectedColumns.length === 0}
-          className="group inline-flex h-11 items-center gap-2 rounded-xl bg-wujha-primary px-6 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-wujha-primary-hover disabled:opacity-50"
+          className="group inline-flex h-11 items-center gap-2 rounded-xl bg-bright-primary px-6 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-bright-primary-hover disabled:opacity-50"
         >
           Continue
           <ArrowRight

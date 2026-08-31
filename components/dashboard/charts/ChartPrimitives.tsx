@@ -15,7 +15,7 @@ const GRID_STROKE = "var(--border)";
 const TEXT_MUTED = "rgb(var(--text-secondary-rgb))";
 const TEXT_STRONG = "rgb(var(--text-primary-rgb))";
 const SURFACE = "rgb(var(--surface-bg-rgb))";
-const BRAND = "rgb(var(--wujha-primary-rgb))";
+const BRAND = "rgb(var(--bright-primary-rgb))";
 
 type Series = { label: string; color: string; values: number[] };
 
@@ -505,8 +505,8 @@ interface DivergingBarChartProps {
 export function DivergingBarChart({
   data,
   formatValue,
-  positiveColor = "#16A34A",
-  negativeColor = "#EF4444",
+  positiveColor = "var(--success)",
+  negativeColor = "var(--danger)",
 }: DivergingBarChartProps) {
   const fmt = formatValue ?? ((v: number) => `${v > 0 ? "+" : ""}${v.toFixed(1)}`);
   const magnitude = Math.max(1, ...data.map((d) => Math.abs(d.value)));
@@ -758,13 +758,23 @@ export function compact(n: number): string {
 /** Whole counts — avoids "1.0" on axes that can only hold integers. */
 export const formatCount = (n: number) => Math.round(n).toLocaleString();
 
+/**
+ * Series colours for charts.
+ *
+ * Recharts takes colours as props and never sees a Tailwind class, so these
+ * resolve the CSS variables at use time via `var()`. That is what lets a chart
+ * follow a theme switch: the variables are redefined under `.dark`, and the
+ * browser repaints the SVG without React re-rendering anything.
+ *
+ * Ordered for maximum separation between adjacent series rather than by hue.
+ */
 export const DONUT_PALETTE = [
-  "#EA580C",
-  "#2563EB",
-  "#16A34A",
-  "#A855F7",
-  "#0EA5E9",
-  "#F59E0B",
-  "#EC4899",
-  "#14B8A6",
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-6)",
+  "var(--chart-5)",
+  "var(--chart-7)",
+  "var(--chart-8)",
 ];

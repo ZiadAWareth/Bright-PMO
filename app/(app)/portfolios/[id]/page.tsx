@@ -44,14 +44,21 @@ import {
 } from "lucide-react";
 import { ProjectWithRelations } from "@/types/project";
 import { PortfolioWithRelations } from "@/types/portfolio";
+import { FormSection, InfoGrid, StatusBadge } from "@/components/ui/form-shell";
+import {
+  humanize,
+  portfolioStatusTone,
+  priorityTone,
+} from "@/lib/status-tone";
 import axios from "axios";
 import { set } from "date-fns";
 import { AddEntityModal } from "@/components/AddEntityModal";
 import { UserWithAccount } from "@/types/user";
 import { toast } from "sonner";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import EditPortfolioModal from "@/components/portfolio/EditPortfolioModal";
 import ProjectsTab from "@/components/ProjectsTab";
+import { Spinner } from "@/components/ui/spinner";
+import { TabRow } from "@/components/ui/tab-row";
 // import ProjectsTab from '@/components/portfolio/ProjectsTab';
 
 // User interface for role checking
@@ -124,14 +131,9 @@ const ProjectDetailsPage = ({
         null
     );
     const [loading, setLoading] = useState(true);
-    const [showEditModal, setShowEditModal] = useState(false);
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    // Check if we're in dark mode
-    const isDarkMode =
-        typeof window !== "undefined" &&
-        document.documentElement.classList.contains("dark");
 
     // Permission checking functions
     const canViewPortfolios = () => {
@@ -281,15 +283,15 @@ const ProjectDetailsPage = ({
         const baseClasses = "px-3 py-1 rounded-md text-xs font-medium";
         switch (status) {
             case "active":
-                return `${baseClasses} bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300`;
+                return `${baseClasses} bg-success-soft text-success  `;
             case "completed":
-                return `${baseClasses} bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300`;
+                return `${baseClasses} bg-accent-violet-soft text-accent-violet  `;
             case "on_hold":
-                return `${baseClasses} bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300`;
+                return `${baseClasses} bg-warning-soft text-warning  `;
             case "archived":
-                return `${baseClasses} bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300`;
+                return `${baseClasses} bg-surface-2 text-ink-2  `;
             default:
-                return `${baseClasses} bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300`;
+                return `${baseClasses} bg-surface-2 text-ink-2  `;
         }
     };
 
@@ -297,36 +299,13 @@ const ProjectDetailsPage = ({
         const baseClasses = "px-2 py-1 rounded-md text-xs font-medium";
         switch (priority) {
             case "high":
-                return `${baseClasses} bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300`;
+                return `${baseClasses} bg-danger-soft text-danger  `;
             case "medium":
-                return `${baseClasses} bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300`;
+                return `${baseClasses} bg-warning-soft text-warning  `;
             case "low":
-                return `${baseClasses} bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300`;
+                return `${baseClasses} bg-success-soft text-success  `;
             default:
                 return baseClasses;
-        }
-    };
-
-    const handleEditSuccess = () => {
-        setShowEditModal(false);
-        // Refresh portfolio data after successful edit
-        if (portfolioId) {
-            axios
-                .get(`/api/portfolios/${portfolioId}`, {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                        )}`,
-                    },
-                })
-                .then((res) => {
-                    setPortfolio(res.data);
-                    toast.success("Portfolio updated successfully");
-                })
-                .catch((err) => {
-                    console.error("Error refreshing portfolio data:", err);
-                    toast.error("Failed to refresh portfolio data");
-                });
         }
     };
 
@@ -335,7 +314,7 @@ const ProjectDetailsPage = ({
             toast.error("You don't have permission to edit portfolios");
             return;
         }
-        setShowEditModal(true);
+        router.push(`/portfolios/${portfolioId}/edit`);
     };
 
     const handleDeleteClick = () => {
@@ -399,12 +378,12 @@ const ProjectDetailsPage = ({
                         <div className="text-center">
                             <Shield
                                 size={48}
-                                className="text-gray-300 mx-auto mb-4"
+                                className="text-faint mx-auto mb-4"
                             />
-                            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                            <h3 className="text-lg font-medium text-ink mb-2">
                                 Access Restricted
                             </h3>
-                            <p className="text-gray-600 dark:text-gray-400">
+                            <p className="text-muted">
                                 You don't have permission to view this
                                 portfolio.
                             </p>
@@ -423,7 +402,7 @@ const ProjectDetailsPage = ({
                     activeView={activeView}
                 >
                     <div className="flex items-center justify-center min-h-96">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
+                        <Spinner size={48} className="text-bright-primary" />
                     </div>
                 </DashboardLayout>
             </ProtectedRoute>
@@ -438,16 +417,16 @@ const ProjectDetailsPage = ({
                     activeView={activeView}
                 >
                     <div className="text-center py-12">
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                        <h3 className="text-lg font-medium text-ink mb-2">
                             Project not found
                         </h3>
-                        <p className="text-gray-600 dark:text-gray-400 mb-4">
+                        <p className="text-muted mb-4">
                             The project you're looking for doesn't exist or you
                             don't have permission to view it.
                         </p>
                         <button
                             onClick={() => router.back()}
-                            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                            className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors"
                         >
                             Go Back
                         </button>
@@ -457,109 +436,138 @@ const ProjectDetailsPage = ({
         );
     }
 
+    // SPI/CPI are ratios: >1 is ahead, ~1 on plan, <0.9 behind. Rendering them as
+    // a percentage of plan keeps the two comparable at a glance.
+    const spi = portfolio?.metrics?.average_spi ?? 0;
+    const cpi = portfolio?.metrics?.average_cpi ?? 0;
+    const ratioTone = (v: number): "success" | "warning" | "danger" =>
+      v > 1 ? "success" : v > 0.9 ? "warning" : "danger";
+
+    const portfolioRows: [string, React.ReactNode][] = [
+      [
+        "Status",
+        <StatusBadge
+          key="status"
+          label={humanize(portfolio?.status)}
+          tone={portfolioStatusTone(portfolio?.status)}
+        />,
+      ],
+      [
+        "Priority",
+        <StatusBadge
+          key="priority"
+          label={humanize(portfolio?.priority)}
+          tone={priorityTone(portfolio?.priority)}
+        />,
+      ],
+      [
+        "Manager",
+        portfolio?.manager?.account
+          ? `${portfolio.manager.account.first_name} ${portfolio.manager.account.last_name}`
+          : "—",
+      ],
+      [
+        "Projects",
+        <span key="projects" className="tabular-nums">
+          {portfolio?.project_count ?? 0}
+        </span>,
+      ],
+    ];
+
+    const performanceRows: [string, React.ReactNode][] = [
+      [
+        "Average Progress",
+        <span key="progress" className="tabular-nums">
+          {(portfolio?.avg_progress ?? 0).toFixed(1)}%
+        </span>,
+      ],
+      [
+        "Schedule Performance (SPI)",
+        <StatusBadge
+          key="spi"
+          label={`${(spi * 100).toFixed(1)}%`}
+          tone={ratioTone(spi)}
+        />,
+      ],
+      [
+        "Cost Performance (CPI)",
+        <StatusBadge
+          key="cpi"
+          label={`${(cpi * 100).toFixed(1)}%`}
+          tone={ratioTone(cpi)}
+        />,
+      ],
+    ];
+
     const roleSpecificTabs = getRoleSpecificTabs(activeView);
     const roleSpecificActions = getRoleSpecificActions(activeView);
 
     return (
         <ProtectedRoute>
             <DashboardLayout
+                title={portfolio?.name ?? "Portfolio"}
+                subtitle={portfolio?.description}
+                backHref="/portfolios"
+                backLabel="Back to Portfolios"
+                actions={
+                    <>
+                        <StatusBadge
+                            label={humanize(portfolio?.status ?? "")}
+                            tone={portfolioStatusTone(portfolio?.status)}
+                        />
+                        <StatusBadge
+                            label={humanize(portfolio?.priority ?? "")}
+                            tone={priorityTone(portfolio?.priority)}
+                        />
+                    </>
+                }
+                meta={
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                        <span className="inline-flex items-center gap-1.5">
+                            <FolderTree size={14} aria-hidden="true" />
+                            {portfolio?.project_count || 0} projects
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                            <Calendar size={14} aria-hidden="true" />
+                            Created{" "}
+                            {portfolio?.created_at
+                                ? new Date(
+                                      portfolio.created_at,
+                                  ).toLocaleDateString()
+                                : "—"}
+                        </span>
+                        {portfolio?.tags && portfolio.tags.length > 0 && (
+                            <span className="flex flex-wrap items-center gap-1.5">
+                                {portfolio.tags.map((tag, index) => (
+                                    <StatusBadge
+                                        key={index}
+                                        label={tag}
+                                        tone="info"
+                                    />
+                                ))}
+                            </span>
+                        )}
+                    </div>
+                }
                 onViewChange={setActiveView}
                 activeView={activeView}
             >
-                {/* Breadcrumb Navigation */}
-                <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400 mb-6">
-                    <button
-                        onClick={() => router.push("/portfolios")}
-                        className="hover:text-orange-600 transition-colors"
-                    >
-                        Portfolios
-                    </button>
-                    <span>/</span>
-                    <span className="text-gray-900 dark:text-gray-100">
-                        {portfolio?.name || "Loading..."}
-                    </span>
-                </div>
-
-                {/* Project Header */}
-                <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6 mb-6">
-                    <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-2">
-                                <button
-                                    onClick={() => router.back()}
-                                    className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
-                                >
-                                    <ArrowLeft size={20} />
-                                </button>
-                                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                    {portfolio?.name}
-                                </h1>
-                                <span
-                                    className={getStatusBadge(
-                                        portfolio?.status || ""
-                                    )}
-                                >
-                                    {portfolio?.status
-                                        ?.replace("_", " ")
-                                        .toUpperCase()}
-                                </span>
-                                <span
-                                    className={getPriorityBadge(
-                                        portfolio?.priority || ""
-                                    )}
-                                >
-                                    {portfolio?.priority?.toUpperCase()}
-                                </span>
-                            </div>
-                            <div className="max-h-32 overflow-y-auto mb-3">
-                                <p className="text-gray-600 dark:text-gray-400 break-words whitespace-pre-wrap">
-                                {portfolio?.description}
-                            </p>
-                            </div>
-                            {portfolio?.tags && portfolio.tags.length > 0 && (
-                                <div className="flex flex-wrap gap-2 mb-3">
-                                    {portfolio.tags.map((tag, index) => (
-                                        <span
-                                            key={index}
-                                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
-                                        >
-                                            {tag}
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
-                            <div className="flex items-center space-x-6 text-sm text-gray-500">
-                                <span className="flex items-center">
-                                    <FolderTree size={14} className="mr-1" />
-                                    {portfolio?.project_count || 0} Projects
-                                </span>
-                                <span className="flex items-center">
-                                    <Calendar size={14} className="mr-1" />
-                                    Created{" "}
-                                    {portfolio?.created_at
-                                        ? new Date(
-                                              portfolio.created_at
-                                          ).toLocaleDateString()
-                                        : ""}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
+                <div className="mb-6">
 
                     {/* Progress and Key Metrics */}
                     <div className="flex flex-wrap gap-4 mb-6">
-                        <div className="flex-1 min-w-[200px] bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
+                        <div className="flex flex-1 min-w-[200px] flex-col bg-surface-2 rounded-lg p-4">
                             <div className="flex justify-between items-center mb-2">
-                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                <span className="text-sm font-medium text-ink-3">
                                     Progress
                                 </span>
-                                <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                                <span className="text-lg font-bold text-ink">
                                     {portfolio?.avg_progress?.toFixed(1)}%
                                 </span>
                             </div>
-                            <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2">
+                            <div className="mt-auto w-full bg-surface-3 rounded-full h-2">
                                 <div
-                                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                    className="bg-info h-2 rounded-full transition-all duration-300"
                                     style={{
                                         width: `${
                                             portfolio?.avg_progress || 0
@@ -569,12 +577,12 @@ const ProjectDetailsPage = ({
                             </div>
                         </div>
 
-                        <div className="flex-1 min-w-[200px] bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
+                        <div className="flex flex-1 min-w-[200px] flex-col bg-surface-2 rounded-lg p-4">
                             <div className="flex justify-between items-center mb-2">
-                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                <span className="text-sm font-medium text-ink-3">
                                     Budget
                                 </span>
-                                <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                                <span className="text-lg font-bold text-ink">
                                     {portfolio?.total_actual_cost &&
                                     portfolio?.total_budget
                                         ? (
@@ -586,13 +594,13 @@ const ProjectDetailsPage = ({
                                     %
                                 </span>
                             </div>
-                            <div className="text-xs text-gray-500 mb-1">
+                            <div className="text-xs text-muted mb-1">
                                 {formatCurrency(
                                     portfolio?.total_actual_cost || 0
                                 )}{" "}
                                 / {formatCurrency(portfolio?.total_budget || 0)}
                             </div>
-                            <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2">
+                            <div className="mt-auto w-full bg-surface-3 rounded-full h-2">
                                 <div
                                     className={`h-2 rounded-full transition-all duration-300 ${
                                         portfolio?.total_actual_cost &&
@@ -601,14 +609,14 @@ const ProjectDetailsPage = ({
                                                   portfolio.total_budget) *
                                                   100 >
                                               90
-                                                ? "bg-red-500"
+                                                ? "bg-danger"
                                                 : (portfolio.total_actual_cost /
                                                       portfolio.total_budget) *
                                                       100 >
                                                   75
-                                                ? "bg-yellow-500"
-                                                : "bg-green-500"
-                                            : "bg-green-500"
+                                                ? "bg-warning"
+                                                : "bg-success"
+                                            : "bg-success"
                                     }`}
                                     style={{
                                         width: `${Math.min(
@@ -625,12 +633,12 @@ const ProjectDetailsPage = ({
                             </div>
                         </div>
 
-                        <div className="flex-1 min-w-[200px] bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
+                        <div className="flex flex-1 min-w-[200px] flex-col bg-surface-2 rounded-lg p-4">
                             <div className="flex justify-between items-center mb-2">
-                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                <span className="text-sm font-medium text-ink-3">
                                     SPI
                                 </span>
-                                <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                                <span className="text-lg font-bold text-ink">
                                     {portfolio?.metrics?.average_spi
                                         ? (
                                               portfolio.metrics.average_spi *
@@ -640,17 +648,17 @@ const ProjectDetailsPage = ({
                                     %
                                 </span>
                             </div>
-                            <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2">
+                            <div className="mt-auto w-full bg-surface-3 rounded-full h-2">
                                 <div
                                     className={`h-2 rounded-full transition-all duration-300 ${
                                         portfolio?.metrics?.average_spi
                                             ? portfolio.metrics.average_spi > 1
-                                                ? "bg-green-500"
+                                                ? "bg-success"
                                                 : portfolio.metrics
                                                       .average_spi > 0.9
-                                                ? "bg-yellow-500"
-                                                : "bg-red-500"
-                                            : "bg-gray-500"
+                                                ? "bg-warning"
+                                                : "bg-danger"
+                                            : "bg-muted"
                                     }`}
                                     style={{
                                         width: `${Math.min(
@@ -663,12 +671,12 @@ const ProjectDetailsPage = ({
                             </div>
                         </div>
 
-                        <div className="flex-1 min-w-[200px] bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
+                        <div className="flex flex-1 min-w-[200px] flex-col bg-surface-2 rounded-lg p-4">
                             <div className="flex justify-between items-center mb-2">
-                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                <span className="text-sm font-medium text-ink-3">
                                     CPI
                                 </span>
-                                <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                                <span className="text-lg font-bold text-ink">
                                     {portfolio?.metrics?.average_cpi
                                         ? (
                                               portfolio.metrics.average_cpi *
@@ -678,17 +686,17 @@ const ProjectDetailsPage = ({
                                     %
                                 </span>
                             </div>
-                            <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2">
+                            <div className="mt-auto w-full bg-surface-3 rounded-full h-2">
                                 <div
                                     className={`h-2 rounded-full transition-all duration-300 ${
                                         portfolio?.metrics?.average_cpi
                                             ? portfolio.metrics.average_cpi > 1
-                                                ? "bg-green-500"
+                                                ? "bg-success"
                                                 : portfolio.metrics
                                                       .average_cpi > 0.9
-                                                ? "bg-yellow-500"
-                                                : "bg-red-500"
-                                            : "bg-gray-500"
+                                                ? "bg-warning"
+                                                : "bg-danger"
+                                            : "bg-muted"
                                     }`}
                                     style={{
                                         width: `${Math.min(
@@ -701,52 +709,52 @@ const ProjectDetailsPage = ({
                             </div>
                         </div>
 
-                        <div className="flex-1 min-w-[200px] bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
+                        <div className="flex flex-1 min-w-[200px] flex-col bg-surface-2 rounded-lg p-4">
                             <div className="flex justify-between items-center mb-2">
-                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                <span className="text-sm font-medium text-ink-3">
                                     Health Index
                                 </span>
-                                <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                                <span className="text-lg font-bold text-ink">
                                     {portfolio?.metrics?.health_index || 0}
                                 </span>
                             </div>
                             <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                <span className="text-xs text-muted">
                                     {portfolio?.metrics?.health_status ||
                                         "Unknown"}
                                 </span>
                                 <div
                                     className={`w-3 h-3 rounded-full ${
                                         portfolio?.metrics?.health_index >= 80
-                                            ? "bg-green-500"
+                                            ? "bg-success"
                                             : portfolio?.metrics
                                                   ?.health_index >= 70
-                                            ? "bg-blue-500"
+                                            ? "bg-info"
                                             : portfolio?.metrics
                                                   ?.health_index >= 60
-                                            ? "bg-yellow-500"
+                                            ? "bg-warning"
                                             : portfolio?.metrics
                                                   ?.health_index >= 50
-                                            ? "bg-orange-500"
-                                            : "bg-red-500"
+                                            ? "bg-bright"
+                                            : "bg-danger"
                                     }`}
                                 ></div>
                             </div>
-                            <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2">
+                            <div className="mt-auto w-full bg-surface-3 rounded-full h-2">
                                 <div
                                     className={`h-2 rounded-full transition-all duration-300 ${
                                         portfolio?.metrics?.health_index >= 80
-                                            ? "bg-green-500"
+                                            ? "bg-success"
                                             : portfolio?.metrics
                                                   ?.health_index >= 70
-                                            ? "bg-blue-500"
+                                            ? "bg-info"
                                             : portfolio?.metrics
                                                   ?.health_index >= 60
-                                            ? "bg-yellow-500"
+                                            ? "bg-warning"
                                             : portfolio?.metrics
                                                   ?.health_index >= 50
-                                            ? "bg-orange-500"
-                                            : "bg-red-500"
+                                            ? "bg-bright"
+                                            : "bg-danger"
                                     }`}
                                     style={{
                                         width: `${Math.min(
@@ -761,16 +769,16 @@ const ProjectDetailsPage = ({
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-slate-700">
+                    <div className="flex items-center justify-between pt-4 border-t border-line">
                         <div className="flex items-center space-x-4">
-                            <span className="text-sm text-gray-500">
+                            <span className="text-sm text-muted">
                                 Managed by{" "}
-                                <span className="font-medium text-gray-900 dark:text-gray-100">
+                                <span className="font-medium text-ink">
                                     {`${portfolio?.manager?.account?.first_name} ${portfolio?.manager?.account?.last_name}`}
                                 </span>
                             </span>
                             {activeView === "admin" && (
-                                <span className="text-sm text-gray-500">
+                                <span className="text-sm text-muted">
                                     Created on{" "}
                                     {portfolio?.created_at
                                         ? new Date(
@@ -796,10 +804,10 @@ const ProjectDetailsPage = ({
                                     }}
                                     className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm transition-colors ${
                                         action.variant === "primary"
-                                            ? "bg-orange-600 text-white hover:bg-orange-700"
+                                            ? "bg-bright text-white hover:bg-bright-deep"
                                             : action.variant === "danger"
-                                            ? "bg-red-600 text-white hover:bg-red-700"
-                                            : "border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700"
+                                            ? "bg-danger text-white hover:opacity-90"
+                                            : "border border-line text-ink-3 hover:bg-surface-2"
                                     }`}
                                 >
                                     {action.icon}
@@ -810,37 +818,19 @@ const ProjectDetailsPage = ({
                     </div>
                 </div>
 
-                {/* Tab Navigation */}
-                <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl mb-6">
-                    <div className="flex items-center space-x-1 p-1 overflow-x-auto whitespace-nowrap">
-                        {roleSpecificTabs.map((tab) => (
-                            <button
-                                key={tab.id}
-                                onClick={() => {
-                                    if (tab.id === "wbs") {
-                                        router.push(
-                                            `/projects/${portfolioId}/wbs`
-                                        );
-                                    } else if (tab.id === "gantt") {
-                                        router.push(
-                                            `/projects/${portfolioId}/gantt`
-                                        );
-                                    } else {
-                                        setActiveTab(tab.id);
-                                    }
-                                }}
-                                className={`flex items-center space-x-2 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                                    activeTab === tab.id
-                                        ? "bg-orange-600 text-white"
-                                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-slate-700"
-                                }`}
-                            >
-                                {tab.icon}
-                                <span>{tab.label}</span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
+                <TabRow
+                    tabs={roleSpecificTabs}
+                    value={activeTab}
+                    onChange={(id) => {
+                        if (id === "wbs") {
+                            router.push(`/projects/${portfolioId}/wbs`);
+                        } else if (id === "gantt") {
+                            router.push(`/projects/${portfolioId}/gantt`);
+                        } else {
+                            setActiveTab(id);
+                        }
+                    }}
+                />
 
                 {/* Tab Content */}
                 <div className="mt-6">
@@ -848,86 +838,57 @@ const ProjectDetailsPage = ({
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                             {/* Main Portfolio Information */}
                             <div className="lg:col-span-2 space-y-6">
-                                {/* Portfolio Details */}
-                                <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6">
-                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                                        Portfolio Information
-                                    </h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                Status
-                                            </label>
-                                            <p className="text-sm text-gray-900 dark:text-gray-100">
-                                                {portfolio?.status}
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                Priority
-                                            </label>
-                                            <p className="text-sm text-gray-900 dark:text-gray-100">
-                                                {portfolio?.priority}
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                Manager
-                                            </label>
-                                            <p className="text-sm text-gray-900 dark:text-gray-100">
-                                                {`${portfolio?.manager?.account?.first_name} ${portfolio?.manager?.account?.last_name}`}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="mt-4">
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            Description
-                                        </label>
-                                        <div className="max-h-48 overflow-y-auto">
-                                            <p className="text-sm text-gray-600 dark:text-gray-400 break-words whitespace-pre-wrap">
-                                            {portfolio?.description}
-                                        </p>
-                                        </div>
-                                    </div>
-                                    {portfolio?.strategic_objective && (
-                                        <div className="mt-4">
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                Strategic Objective
-                                            </label>
-                                            <div className="max-h-48 overflow-y-auto">
-                                                <p className="text-sm text-gray-600 dark:text-gray-400 break-words whitespace-pre-wrap">
-                                                {portfolio.strategic_objective}
-                                            </p>
+                                <FormSection title="Portfolio Information">
+                                    <InfoGrid rows={portfolioRows} />
+
+                                    {portfolio?.description && (
+                                        <div className="mt-5 border-t border-line-2 pt-4">
+                                            <div className="mb-1 text-[13px] text-muted">
+                                                Description
                                             </div>
+                                            <p className="max-h-48 overflow-y-auto whitespace-pre-wrap break-words text-[13.5px] text-ink">
+                                                {portfolio.description}
+                                            </p>
                                         </div>
                                     )}
+
+                                    {portfolio?.strategic_objective && (
+                                        <div className="mt-5 border-t border-line-2 pt-4">
+                                            <div className="mb-1 text-[13px] text-muted">
+                                                Strategic Objective
+                                            </div>
+                                            <p className="max-h-48 overflow-y-auto whitespace-pre-wrap break-words text-[13.5px] text-ink">
+                                                {portfolio.strategic_objective}
+                                            </p>
+                                        </div>
+                                    )}
+
                                     {portfolio?.tags && portfolio.tags.length > 0 && (
-                                        <div className="mt-4">
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        <div className="mt-5 border-t border-line-2 pt-4">
+                                            <div className="mb-2 text-[13px] text-muted">
                                                 Tags
-                                            </label>
+                                            </div>
                                             <div className="flex flex-wrap gap-2">
                                                 {portfolio.tags.map((tag, index) => (
-                                                    <span
+                                                    <StatusBadge
                                                         key={index}
-                                                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
-                                                    >
-                                                        {tag}
-                                                    </span>
+                                                        label={tag}
+                                                        tone="info"
+                                                    />
                                                 ))}
                                             </div>
                                         </div>
                                     )}
-                                </div>
+                                </FormSection>
 
                                 {/* Underperforming Projects Alert */}
                                 {portfolio?.metrics?.underperforming_projects &&
                                     portfolio.metrics.underperforming_projects
                                         .length > 0 && (
-                                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6">
+                                        <div className="bg-danger-soft border border-danger rounded-xl p-6">
                                             <div className="flex items-center mb-4">
-                                                <AlertTriangle className="w-5 h-5 text-red-500 mr-2" />
-                                                <h3 className="text-lg font-semibold text-red-800 dark:text-red-200">
+                                                <AlertTriangle className="w-5 h-5 text-danger mr-2" />
+                                                <h3 className="text-lg font-semibold text-danger">
                                                     Underperforming Projects (
                                                     {
                                                         portfolio.metrics
@@ -951,13 +912,13 @@ const ProjectDetailsPage = ({
                                                                 key={
                                                                     item.project_id
                                                                 }
-                                                                className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 border border-red-200 dark:border-red-700 rounded-lg"
+                                                                className="flex items-center justify-between p-3 bg-surface border border-danger rounded-lg"
                                                             >
                                                                 <div className="flex-1">
                                                                     <div className="flex items-center space-x-3">
-                                                                        <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                                                                        <div className="w-3 h-3 rounded-full bg-danger"></div>
                                                                         <div>
-                                                                            <p className="font-medium text-gray-900 dark:text-gray-100">
+                                                                            <p className="font-medium text-ink">
                                                                                 {
                                                                                     project.name
                                                                                 }
@@ -972,7 +933,7 @@ const ProjectDetailsPage = ({
                                                                                             key={
                                                                                                 idx
                                                                                             }
-                                                                                            className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+                                                                                            className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-danger-soft text-danger"
                                                                                         >
                                                                                             {
                                                                                                 reason
@@ -984,7 +945,7 @@ const ProjectDetailsPage = ({
                                                                         </div>
                                                                     </div>
                                                                 </div>
-                                                                <div className="flex items-center space-x-4 text-sm text-gray-500">
+                                                                <div className="flex items-center space-x-4 text-sm text-muted">
                                                                     <span>
                                                                         {
                                                                             project.progress_percentage
@@ -998,7 +959,7 @@ const ProjectDetailsPage = ({
                                                                                 `/projects/${project.project_id}`
                                                                             )
                                                                         }
-                                                                        className="text-red-600 hover:text-red-700 font-medium"
+                                                                        className="text-danger hover:text-danger font-medium"
                                                                     >
                                                                         View
                                                                         Project
@@ -1015,81 +976,19 @@ const ProjectDetailsPage = ({
 
                             {/* Sidebar */}
                             <div className="space-y-6">
-                                {/* Quick Stats */}
-                                <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6">
-                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                                        Quick Stats
-                                    </h3>
-                                    <div className="space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm text-gray-600 dark:text-gray-400">
-                                                Average Progress
-                                            </span>
-                                            <span className="text-sm font-medium text-orange-600">
-                                                {portfolio?.avg_progress?.toFixed(
-                                                    1
-                                                )}
-                                                %
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm text-gray-600 dark:text-gray-400">
-                                                Schedule Performance (SPI)
-                                            </span>
-                                            <span
-                                                className={`text-sm font-medium ${
-                                                    (portfolio?.metrics
-                                                        ?.average_spi ?? 0) > 1
-                                                        ? "text-green-600"
-                                                        : (portfolio?.metrics
-                                                              ?.average_spi ??
-                                                              0) > 0.9
-                                                        ? "text-yellow-600"
-                                                        : "text-red-600"
-                                                }`}
-                                            >
-                                                {(
-                                                    (portfolio?.metrics
-                                                        ?.average_spi ?? 0) *
-                                                    100
-                                                ).toFixed(1)}
-                                                %
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm text-gray-600 dark:text-gray-400">
-                                                Cost Performance (CPI)
-                                            </span>
-                                            <span
-                                                className={`text-sm font-medium ${
-                                                    (portfolio?.metrics
-                                                        ?.average_cpi ?? 0) > 1
-                                                        ? "text-green-600"
-                                                        : (portfolio?.metrics
-                                                              ?.average_cpi ??
-                                                              0) > 0.9
-                                                        ? "text-yellow-600"
-                                                        : "text-red-600"
-                                                }`}
-                                            >
-                                                {(
-                                                    (portfolio?.metrics
-                                                        ?.average_cpi ?? 0) *
-                                                    100
-                                                ).toFixed(1)}
-                                                %
-                                            </span>
-                                        </div>
+                                <FormSection title="Performance">
+                                    <div className="[&_dl]:sm:grid-cols-1">
+                                        <InfoGrid rows={performanceRows} />
                                     </div>
-                                </div>
+                                </FormSection>
 
                                 {/* Project Count Card */}
-                                <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6">
+                                <div className="bg-surface border border-line rounded-xl p-6">
                                     <div className="flex items-center justify-between mb-4">
-                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                        <h3 className="text-lg font-semibold text-ink">
                                             Projects
                                         </h3>
-                                        <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                                        <span className="text-2xl font-bold text-ink">
                                             {portfolio?.project_count || 0}
                                         </span>
                                     </div>
@@ -1099,18 +998,18 @@ const ProjectDetailsPage = ({
                                             .map((project) => (
                                                 <div
                                                     key={project.project_id}
-                                                    className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-slate-700 rounded-lg"
+                                                    className="flex items-center space-x-3 p-3 bg-surface-2 rounded-lg"
                                                 >
-                                                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                                    <div className="w-2 h-2 rounded-full bg-success"></div>
                                                     <div className="flex-1">
-                                                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                                        <p className="text-sm font-medium text-ink">
                                                             {project.name}
                                                         </p>
-                                                        <p className="text-xs text-gray-500">
+                                                        <p className="text-xs text-muted">
                                                             {project.status}
                                                         </p>
                                                     </div>
-                                                    <span className="text-sm text-gray-500">
+                                                    <span className="text-sm text-muted">
                                                         {
                                                             project.progress_percentage
                                                         }
@@ -1122,7 +1021,7 @@ const ProjectDetailsPage = ({
                                             onClick={() =>
                                                 setActiveTab("projects")
                                             }
-                                            className="w-full text-sm text-orange-600 hover:text-orange-700 py-2"
+                                            className="w-full text-sm text-bright hover:text-bright-deep py-2"
                                         >
                                             View all projects
                                         </button>
@@ -1140,14 +1039,6 @@ const ProjectDetailsPage = ({
                         />
                     )}
                 </div>
-
-                {/* Edit Portfolio Modal */}
-                <EditPortfolioModal
-                    isOpen={showEditModal}
-                    onClose={() => setShowEditModal(false)}
-                    portfolio={portfolio}
-                    onSuccess={handleEditSuccess}
-                />
 
                 {/* Delete Confirmation Modal */}
                 {showDeleteConfirmation && portfolio && (() => {
@@ -1168,38 +1059,26 @@ const ProjectDetailsPage = ({
                         onClick={() => setShowDeleteConfirmation(false)}
                     >
                         <div
-                                className="rounded-2xl p-6 max-w-lg w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto"
-                            style={{
-                                backgroundColor: isDarkMode
-                                    ? "rgba(30, 41, 59, 0.95)"
-                                    : "rgba(255, 255, 255, 0.95)",
-                                backdropFilter: "blur(20px)",
-                                WebkitBackdropFilter: "blur(20px)",
-                                border: isDarkMode
-                                    ? "1px solid rgba(148, 163, 184, 0.2)"
-                                    : "1px solid rgba(255, 255, 255, 0.2)",
-                                boxShadow:
-                                    "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-                            }}
+                                className="rounded-2xl p-6 max-w-lg w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto glass-panel"
                             onClick={(e) => e.stopPropagation()}
                         >
                                 <div className="flex items-center justify-between mb-4">
                                     <div className="flex items-center space-x-3">
-                                        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${hasActiveProjects ? 'bg-red-100 dark:bg-red-900' : 'bg-red-100 dark:bg-red-900'}`}>
-                                            <AlertTriangle className={`w-6 h-6 ${hasActiveProjects ? 'text-red-600' : 'text-red-600'}`} />
+                                        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${hasActiveProjects ? 'bg-danger-soft' : 'bg-danger-soft'}`}>
+                                            <AlertTriangle className={`w-6 h-6 ${hasActiveProjects ? 'text-danger' : 'text-danger'}`} />
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                    <h3 className="text-lg font-semibold text-ink">
                                                 {hasActiveProjects ? 'Cannot Delete Portfolio' : 'Delete Portfolio'}
                                     </h3>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                                    <p className="text-sm text-muted">
                                                 {hasActiveProjects ? 'Active projects must be completed first' : 'This action cannot be undone'}
                                     </p>
                                 </div>
                             </div>
                                     <button
                                         onClick={() => setShowDeleteConfirmation(false)}
-                                        className="text-gray-400 hover:text-orange-600 dark:hover:text-orange-400"
+                                        className="text-faint hover:text-bright"
                                     >
                                         <X size={20} />
                                     </button>
@@ -1207,44 +1086,44 @@ const ProjectDetailsPage = ({
 
                                 {hasActiveProjects ? (
                                     <div className="space-y-4">
-                                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                                            <p className="text-red-800 dark:text-red-200 font-medium mb-2">
+                                        <div className="bg-danger-soft border border-danger rounded-lg p-4">
+                                            <p className="text-danger font-medium mb-2">
                                                 ⚠️ This portfolio cannot be deleted because it contains active projects.
                                             </p>
-                                            <p className="text-sm text-red-700 dark:text-red-300">
+                                            <p className="text-sm text-danger">
                                                 Please complete or close all active projects before deleting this portfolio.
                                             </p>
                                         </div>
                                         <div>
-                                            <p className="text-gray-700 dark:text-gray-300 mb-3">
+                                            <p className="text-ink-3 mb-3">
                                                 Portfolio <span className="font-semibold">"{portfolio.name}"</span> contains:
                                             </p>
                                             <div className="space-y-2">
-                                                <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-3">
-                                                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                                                <div className="bg-surface-2 rounded-lg p-3">
+                                                    <p className="text-sm font-medium text-ink mb-2">
                                                         Active Projects ({activeProjects.length}):
                                                     </p>
                                                     <ul className="space-y-1 max-h-32 overflow-y-auto">
                                                         {activeProjects.map((project: any) => (
-                                                            <li key={project.project_id} className="text-sm text-gray-700 dark:text-gray-300 flex items-start">
-                                                                <span className="w-2 h-2 bg-red-500 rounded-full mr-2 mt-1.5 flex-shrink-0"></span>
+                                                            <li key={project.project_id} className="text-sm text-ink-3 flex items-start">
+                                                                <span className="w-2 h-2 bg-danger rounded-full mr-2 mt-1.5 flex-shrink-0"></span>
                                                                 <span className="flex-1">
                                                                     <span className="font-medium">{project.name || `Project #${project.project_id}`}</span>
-                                                                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-2 capitalize">({project.status.replace('_', ' ')})</span>
+                                                                    <span className="text-xs text-muted ml-2 capitalize">({project.status.replace('_', ' ')})</span>
                                                                 </span>
                                                             </li>
                                                         ))}
                                                     </ul>
                                                 </div>
                                                 {completedProjects.length > 0 && (
-                                                    <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-3">
-                                                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                                                    <div className="bg-surface-2 rounded-lg p-3">
+                                                        <p className="text-sm font-medium text-ink mb-2">
                                                             Completed/Closed Projects ({completedProjects.length}):
                                                         </p>
                                                         <ul className="space-y-1 max-h-24 overflow-y-auto">
                                                             {completedProjects.map((project: any) => (
-                                                                <li key={project.project_id} className="text-sm text-gray-600 dark:text-gray-400 flex items-start">
-                                                                    <span className="w-2 h-2 bg-green-500 rounded-full mr-2 mt-1.5 flex-shrink-0"></span>
+                                                                <li key={project.project_id} className="text-sm text-muted flex items-start">
+                                                                    <span className="w-2 h-2 bg-success rounded-full mr-2 mt-1.5 flex-shrink-0"></span>
                                                                     <span className="font-medium">{project.name || `Project #${project.project_id}`}</span>
                                                                 </li>
                                                             ))}
@@ -1256,34 +1135,34 @@ const ProjectDetailsPage = ({
                                     </div>
                                 ) : (
                                     <div className="space-y-4">
-                                        <p className="text-gray-700 dark:text-gray-300">
+                                        <p className="text-ink-3">
                                 Are you sure you want to delete{" "}
                                             <strong>"{portfolio.name}"</strong>? This action cannot be undone.
                                         </p>
                                         {projects.length > 0 && (
-                                            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                                                <p className="text-yellow-800 dark:text-yellow-200 font-medium mb-2">
+                                            <div className="bg-warning-soft border border-warning rounded-lg p-4">
+                                                <p className="text-warning font-medium mb-2">
                                                     ⚠️ Warning: This will permanently delete {projects.length} project(s):
                                                 </p>
                                                 <ul className="space-y-1 max-h-32 overflow-y-auto">
                                                     {projects.slice(0, 10).map((project: any) => (
-                                                        <li key={project.project_id} className="text-sm text-yellow-700 dark:text-yellow-300 flex items-start">
-                                                            <span className="w-2 h-2 bg-yellow-500 rounded-full mr-2 mt-1.5 flex-shrink-0"></span>
+                                                        <li key={project.project_id} className="text-sm text-warning flex items-start">
+                                                            <span className="w-2 h-2 bg-warning rounded-full mr-2 mt-1.5 flex-shrink-0"></span>
                                                             <span className="flex-1">
                                                                 <span className="font-medium">{project.name || `Project #${project.project_id}`}</span>
-                                                                <span className="text-xs text-yellow-600 dark:text-yellow-400 ml-2 capitalize">({project.status.replace('_', ' ')})</span>
+                                                                <span className="text-xs text-warning ml-2 capitalize">({project.status.replace('_', ' ')})</span>
                                                             </span>
                                                         </li>
                                                     ))}
                                                     {projects.length > 10 && (
-                                                        <li className="text-sm text-yellow-600 dark:text-yellow-400 italic">
+                                                        <li className="text-sm text-warning italic">
                                                             ... and {projects.length - 10} more project(s)
                                                         </li>
                                                     )}
                                                 </ul>
                                             </div>
                                         )}
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                                        <p className="text-sm text-muted">
                                             All associated data including projects, tasks, budgets, and documents will be permanently removed.
                                         </p>
                                     </div>
@@ -1293,7 +1172,7 @@ const ProjectDetailsPage = ({
                                 <button
                                         onClick={() => setShowDeleteConfirmation(false)}
                                     disabled={isDeleting}
-                                    className="px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                                    className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50"
                                 >
                                         {hasActiveProjects ? 'Close' : 'Cancel'}
                                 </button>
@@ -1301,10 +1180,10 @@ const ProjectDetailsPage = ({
                                 <button
                                     onClick={handleDeletePortfolio}
                                     disabled={isDeleting}
-                                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center space-x-2"
+                                    className="px-4 py-2 bg-danger text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 flex items-center space-x-2"
                                 >
                                     {isDeleting && (
-                                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                                        <Spinner size={16} />
                                     )}
                                     <span>
                                         {isDeleting
@@ -1322,14 +1201,14 @@ const ProjectDetailsPage = ({
                 {/* Full-page loading overlay during deletion */}
                 {isDeleting && (
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center">
-                        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-8 max-w-md w-full mx-4 border border-gray-200 dark:border-slate-700">
+                        <div className="bg-surface rounded-xl shadow-2xl p-8 max-w-md w-full mx-4 border border-line">
                             <div className="flex flex-col items-center space-y-4">
-                                <div className="animate-spin rounded-full h-16 w-16 border-4 border-orange-500 border-t-transparent"></div>
+                                <Spinner size={56} className="text-bright-primary" />
                                 <div className="text-center">
-                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                                    <h3 className="text-lg font-semibold text-ink mb-2">
                                         Deleting Portfolio
                                     </h3>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                                    <p className="text-sm text-muted">
                                         Please wait while we delete the portfolio and all associated data. This may take a moment...
                                     </p>
                                 </div>

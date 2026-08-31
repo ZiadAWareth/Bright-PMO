@@ -1,4 +1,5 @@
 import React from 'react';
+import { Dropdown } from "@/components/ui/dropdown";
 
 interface DependencyConfigCardProps {
   taskName: string;
@@ -40,17 +41,17 @@ export const DependencyConfigCard: React.FC<DependencyConfigCardProps> = ({
   disabled = false,
 }) => {
   return (
-    <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+    <div className="p-3 bg-surface-2 rounded-lg">
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+        <span className="text-sm font-medium text-ink-3">
           {taskName}
         </span>
         <button
           type="button"
           onClick={onRemove}
           disabled={disabled}
-          className="px-3 py-1 text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 border border-red-300 dark:border-red-700 rounded-md transition-colors disabled:opacity-50"
+          className="px-3 py-1 text-xs font-medium text-danger hover:text-danger hover:bg-danger-soft border border-danger rounded-md transition-colors disabled:opacity-50"
         >
           Remove
         </button>
@@ -60,26 +61,22 @@ export const DependencyConfigCard: React.FC<DependencyConfigCardProps> = ({
       <div className="grid grid-cols-2 gap-3">
         {/* Dependency Type */}
         <div>
-          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+          <label className="block text-xs font-medium text-muted mb-1">
             Dependency Type
           </label>
-          <select
-            value={dependencyType}
-            onChange={(e) => onTypeChange(e.target.value)}
-            className="w-full px-2 py-1 text-xs border rounded focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100"
+          <Dropdown
+            value={String(dependencyType ?? '')}
+            onChange={(__v: string) => onTypeChange(__v)}
+            options={[
+            ...DEPENDENCY_TYPES.map((type) => ({ value: String(type.value), label: type.label })),
+          ]}
             disabled={disabled}
-          >
-            {DEPENDENCY_TYPES.map((type) => (
-              <option key={type.value} value={type.value}>
-                {type.label}
-              </option>
-            ))}
-          </select>
+          />
         </div>
 
         {/* Lag Time */}
         <div>
-          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+          <label className="block text-xs font-medium text-muted mb-1">
             Lag Time (days)
           </label>
           <input
@@ -99,7 +96,7 @@ export const DependencyConfigCard: React.FC<DependencyConfigCardProps> = ({
                 onLagChange(0);
               }
             }}
-            className="w-full px-2 py-1 text-xs border rounded focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100"
+            className="w-full px-2 py-1 text-xs border rounded focus:ring-1 focus:ring-info bg-surface text-ink"
             disabled={disabled}
             placeholder="0 (negative = lead)"
           />
@@ -107,9 +104,9 @@ export const DependencyConfigCard: React.FC<DependencyConfigCardProps> = ({
       </div>
 
       {/* Description */}
-      <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+      <div className="mt-2 text-xs text-muted">
         {getDependencyDescription(dependencyType, lagTime)}
-        <span className="block mt-1 text-gray-400">
+        <span className="block mt-1 text-faint">
           💡 Positive = lag (delay), Negative = lead (overlap)
         </span>
       </div>

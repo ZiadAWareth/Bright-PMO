@@ -36,8 +36,8 @@ export function SearchableDropdown<T>({
   className = "",
   error,
 }: SearchableDropdownProps<T>) {
-  const baseClass = "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100";
-  const errorClass = error ? "border-red-500" : "border-gray-300 dark:border-gray-600";
+  const baseClass = "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-info focus:border-transparent bg-surface  text-ink";
+  const errorClass = error ? "border-danger" : "border-line";
   const mergedClass = `${baseClass} ${errorClass} ${className}`;
 
   return (
@@ -59,20 +59,20 @@ export function SearchableDropdown<T>({
         <button
           type="button"
           onClick={onClear}
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded"
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-surface-2 rounded"
           disabled={disabled}
         >
-          <X size={16} className="text-gray-500" />
+          <X size={16} className="text-muted" />
         </button>
       )}
       
       {showDropdown && filteredItems.length > 0 && (
-        <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+        <div className="absolute z-10 w-full mt-1 bg-surface border border-line rounded-lg shadow-lg max-h-60 overflow-y-auto">
           {filteredItems.map((item) => (
             <div
               key={getItemKey(item)}
               onClick={() => onSelect(item)}
-              className="px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="px-3 py-2 cursor-pointer hover:bg-surface-2 text-ink"
             >
               {renderItem(item)}
             </div>

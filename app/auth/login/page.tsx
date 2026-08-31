@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { Loader2 } from "lucide-react";
+
+import { Spinner } from "@/components/ui/spinner";
 
 /**
  * Legacy sign-in route. The screen now lives at `/auth/signin`; this stays as a
@@ -20,7 +21,7 @@ export default function LoginPage() {
   return (
     <div className="flex h-dvh items-center justify-center bg-bg-light">
       <div className="flex items-center gap-2 text-sm text-text-secondary">
-        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+        <Spinner size={16} />
         Redirecting to sign in…
       </div>
     </div>

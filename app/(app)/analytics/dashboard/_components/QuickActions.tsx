@@ -23,7 +23,7 @@ const ACTIONS: QuickAction[] = [
     icon: Briefcase,
     label: "New project",
     description: "Set up scope, budget and gates",
-    href: "/projects/create",
+    href: "/projects/new",
   },
   {
     icon: CalendarRange,
@@ -35,7 +35,7 @@ const ACTIONS: QuickAction[] = [
     icon: AlertTriangle,
     label: "Log a risk",
     description: "Score impact and assign an owner",
-    href: "/risk/create",
+    href: "/risk/new",
   },
   {
     icon: Users,
@@ -73,14 +73,14 @@ export function QuickActions() {
             <button
               key={action.label}
               onClick={() => router.push(action.href)}
-              className="group rounded-xl border border-border p-4 text-left transition-all duration-200 hover:border-wujha-primary hover:shadow-sm"
+              className="group rounded-xl border border-border p-4 text-left transition-all duration-200 hover:border-bright-primary hover:shadow-sm"
             >
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-wujha-primary/10 text-wujha-primary transition-colors group-hover:bg-wujha-primary group-hover:text-white">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-bright-primary/10 text-bright-primary transition-colors group-hover:bg-bright-primary group-hover:text-white">
                   <Icon className="h-5 w-5" aria-hidden="true" />
                 </div>
                 <div className="min-w-0">
-                  <div className="truncate font-medium text-text-primary group-hover:text-wujha-primary">
+                  <div className="truncate font-medium text-text-primary group-hover:text-bright-primary">
                     {action.label}
                   </div>
                   <div className="truncate text-xs text-text-secondary">

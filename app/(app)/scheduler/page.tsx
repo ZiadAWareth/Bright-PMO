@@ -4,7 +4,9 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { FilterBar, FilterSelect } from "@/components/ui/filter-bar";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import RoleGuard from "@/components/auth/RoleGuard";
+import useCurrentUser from "@/hooks/useCurrentUser";
+import { canAccessRoute } from "@/lib/route-access";
 import {
     Plus,
     Calendar,
@@ -59,7 +61,44 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import axios from "@/lib/axios";
-import EditScheduleModal from "@/components/EditScheduleModal";
+import { LoadingState, Spinner } from "@/components/ui/spinner";
+import { ListPagination } from "@/components/ui/list-pagination";
+import { ViewToggle, type ListViewMode } from "@/components/ui/view-toggle";
+import {
+    EmptyState,
+    EntityCard,
+    EntityCardFooter,
+    EntityCardHeader,
+    EntityProgress,
+    EntityStat,
+    EntityStats,
+} from "@/components/ui/entity-card";
+import {
+    ListCard,
+    ListMessage,
+    ListRow,
+    NewButton,
+    RowAction,
+    RowActions,
+    StatusBadge,
+} from "@/components/ui/form-shell";
+import {
+    feasibilityTone,
+    humanize,
+    priorityTone,
+    scheduleStatusTone,
+} from "@/lib/status-tone";
+
+const PAGE_SIZE = 12;
+const SCHEDULE_COLUMNS = [
+    "Schedule",
+    "Status",
+    "Priority",
+    "Duration",
+    "Feasibility",
+    "Budget",
+    "Created",
+];
 
 interface Schedule {
     schedule_id: number;
@@ -85,18 +124,6 @@ interface Schedule {
     updated_at: string;
 }
 
-interface User {
-    user_id: number;
-    first_name: string;
-    last_name: string;
-    email: string;
-    role: {
-        role_id: number;
-        name: string;
-        role_name: string;
-    };
-}
-
 const SchedulerPage = () => {
     const router = useRouter();
     const [activeView, setActiveView] = useState("admin");
@@ -106,7 +133,24 @@ const SchedulerPage = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("all");
     const [priorityFilter, setPriorityFilter] = useState<string>("all");
-    const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+    const [viewMode, setViewMode] = useState<ListViewMode>("grid");
+    const [page, setPage] = useState(0);
+
+    // Filtering changes what "page 1" means, so reset rather than stranding the
+    // user on a page index that no longer has rows.
+    useEffect(
+        () => setPage(0),
+        [searchQuery, statusFilter, priorityFilter, viewMode]
+    );
+
+    const schedulePageCount = Math.max(
+        1,
+        Math.ceil(filteredSchedules.length / PAGE_SIZE)
+    );
+    const visibleSchedules = filteredSchedules.slice(
+        page * PAGE_SIZE,
+        (page + 1) * PAGE_SIZE
+    );
     const [showFilters, setShowFilters] = useState(false);
     const [selectedSchedules, setSelectedSchedules] = useState<number[]>([]);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -114,44 +158,41 @@ const SchedulerPage = () => {
         null
     );
     const [isDeleting, setIsDeleting] = useState(false);
-    const [showEditModal, setShowEditModal] = useState(false);
     const [scheduleToEdit, setScheduleToEdit] = useState<number | null>(null);
-    const [user, setUser] = useState<User | null>(null);
+    // The signed-in role, from the shared cache rather than a local fetch of
+    // /api/auth/me. Exposes `roleLoading` so "not known yet" stays distinct
+    // from "not permitted" — see `permissionState` below.
+    const { userRole, roleLoading } = useCurrentUser();
 
-    // Check if user has permission to manage schedules
-    const canManageSchedules = () => {
-        if (!user || !user.role) return false;
-        const allowedRoles = ["PMO", "PJM", "ADMIN", "DIR"];
-        return allowedRoles.includes(user.role.name);
-    };
+    /**
+     * Whether the current role may create, edit or delete schedules.
+     *
+     * Three states, not two. The old check read `user === null` as "denied",
+     * but null is the value before the fetch resolves, so every visitor — including
+     * PMO and ADMIN — got one frame of the read-only screen before the
+     * permitted one replaced it. Callers must handle "loading" by rendering
+     * neither branch.
+     */
+    const permissionState: "loading" | "allowed" | "denied" = roleLoading
+        ? "loading"
+        : canAccessRoute("/scheduler", userRole)
+          ? "allowed"
+          : "denied";
+
+    /**
+     * Roles come from `ROUTE_ROLES["/scheduler"]` rather than a list copied
+     * into this file, so the page controls and the route guard can never
+     * disagree about who may manage a schedule.
+     */
+    const canManageSchedules = () => permissionState === "allowed";
 
     useEffect(() => {
-        fetchUser();
         fetchSchedules();
     }, []);
 
     useEffect(() => {
         applyFilters();
     }, [schedules, searchQuery, statusFilter, priorityFilter]);
-
-    const fetchUser = async () => {
-        try {
-            const token = localStorage.getItem("token");
-            if (!token) {
-                router.push("/auth/login");
-                return;
-            }
-
-            const response = await axios.get("/api/auth/me", {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-
-            setUser(response.data.user);
-        } catch (error) {
-            console.error("Failed to fetch user:", error);
-            router.push("/auth/login");
-        }
-    };
 
     const fetchSchedules = async () => {
         try {
@@ -248,8 +289,7 @@ const SchedulerPage = () => {
             toast.error("You don't have permission to edit schedules");
             return;
         }
-        setScheduleToEdit(scheduleId);
-        setShowEditModal(true);
+        router.push(`/scheduler/${scheduleId}/edit`);
     };
 
     const handleEditSuccess = () => {
@@ -260,23 +300,23 @@ const SchedulerPage = () => {
         const baseClasses = "px-2 py-1 rounded-md text-xs font-medium";
         switch (status) {
             case "draft":
-                return `${baseClasses} bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300`;
+                return `${baseClasses} bg-surface-2 text-ink-2  `;
             case "analyzing":
-                return `${baseClasses} bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300`;
+                return `${baseClasses} bg-warning-soft text-warning  `;
             case "feasible":
-                return `${baseClasses} bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300`;
+                return `${baseClasses} bg-success-soft text-success  `;
             case "infeasible":
-                return `${baseClasses} bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300`;
+                return `${baseClasses} bg-danger-soft text-danger  `;
             case "pending_approval":
-                return `${baseClasses} bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300`;
+                return `${baseClasses} bg-accent-violet-soft text-accent-violet  `;
             case "approved":
-                return `${baseClasses} bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300`;
+                return `${baseClasses} bg-info-soft text-info  `;
             case "rejected":
-                return `${baseClasses} bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300`;
+                return `${baseClasses} bg-danger-soft text-danger  `;
             case "converted":
-                return `${baseClasses} bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300`;
+                return `${baseClasses} bg-accent-violet-soft text-accent-violet  `;
             default:
-                return `${baseClasses} bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300`;
+                return `${baseClasses} bg-surface-2 text-ink-2  `;
         }
     };
 
@@ -284,36 +324,36 @@ const SchedulerPage = () => {
         const baseClasses = "px-2 py-1 rounded-md text-xs font-medium";
         switch (priority) {
             case "low":
-                return `${baseClasses} bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300`;
+                return `${baseClasses} bg-success-soft text-success  `;
             case "medium":
-                return `${baseClasses} bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300`;
+                return `${baseClasses} bg-warning-soft text-warning  `;
             case "high":
-                return `${baseClasses} bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300`;
+                return `${baseClasses} bg-bright-soft text-bright  `;
             default:
-                return `${baseClasses} bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300`;
+                return `${baseClasses} bg-surface-2 text-ink-2  `;
         }
     };
 
     const getFeasibilityColor = (score: number) => {
-        if (score >= 80) return "text-green-600";
-        if (score >= 60) return "text-yellow-600";
-        return "text-red-600";
+        if (score >= 80) return "text-success";
+        if (score >= 60) return "text-warning";
+        return "text-danger";
     };
 
     const getFeasibilityStatus = (score: number) => {
         if (score >= 80)
             return {
                 text: "High Feasibility",
-                icon: <CheckCircle size={16} className="text-green-600" />,
+                icon: <CheckCircle size={16} className="text-success" />,
             };
         if (score >= 60)
             return {
                 text: "Moderate Feasibility",
-                icon: <AlertTriangle size={16} className="text-yellow-600" />,
+                icon: <AlertTriangle size={16} className="text-warning" />,
             };
         return {
             text: "Low Feasibility",
-            icon: <XCircle size={16} className="text-red-600" />,
+            icon: <XCircle size={16} className="text-danger" />,
         };
     };
 
@@ -362,30 +402,100 @@ const SchedulerPage = () => {
                 new Date(schedule.start_date).getTime()) /
                 (1000 * 60 * 60 * 24)
         );
-        const feasibilityStatus = getFeasibilityStatus(
-            schedule.feasibility_score
-        );
+        const isSelected = selectedSchedules.includes(schedule.schedule_id);
 
         return (
-            <div
+            <EntityCard
                 key={schedule.schedule_id}
-                className={`bg-white dark:bg-slate-800 border rounded-xl p-6 hover:shadow-lg transition-all group relative ${
-                    selectedSchedules.includes(schedule.schedule_id)
-                        ? "border-orange-500 ring-2 ring-orange-500 ring-opacity-20 bg-orange-50 dark:bg-orange-900/10"
-                        : "border-gray-200 dark:border-slate-700"
-                }`}
+                selected={isSelected}
+                onClick={() => router.push(`/scheduler/${schedule.schedule_id}`)}
             >
-                {/* Checkbox - only show for privileged users */}
-                {canManageSchedules() && (
-                    <div className="absolute top-4 right-4 z-10">
-                        <label className="relative inline-flex items-center cursor-pointer">
+                <EntityCardHeader
+                    title={schedule.name}
+                    subtitle={schedule.description}
+                    badges={
+                        <>
+                            <StatusBadge
+                                label={humanize(schedule.status)}
+                                tone={scheduleStatusTone(schedule.status)}
+                            />
+                            <StatusBadge
+                                label={humanize(schedule.priority)}
+                                tone={priorityTone(schedule.priority)}
+                            />
+                        </>
+                    }
+                />
+
+                <EntityStats>
+                    <EntityStat icon={<Clock className="h-3.5 w-3.5" />}>
+                        {duration} days
+                    </EntityStat>
+                    <EntityStat icon={<Users className="h-3.5 w-3.5" />}>
+                        {schedule.total_resources} resources
+                    </EntityStat>
+                    <EntityStat icon={<CheckCircle className="h-3.5 w-3.5" />}>
+                        {schedule.total_tasks} tasks
+                    </EntityStat>
+                    <EntityStat icon={<DollarSign className="h-3.5 w-3.5" />}>
+                        {schedule.budget_amount?.toLocaleString() ?? "—"}
+                    </EntityStat>
+                </EntityStats>
+
+                <EntityProgress
+                    label="Feasibility"
+                    value={schedule.feasibility_score}
+                    tone={feasibilityTone(schedule.feasibility_score)}
+                />
+
+                <EntityCardFooter
+                    actions={
+                        <div onClick={(e) => e.stopPropagation()}>
+                            <RowActions>
+                                <RowAction
+                                    icon={Eye}
+                                    label={`View ${schedule.name}`}
+                                    onClick={() =>
+                                        router.push(
+                                            `/scheduler/${schedule.schedule_id}`
+                                        )
+                                    }
+                                />
+                                {canManageSchedules() && (
+                                    <>
+                                        <RowAction
+                                            icon={Edit}
+                                            label={`Edit ${schedule.name}`}
+                                            onClick={() =>
+                                                handleEditClick(
+                                                    schedule.schedule_id
+                                                )
+                                            }
+                                        />
+                                        <RowAction
+                                            icon={Trash2}
+                                            label={`Delete ${schedule.name}`}
+                                            tone="danger"
+                                            onClick={() =>
+                                                handleDeleteClick(schedule)
+                                            }
+                                        />
+                                    </>
+                                )}
+                            </RowActions>
+                        </div>
+                    }
+                >
+                    {canManageSchedules() ? (
+                        <label
+                            className="flex cursor-pointer items-center gap-2 text-[12px] text-muted"
+                            onClick={(e) => e.stopPropagation()}
+                        >
                             <input
                                 type="checkbox"
-                                checked={selectedSchedules.includes(
-                                    schedule.schedule_id
-                                )}
+                                aria-label={`Select ${schedule.name}`}
+                                checked={isSelected}
                                 onChange={(e) => {
-                                    e.stopPropagation();
                                     if (e.target.checked) {
                                         setSelectedSchedules((prev) => [
                                             ...prev,
@@ -400,171 +510,19 @@ const SchedulerPage = () => {
                                         );
                                     }
                                 }}
-                                className="sr-only"
+                                className="rounded border-line text-bright focus:ring-bright"
                             />
-                            <div
-                                className={`w-5 h-5 rounded-md border-2 transition-all duration-200 flex items-center justify-center ${
-                                    selectedSchedules.includes(
-                                        schedule.schedule_id
-                                    )
-                                        ? "bg-orange-600 border-orange-600"
-                                        : "bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600 hover:border-orange-400"
-                                }`}
-                            >
-                                {selectedSchedules.includes(
-                                    schedule.schedule_id
-                                ) && (
-                                    <svg
-                                        className="w-3 h-3 text-white"
-                                        fill="currentColor"
-                                        viewBox="0 0 20 20"
-                                    >
-                                        <path
-                                            fillRule="evenodd"
-                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                            clipRule="evenodd"
-                                        />
-                                    </svg>
-                                )}
-                            </div>
+                            Select
                         </label>
-                    </div>
-                )}
-
-                {/* Main content */}
-                <div
-                    className={`cursor-pointer ${
-                        canManageSchedules() ? "pr-8" : ""
-                    }`}
-                    onClick={() =>
-                        router.push(`/scheduler/${schedule.schedule_id}`)
-                    }
-                >
-                    <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                            <div className="mb-3">
-                                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 group-hover:text-orange-600 transition-colors mb-2">
-                                    {schedule.name}
-                                </h3>
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <span
-                                        className={getStatusBadge(
-                                            schedule.status.toLowerCase()
-                                        )}
-                                    >
-                                        {schedule.status.replace("_", " ")}
-                                    </span>
-                                    <span
-                                        className={getPriorityBadge(
-                                            schedule.priority.toLowerCase()
-                                        )}
-                                    >
-                                        {schedule.priority}
-                                    </span>
-                                </div>
-                            </div>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                                {schedule.description}
-                            </p>
-                            <div className="flex items-center space-x-4 text-xs text-gray-500">
-                                <span className="flex items-center">
-                                    <Calendar size={12} className="mr-1" />
-                                    {duration} days
-                                </span>
-                                <span className="flex items-center">
-                                    <Users size={12} className="mr-1" />
-                                    {schedule.total_resources} resources
-                                </span>
-                                <span className="flex items-center">
-                                    <Clock size={12} className="mr-1" />
-                                    {schedule.total_tasks} tasks
-                                </span>
-                                <span className="flex items-center">
-                                    <DollarSign size={12} className="mr-1" />
-                                    {formatCurrency(schedule.budget_amount)}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Feasibility Score */}
-                    <div className="mb-4">
-                        <div className="flex justify-between items-center mb-2">
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Feasibility
-                            </span>
-                            <span
-                                className={`text-sm font-medium ${getFeasibilityColor(
-                                    schedule.feasibility_score
-                                )}`}
-                            >
-                                {schedule.feasibility_score}%
-                            </span>
-                        </div>
-                        <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2">
-                            <div
-                                className={`h-2 rounded-full transition-all duration-300 ${
-                                    schedule.feasibility_score >= 80
-                                        ? "bg-green-500"
-                                        : schedule.feasibility_score >= 60
-                                        ? "bg-yellow-500"
-                                        : "bg-red-500"
-                                }`}
-                                style={{
-                                    width: `${schedule.feasibility_score}%`,
-                                }}
-                            ></div>
-                        </div>
-                    </div>
-
-                    {/* Action Buttons - only show for privileged users */}
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-slate-700">
-                        <div className="flex items-center space-x-2">
-                            <span className="text-xs text-gray-500">
-                                Created:{" "}
-                                {formatDate(new Date(schedule.created_at))}
-                            </span>
-                        </div>
-                        <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                                className="p-1 rounded-md text-gray-400 hover:text-blue-600"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    router.push(
-                                        `/scheduler/${schedule.schedule_id}`
-                                    );
-                                }}
-                            >
-                                <Eye size={16} />
-                            </button>
-                            {canManageSchedules() && (
-                                <>
-                                    <button
-                                        className="p-1 rounded-md text-gray-400 hover:text-green-600"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleEditClick(
-                                                schedule.schedule_id
-                                            );
-                                        }}
-                                    >
-                                        <Edit size={16} />
-                                    </button>
-                                    <button
-                                        className="p-1 rounded-md text-gray-400 hover:text-red-600"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleDeleteClick(schedule);
-                                        }}
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
-                                </>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
+                    ) : (
+                        <span className="text-[12px] text-faint">
+                            {new Date(
+                                schedule.created_at
+                            ).toLocaleDateString()}
+                        </span>
+                    )}
+                </EntityCardFooter>
+            </EntityCard>
         );
     };
 
@@ -613,127 +571,60 @@ const SchedulerPage = () => {
 
     if (loading) {
         return (
-            <ProtectedRoute>
+            <RoleGuard route="/scheduler" title="Project Scheduler">
                 <DashboardLayout
                     title="Project Scheduler"
                     activeView={activeView}
                     onViewChange={setActiveView}
                 >
                     <div className="flex items-center justify-center min-h-screen">
-                        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+                        <Spinner size={64} className="text-bright-primary" />
                     </div>
                 </DashboardLayout>
-            </ProtectedRoute>
+            </RoleGuard>
         );
     }
 
     return (
-        <ProtectedRoute>
+        <RoleGuard route="/scheduler" title="Project Scheduler">
             <DashboardLayout
                 title="Project Scheduler"
+                subtitle="Simulate and analyze project schedules before approval."
                 activeView={activeView}
                 onViewChange={setActiveView}
+                actions={
+                    <>
+                        <ViewToggle value={viewMode} onChange={setViewMode} />
+                        {getRoleSpecificActions(activeView).map(
+                            (action, index) =>
+                                action.action === "create" ? (
+                                    <NewButton
+                                        key={index}
+                                        href="/scheduler/new"
+                                        label={action.label}
+                                    />
+                                ) : null
+                        )}
+                        {permissionState === "denied" && (
+                            <span className="inline-flex items-center gap-2 rounded-[10px] border border-line bg-surface-2 px-3 py-2 text-[13px] text-muted">
+                                <Shield size={15} aria-hidden="true" />
+                                Read-only access
+                            </span>
+                        )}
+                    </>
+                }
             >
                 <div className="space-y-6">
-                    {/* Header with Actions */}
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div>
-                            <p className="text-gray-600 dark:text-gray-400">
-                                Simulate and analyze project schedules before
-                                approval
-                            </p>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                            {/* View Mode Toggle */}
-                            <div className="flex items-center bg-gray-100 dark:bg-slate-700 rounded-lg p-1">
-                                <button
-                                    onClick={() => setViewMode("grid")}
-                                    className={`p-2 rounded-md transition-all duration-200 ${
-                                        viewMode === "grid"
-                                            ? "bg-white dark:bg-slate-600 text-gray-900 dark:text-gray-100 shadow-sm"
-                                            : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-                                    }`}
-                                >
-                                    <Grid size={16} />
-                                </button>
-                                <button
-                                    onClick={() => setViewMode("list")}
-                                    className={`p-2 rounded-md transition-all duration-200 ${
-                                        viewMode === "list"
-                                            ? "bg-white dark:bg-slate-600 text-gray-900 dark:text-gray-100 shadow-sm"
-                                            : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-                                    }`}
-                                >
-                                    <List size={16} />
-                                </button>
-                            </div>
-
-
-                            {/* Action Buttons */}
-                            {getRoleSpecificActions(activeView).map(
-                                (action, index) => (
-                                    <button
-                                        key={index}
-                                        onClick={() => {
-                                            switch (action.action) {
-                                                case "create":
-                                                    router.push(
-                                                        "/scheduler/create"
-                                                    );
-                                                    break;
-                                                case "export":
-                                                    // Handle export
-                                                    console.log(
-                                                        "Export action triggered"
-                                                    );
-                                                    break;
-                                                case "settings":
-                                                    // Handle settings
-                                                    console.log(
-                                                        "Settings action triggered"
-                                                    );
-                                                    break;
-                                                default:
-                                                    console.log(
-                                                        "Unknown action:",
-                                                        action.action
-                                                    );
-                                            }
-                                        }}
-                                        className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 transform hover:scale-105 hover:shadow-lg ${
-                                            action.variant === "primary"
-                                                ? "bg-gradient-to-r from-orange-600 to-orange-700 text-white hover:from-orange-700 hover:to-orange-800 shadow-md"
-                                                : action.action === "export"
-                                                ? "border-2 border-green-300 dark:border-green-600 text-green-700 dark:text-green-300 hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/10 hover:text-green-800 dark:hover:text-green-200"
-                                                : "border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-slate-700"
-                                        }`}
-                                    >
-                                        {action.icon}
-                                        <span className="text-sm">
-                                            {action.label}
-                                        </span>
-                                    </button>
-                                )
-                            )}
-                            {!canManageSchedules() && (
-                                <div className="flex items-center space-x-2 px-4 py-2.5 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-400 rounded-lg text-sm border">
-                                    <Shield size={16} />
-                                    <span>Read-only access</span>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
                     {/* Filters */}
-                    <div className="mb-6">{renderFilters()}</div>
+                    {renderFilters()}
 
                     {/* Schedule Selection Info */}
                     {canManageSchedules() && selectedSchedules.length > 0 && (
-                        <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-2 border-blue-200 dark:border-blue-700 rounded-xl p-4 mb-6 shadow-sm">
+                        <div className="bg-gradient-to-r from-info-soft to-info-soft border-2 border-info rounded-xl p-4 mb-6 shadow-sm">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-3">
-                                    <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
-                                    <span className="text-blue-800 dark:text-blue-200 font-medium">
+                                    <div className="w-3 h-3 bg-info rounded-full animate-pulse"></div>
+                                    <span className="text-info font-medium">
                                         {selectedSchedules.length} schedule(s)
                                         selected
                                     </span>
@@ -741,7 +632,7 @@ const SchedulerPage = () => {
                                 <div className="flex items-center space-x-3">
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
-                                            <button className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 border-2 border-red-700 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-md">
+                                            <button className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-danger hover:opacity-90 border-2 border-danger rounded-lg transition-all duration-200 transform hover:scale-105 shadow-md">
                                                 <Trash2 size={16} />
                                                 <span>Delete Selected</span>
                                             </button>
@@ -809,7 +700,7 @@ const SchedulerPage = () => {
                                                             }
                                                         }
                                                     }}
-                                                    className="bg-red-600 hover:bg-red-700"
+                                                    className="bg-danger hover:opacity-90"
                                                 >
                                                     Delete
                                                 </AlertDialogAction>
@@ -818,7 +709,7 @@ const SchedulerPage = () => {
                                     </AlertDialog>
                                     <button
                                         onClick={() => setSelectedSchedules([])}
-                                        className="px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-white dark:text-blue-400 border-2 border-blue-300 hover:border-blue-600 rounded-lg transition-all duration-200 hover:bg-blue-600 dark:hover:bg-blue-500 transform hover:scale-105"
+                                        className="px-3 py-1.5 text-sm font-medium text-info hover:text-white border-2 border-info hover:border-info rounded-lg transition-all duration-200 hover:opacity-90 transform hover:scale-105"
                                     >
                                         Clear selection
                                     </button>
@@ -828,78 +719,116 @@ const SchedulerPage = () => {
                     )}
 
                     {/* Schedules Grid/List */}
-                    {viewMode === "grid" ? (
-                        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                            {filteredSchedules.map((schedule) =>
+                    {filteredSchedules.length === 0 ? (
+                        <EmptyState
+                            icon={<Calendar className="h-10 w-10" />}
+                            title="No schedules found"
+                            message={
+                                schedules.length === 0
+                                    ? permissionState === "allowed"
+                                        ? "Create your first project schedule to get started."
+                                        : "No project schedules have been created yet."
+                                    : "Try adjusting your filters to see more results."
+                            }
+                            action={
+                                schedules.length === 0 ? (
+                                    canManageSchedules() ? (
+                                        <NewButton
+                                            href="/scheduler/new"
+                                            label="New schedule"
+                                        />
+                                    ) : undefined
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setSearchQuery("");
+                                            setStatusFilter("all");
+                                            setPriorityFilter("all");
+                                        }}
+                                        className="text-[13px] font-semibold text-bright hover:text-bright-deep"
+                                    >
+                                        Clear all filters
+                                    </button>
+                                )
+                            }
+                        />
+                    ) : viewMode === "grid" ? (
+                        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+                            {visibleSchedules.map((schedule) =>
                                 renderScheduleCard(schedule)
                             )}
                         </div>
                     ) : (
-                        <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm">
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead className="bg-gray-50 dark:bg-slate-700">
-                                        <tr>
-                                            {canManageSchedules() && (
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={
-                                                            selectedSchedules.length ===
-                                                                filteredSchedules.length &&
-                                                            filteredSchedules.length >
-                                                                0
+                        <ListCard>
+                            <table className="w-full border-collapse">
+                                <thead>
+                                    <tr className="bg-surface-2">
+                                        {canManageSchedules() && (
+                                            <th className="w-0 border-b border-line px-4 py-3">
+                                                <input
+                                                    type="checkbox"
+                                                    aria-label="Select all schedules on this page"
+                                                    checked={
+                                                        visibleSchedules.length > 0 &&
+                                                        visibleSchedules.every((s) =>
+                                                            selectedSchedules.includes(
+                                                                s.schedule_id
+                                                            )
+                                                        )
+                                                    }
+                                                    onChange={(e) => {
+                                                        const ids =
+                                                            visibleSchedules.map(
+                                                                (s) => s.schedule_id
+                                                            );
+                                                        if (e.target.checked) {
+                                                            setSelectedSchedules((prev) =>
+                                                                Array.from(
+                                                                    new Set([
+                                                                        ...prev,
+                                                                        ...ids,
+                                                                    ])
+                                                                )
+                                                            );
+                                                        } else {
+                                                            setSelectedSchedules((prev) =>
+                                                                prev.filter(
+                                                                    (id) =>
+                                                                        !ids.includes(id)
+                                                                )
+                                                            );
                                                         }
-                                                        onChange={(e) => {
-                                                            if (
-                                                                e.target.checked
-                                                            ) {
-                                                                setSelectedSchedules(
-                                                                    filteredSchedules.map(
-                                                                        (s) =>
-                                                                            s.schedule_id
-                                                                    )
-                                                                );
-                                                            } else {
-                                                                setSelectedSchedules(
-                                                                    []
-                                                                );
-                                                            }
-                                                        }}
-                                                        className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-                                                    />
-                                                </th>
-                                            )}
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                                Schedule
+                                                    }}
+                                                    className="rounded border-line text-bright focus:ring-bright"
+                                                />
                                             </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                                Status
+                                        )}
+                                        {SCHEDULE_COLUMNS.map((heading) => (
+                                            <th
+                                                key={heading}
+                                                className="whitespace-nowrap border-b border-line px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-faint"
+                                            >
+                                                {heading}
                                             </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                                Priority
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                                Duration
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                                Feasibility
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                                Budget
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                                Created
-                                            </th>
-                                            {canManageSchedules() && (
-                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                                    Actions
-                                                </th>
-                                            )}
-                                        </tr>
-                                    </thead>
-                                    <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
-                                        {filteredSchedules.map((schedule) => {
+                                        ))}
+                                        <th className="w-0 border-b border-line px-4 py-3">
+                                            <span className="sr-only">Actions</span>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {visibleSchedules.length === 0 ? (
+                                        <ListMessage
+                                            colSpan={
+                                                SCHEDULE_COLUMNS.length +
+                                                (canManageSchedules() ? 2 : 1)
+                                            }
+                                        >
+                                            No schedules on this page.
+                                        </ListMessage>
+                                    ) : (
+                                        visibleSchedules.map((schedule) => {
                                             const duration = Math.ceil(
                                                 (new Date(
                                                     schedule.end_date
@@ -909,16 +838,15 @@ const SchedulerPage = () => {
                                                     ).getTime()) /
                                                     (1000 * 60 * 60 * 24)
                                             );
+                                            const isSelected =
+                                                selectedSchedules.includes(
+                                                    schedule.schedule_id
+                                                );
+
                                             return (
-                                                <tr
+                                                <ListRow
                                                     key={schedule.schedule_id}
-                                                    className={`hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors cursor-pointer ${
-                                                        selectedSchedules.includes(
-                                                            schedule.schedule_id
-                                                        )
-                                                            ? "bg-orange-50 dark:bg-orange-900/10"
-                                                            : ""
-                                                    }`}
+                                                    selected={isSelected}
                                                     onClick={() =>
                                                         router.push(
                                                             `/scheduler/${schedule.schedule_id}`
@@ -927,219 +855,174 @@ const SchedulerPage = () => {
                                                 >
                                                     {canManageSchedules() && (
                                                         <td
-                                                            className="px-6 py-4 whitespace-nowrap"
+                                                            className="px-4 py-3"
                                                             onClick={(e) =>
                                                                 e.stopPropagation()
                                                             }
                                                         >
                                                             <input
                                                                 type="checkbox"
-                                                                checked={selectedSchedules.includes(
-                                                                    schedule.schedule_id
-                                                                )}
-                                                                onChange={(
-                                                                    e
-                                                                ) => {
+                                                                aria-label={`Select ${schedule.name}`}
+                                                                checked={isSelected}
+                                                                onChange={(e) => {
                                                                     if (
-                                                                        e.target
-                                                                            .checked
+                                                                        e.target.checked
                                                                     ) {
                                                                         setSelectedSchedules(
-                                                                            (
-                                                                                prev
-                                                                            ) => [
+                                                                            (prev) => [
                                                                                 ...prev,
                                                                                 schedule.schedule_id,
                                                                             ]
                                                                         );
                                                                     } else {
                                                                         setSelectedSchedules(
-                                                                            (
-                                                                                prev
-                                                                            ) =>
+                                                                            (prev) =>
                                                                                 prev.filter(
-                                                                                    (
-                                                                                        id
-                                                                                    ) =>
+                                                                                    (id) =>
                                                                                         id !==
                                                                                         schedule.schedule_id
                                                                                 )
                                                                         );
                                                                     }
                                                                 }}
-                                                                className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                                                                className="rounded border-line text-bright focus:ring-bright"
                                                             />
                                                         </td>
                                                     )}
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div>
-                                                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                                    <td className="max-w-[280px] px-4 py-3">
+                                                        <div className="min-w-0">
+                                                            <div className="truncate text-[13.5px] font-medium text-ink">
                                                                 {schedule.name}
                                                             </div>
-                                                            <div className="text-sm text-gray-500 dark:text-gray-400">
-                                                                {
-                                                                    schedule.description
-                                                                }
-                                                            </div>
+                                                            {schedule.description && (
+                                                                <div className="truncate text-[11.5px] text-faint">
+                                                                    {
+                                                                        schedule.description
+                                                                    }
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <span
-                                                            className={getStatusBadge(
-                                                                schedule.status.toLowerCase()
+                                                    <td className="whitespace-nowrap px-4 py-3">
+                                                        <StatusBadge
+                                                            label={humanize(
+                                                                schedule.status
                                                             )}
-                                                        >
-                                                            {schedule.status.replace(
-                                                                "_",
-                                                                " "
+                                                            tone={scheduleStatusTone(
+                                                                schedule.status
                                                             )}
-                                                        </span>
+                                                        />
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <span
-                                                            className={getPriorityBadge(
-                                                                schedule.priority.toLowerCase()
+                                                    <td className="whitespace-nowrap px-4 py-3">
+                                                        <StatusBadge
+                                                            label={humanize(
+                                                                schedule.priority
                                                             )}
-                                                        >
-                                                            {schedule.priority}
-                                                        </span>
+                                                            tone={priorityTone(
+                                                                schedule.priority
+                                                            )}
+                                                        />
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                                    <td className="whitespace-nowrap px-4 py-3 text-[13.5px] tabular-nums text-ink-2">
                                                         {duration} days
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="flex items-center space-x-2">
-                                                            <div className="w-16 bg-gray-200 dark:bg-slate-700 rounded-full h-2">
+                                                    <td className="whitespace-nowrap px-4 py-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="h-1.5 w-16 overflow-hidden rounded-full bg-surface-3">
                                                                 <div
-                                                                    className={`h-2 rounded-full transition-all duration-300 ${
-                                                                        schedule.feasibility_score >=
-                                                                        80
-                                                                            ? "bg-green-500"
-                                                                            : schedule.feasibility_score >=
-                                                                              60
-                                                                            ? "bg-yellow-500"
-                                                                            : "bg-red-500"
+                                                                    className={`h-full rounded-full ${
+                                                                        feasibilityTone(
+                                                                            schedule.feasibility_score
+                                                                        ) === "success"
+                                                                            ? "bg-success"
+                                                                            : feasibilityTone(
+                                                                                    schedule.feasibility_score
+                                                                                ) ===
+                                                                                "warning"
+                                                                              ? "bg-warning"
+                                                                              : "bg-danger"
                                                                     }`}
                                                                     style={{
-                                                                        width: `${schedule.feasibility_score}%`,
+                                                                        width: `${Math.min(100, Math.max(0, schedule.feasibility_score))}%`,
                                                                     }}
-                                                                ></div>
+                                                                />
                                                             </div>
-                                                            <span
-                                                                className={`text-sm font-medium ${getFeasibilityColor(
+                                                            <span className="text-[12px] tabular-nums text-muted">
+                                                                {Math.round(
                                                                     schedule.feasibility_score
-                                                                )}`}
-                                                            >
-                                                                {
-                                                                    schedule.feasibility_score
-                                                                }
+                                                                )}
                                                                 %
                                                             </span>
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                                        {formatCurrency(
-                                                            schedule.budget_amount
-                                                        )}
+                                                    <td className="whitespace-nowrap px-4 py-3 text-[13.5px] tabular-nums text-ink-2">
+                                                        {schedule.budget_amount?.toLocaleString() ??
+                                                            "—"}
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                                        {formatDate(
-                                                            new Date(
-                                                                schedule.created_at
-                                                            )
-                                                        )}
+                                                    <td className="px-4 py-3 text-[13.5px] text-ink-2">
+                                                        {new Date(
+                                                            schedule.created_at
+                                                        ).toLocaleDateString()}
                                                     </td>
-                                                    {canManageSchedules() && (
-                                                        <td
-                                                            className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
-                                                            onClick={(e) =>
-                                                                e.stopPropagation()
-                                                            }
-                                                        >
-                                                            <div className="flex items-center justify-end space-x-2">
-                                                                <button
-                                                                    className="p-1 rounded-md text-gray-400 hover:text-blue-600"
-                                                                    onClick={() =>
-                                                                        router.push(
-                                                                            `/scheduler/${schedule.schedule_id}`
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    <Eye
-                                                                        size={
-                                                                            16
+                                                    <td
+                                                        className="px-4 py-3"
+                                                        onClick={(e) =>
+                                                            e.stopPropagation()
+                                                        }
+                                                    >
+                                                        <RowActions>
+                                                            <RowAction
+                                                                icon={Eye}
+                                                                label={`View ${schedule.name}`}
+                                                                onClick={() =>
+                                                                    router.push(
+                                                                        `/scheduler/${schedule.schedule_id}`
+                                                                    )
+                                                                }
+                                                            />
+                                                            {canManageSchedules() && (
+                                                                <>
+                                                                    <RowAction
+                                                                        icon={Edit}
+                                                                        label={`Edit ${schedule.name}`}
+                                                                        onClick={() =>
+                                                                            handleEditClick(
+                                                                                schedule.schedule_id
+                                                                            )
                                                                         }
                                                                     />
-                                                                </button>
-                                                                <button
-                                                                    className="p-1 rounded-md text-gray-400 hover:text-green-600"
-                                                                    onClick={() =>
-                                                                        handleEditClick(
-                                                                            schedule.schedule_id
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    <Edit
-                                                                        size={
-                                                                            16
+                                                                    <RowAction
+                                                                        icon={Trash2}
+                                                                        label={`Delete ${schedule.name}`}
+                                                                        tone="danger"
+                                                                        onClick={() =>
+                                                                            handleDeleteClick(
+                                                                                schedule
+                                                                            )
                                                                         }
                                                                     />
-                                                                </button>
-                                                                <button
-                                                                    className="p-1 rounded-md text-gray-400 hover:text-red-600"
-                                                                    onClick={() =>
-                                                                        handleDeleteClick(
-                                                                            schedule
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    <Trash2
-                                                                        size={
-                                                                            16
-                                                                        }
-                                                                    />
-                                                                </button>
-                                                            </div>
-                                                        </td>
-                                                    )}
-                                                </tr>
+                                                                </>
+                                                            )}
+                                                        </RowActions>
+                                                    </td>
+                                                </ListRow>
                                             );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+                                        })
+                                    )}
+                                </tbody>
+                            </table>
+                        </ListCard>
                     )}
 
-                    {/* Empty State */}
-                    {filteredSchedules.length === 0 && (
-                        <div className="text-center py-12">
-                            <Calendar
-                                size={48}
-                                className="mx-auto text-gray-400 mb-4"
-                            />
-                            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                                No schedules found
-                            </h3>
-                            <p className="text-gray-600 dark:text-gray-400 mb-4">
-                                {schedules.length === 0
-                                    ? canManageSchedules()
-                                        ? "Create your first project schedule to get started."
-                                        : "No project schedules have been created yet."
-                                    : "Try adjusting your filters to see more results."}
-                            </p>
-                            {schedules.length === 0 && canManageSchedules() && (
-                                <button
-                                    onClick={() =>
-                                        router.push("/scheduler/create")
-                                    }
-                                    className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-orange-600 to-orange-700 text-white rounded-lg font-medium transition-all duration-200 transform hover:scale-105 hover:shadow-lg hover:from-orange-700 hover:to-orange-800 mx-auto"
-                                >
-                                    <Plus size={18} />
-                                    <span>Create New Schedule</span>
-                                </button>
-                            )}
-                        </div>
+                    {filteredSchedules.length > 0 && (
+                        <ListPagination
+                            page={page}
+                            pageCount={schedulePageCount}
+                            total={filteredSchedules.length}
+                            pageSize={PAGE_SIZE}
+                            onPageChange={setPage}
+                            noun="schedule"
+                        />
                     )}
 
                     {/* Delete Confirmation Modal */}
@@ -1150,29 +1033,29 @@ const SchedulerPage = () => {
                         onClick={handleDeleteCancel}
                     >
                         <div
-                            className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-xl"
+                            className="bg-surface rounded-xl p-6 max-w-md w-full mx-4 shadow-xl"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center space-x-3">
-                                    <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
-                                        <AlertTriangle className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                                    <div className="p-2 bg-bright-soft rounded-lg">
+                                        <AlertTriangle className="h-6 w-6 text-bright" />
                                     </div>
-                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                    <h3 className="text-lg font-semibold text-ink">
                                         Delete Schedule
                                     </h3>
                                 </div>
                                 <button
                                     onClick={handleDeleteCancel}
-                                    className="text-gray-400 hover:text-orange-600 dark:hover:text-orange-400"
+                                    className="text-faint hover:text-bright"
                                 >
                                     <X size={20} />
                                 </button>
                             </div>
 
-                            <p className="text-gray-600 dark:text-gray-400 mb-6">
+                            <p className="text-muted mb-6">
                                 Are you sure you want to delete{" "}
-                                <span className="font-semibold text-gray-900 dark:text-gray-100">
+                                <span className="font-semibold text-ink">
                                     {scheduleToDelete?.name}
                                 </span>
                                 ? This action cannot be undone and all
@@ -1183,14 +1066,14 @@ const SchedulerPage = () => {
                                 <button
                                     onClick={handleDeleteCancel}
                                     disabled={isDeleting}
-                                    className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="px-4 py-2 border border-line rounded-lg text-sm font-medium text-ink-3 hover:bg-surface-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bright disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleDeleteConfirm}
                                     disabled={isDeleting}
-                                    className="px-4 py-2 bg-orange-600 text-white rounded-lg text-sm font-medium hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="px-4 py-2 bg-bright text-white rounded-lg text-sm font-medium hover:bg-bright-deep focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bright disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isDeleting
                                         ? "Deleting..."
@@ -1201,18 +1084,8 @@ const SchedulerPage = () => {
                     </div>
                 </div>
 
-                {/* Edit Schedule Modal */}
-                <EditScheduleModal
-                    isOpen={showEditModal}
-                    onClose={() => {
-                        setShowEditModal(false);
-                        setScheduleToEdit(null);
-                    }}
-                    scheduleId={scheduleToEdit}
-                    onSuccess={handleEditSuccess}
-                />
             </DashboardLayout>
-        </ProtectedRoute>
+        </RoleGuard>
     );
 };
 

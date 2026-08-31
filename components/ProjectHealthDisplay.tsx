@@ -102,39 +102,39 @@ export default function ProjectHealthDisplay({
   }, [projectId]);
 
   const getHealthColor = (score: number) => {
-    if (score >= 90) return "text-green-600 bg-green-50 border-green-200";
-    if (score >= 80) return "text-blue-600 bg-blue-50 border-blue-200";
-    if (score >= 70) return "text-yellow-600 bg-yellow-50 border-yellow-200";
-    if (score >= 60) return "text-orange-600 bg-orange-50 border-orange-200";
-    return "text-red-600 bg-red-50 border-red-200";
+    if (score >= 90) return "text-success bg-success-soft border-success";
+    if (score >= 80) return "text-info bg-info-soft border-info";
+    if (score >= 70) return "text-warning bg-warning-soft border-warning";
+    if (score >= 60) return "text-bright bg-bright-soft border-bright";
+    return "text-danger bg-danger-soft border-danger";
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 90) return "text-green-600";
-    if (score >= 80) return "text-blue-600";
-    if (score >= 70) return "text-yellow-600";
-    if (score >= 60) return "text-orange-600";
-    return "text-red-600";
+    if (score >= 90) return "text-success";
+    if (score >= 80) return "text-info";
+    if (score >= 70) return "text-warning";
+    if (score >= 60) return "text-bright";
+    return "text-danger";
   };
 
   const getProgressBarColor = (score: number) => {
-    if (score >= 90) return "bg-green-500";
-    if (score >= 80) return "bg-blue-500";
-    if (score >= 70) return "bg-yellow-500";
-    if (score >= 60) return "bg-orange-500";
-    return "bg-red-500";
+    if (score >= 90) return "bg-success";
+    if (score >= 80) return "bg-info";
+    if (score >= 70) return "bg-warning";
+    if (score >= 60) return "bg-bright";
+    return "bg-danger";
   };
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-surface rounded-xl border border-line p-6">
         <div className="animate-pulse">
-          <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-1/4 mb-4"></div>
-          <div className="h-8 bg-gray-200 dark:bg-gray-600 rounded w-1/2 mb-6"></div>
+          <div className="h-4 bg-surface-3 rounded w-1/4 mb-4"></div>
+          <div className="h-8 bg-surface-3 rounded w-1/2 mb-6"></div>
           <div className="space-y-3">
-            <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded"></div>
-            <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-5/6"></div>
-            <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-4/6"></div>
+            <div className="h-4 bg-surface-3 rounded"></div>
+            <div className="h-4 bg-surface-3 rounded w-5/6"></div>
+            <div className="h-4 bg-surface-3 rounded w-4/6"></div>
           </div>
         </div>
       </div>
@@ -143,18 +143,18 @@ export default function ProjectHealthDisplay({
 
   if (!healthData) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-surface rounded-xl border border-line p-6">
         <div className="text-center">
-          <Activity className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">
+          <Activity className="mx-auto h-12 w-12 text-faint" />
+          <h3 className="mt-4 text-lg font-medium text-ink">
             Health Score Calculating...
           </h3>
-          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+          <p className="mt-2 text-sm text-muted">
             Please wait while we calculate the project health score based on
             current metrics.
           </p>
           <div className="mt-4 animate-pulse">
-            <div className="h-2 bg-gray-200 dark:bg-gray-600 rounded w-3/4 mx-auto"></div>
+            <div className="h-2 bg-surface-3 rounded w-3/4 mx-auto"></div>
           </div>
         </div>
       </div>
@@ -196,18 +196,18 @@ export default function ProjectHealthDisplay({
 
       {/* Risk Flags */}
       {healthData.riskFlags.length > 0 && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
+        <div className="bg-danger-soft border border-danger rounded-xl p-4">
           <div className="flex items-center mb-3">
-            <AlertTriangle className="h-5 w-5 text-red-600 mr-2" />
-            <h3 className="text-lg font-semibold text-red-800 dark:text-red-200">
+            <AlertTriangle className="h-5 w-5 text-danger mr-2" />
+            <h3 className="text-lg font-semibold text-danger">
               Critical Issues
             </h3>
           </div>
           <ul className="space-y-2">
             {healthData.riskFlags.map((flag, index) => (
               <li key={index} className="flex items-start">
-                <AlertCircle className="h-4 w-4 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
-                <span className="text-sm text-red-700 dark:text-red-300">
+                <AlertCircle className="h-4 w-4 text-danger mr-2 mt-0.5 flex-shrink-0" />
+                <span className="text-sm text-danger">
                   {flag}
                 </span>
               </li>
@@ -217,20 +217,20 @@ export default function ProjectHealthDisplay({
       )}
 
       {/* Navigation Tabs */}
-      <div className="border-b border-gray-200 dark:border-gray-700">
+      <div className="border-b border-line">
         <nav className="-mb-px flex space-x-8 overflow-x-scroll">
           {[
-            { id: "overview", label: "Overview", icon: BarChart3 },
+            { id: "overview", label: "Summary", icon: BarChart3 },
             { id: "breakdown", label: "Detailed Breakdown", icon: Activity },
             { id: "recommendations", label: "Recommendations", icon: Info },
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
+              className={`relative py-2 px-1 font-medium text-sm flex items-center space-x-2 transition-colors after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-bright after:transition-opacity ${
                 activeTab === tab.id
-                  ? "border-blue-500 text-blue-600 dark:text-blue-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                  ? "text-bright after:opacity-100"
+                  : "text-muted after:opacity-0 hover:text-ink"
               }`}
             >
               <tab.icon className="h-4 w-4" />
@@ -257,10 +257,10 @@ export default function ProjectHealthDisplay({
             return (
               <div
                 key={category}
-                className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 overflow-hidden"
+                className="bg-surface rounded-lg border border-line p-6 overflow-hidden"
               >
                 {/* Category name on top - centered */}
-                <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 capitalize text-center mb-4">
+                <h3 className="text-base font-bold text-ink capitalize text-center mb-4">
                   {category}
                 </h3>
 
@@ -285,7 +285,7 @@ export default function ProjectHealthDisplay({
                     {data.score}%
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div className="w-full bg-surface-3 rounded-full h-2">
                   <div
                     className={`h-2 rounded-full transition-all duration-300 ${getProgressBarColor(
                       data.score
@@ -302,14 +302,14 @@ export default function ProjectHealthDisplay({
       {activeTab === "breakdown" && (
         <div className="space-y-6">
           {/* Schedule Performance */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+          <div className="bg-surface rounded-lg border border-line p-6">
             <h3 className="text-lg font-semibold mb-4 flex items-center">
               <Activity className="h-5 w-5 mr-2" />
               Schedule Performance (25% weight)
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm text-gray-600 dark:text-gray-400">
+                <label className="text-sm text-muted">
                   Schedule Performance Index (SPI)
                 </label>
                 <p className="text-lg font-semibold">
@@ -318,7 +318,7 @@ export default function ProjectHealthDisplay({
                 </p>
               </div>
               <div>
-                <label className="text-sm text-gray-600 dark:text-gray-400">
+                <label className="text-sm text-muted">
                   Task Completion Rate
                 </label>
                 <p className="text-lg font-semibold">
@@ -326,7 +326,7 @@ export default function ProjectHealthDisplay({
                 </p>
               </div>
               <div>
-                <label className="text-sm text-gray-600 dark:text-gray-400">
+                <label className="text-sm text-muted">
                   Critical Path Status
                 </label>
                 <p className="text-lg font-semibold">
@@ -334,7 +334,7 @@ export default function ProjectHealthDisplay({
                 </p>
               </div>
               <div>
-                <label className="text-sm text-gray-600 dark:text-gray-400">
+                <label className="text-sm text-muted">
                   Milestone Achievement Rate
                 </label>
                 <p className="text-lg font-semibold">
@@ -345,14 +345,14 @@ export default function ProjectHealthDisplay({
           </div>
 
           {/* Cost Performance */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+          <div className="bg-surface rounded-lg border border-line p-6">
             <h3 className="text-lg font-semibold mb-4 flex items-center">
               <DollarSign className="h-5 w-5 mr-2" />
               Cost Performance (25% weight)
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm text-gray-600 dark:text-gray-400">
+                <label className="text-sm text-muted">
                   Cost Performance Index (CPI)
                 </label>
                 <p className="text-lg font-semibold">
@@ -360,7 +360,7 @@ export default function ProjectHealthDisplay({
                 </p>
               </div>
               <div>
-                <label className="text-sm text-gray-600 dark:text-gray-400">
+                <label className="text-sm text-muted">
                   Budget Utilization
                 </label>
                 <p className="text-lg font-semibold">
@@ -368,7 +368,7 @@ export default function ProjectHealthDisplay({
                 </p>
               </div>
               <div>
-                <label className="text-sm text-gray-600 dark:text-gray-400">
+                <label className="text-sm text-muted">
                   Cost Variance %
                 </label>
                 <p className="text-lg font-semibold">
@@ -376,7 +376,7 @@ export default function ProjectHealthDisplay({
                 </p>
               </div>
               <div>
-                <label className="text-sm text-gray-600 dark:text-gray-400">
+                <label className="text-sm text-muted">
                   Budget Threshold Violations
                 </label>
                 <p className="text-lg font-semibold">
@@ -387,14 +387,14 @@ export default function ProjectHealthDisplay({
           </div>
 
           {/* Quality & Progress */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+          <div className="bg-surface rounded-lg border border-line p-6">
             <h3 className="text-lg font-semibold mb-4 flex items-center">
               <CheckCircle className="h-5 w-5 mr-2" />
               Quality & Progress (20% weight)
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm text-gray-600 dark:text-gray-400">
+                <label className="text-sm text-muted">
                   Overall Progress
                 </label>
                 <p className="text-lg font-semibold">
@@ -402,7 +402,7 @@ export default function ProjectHealthDisplay({
                 </p>
               </div>
               <div>
-                <label className="text-sm text-gray-600 dark:text-gray-400">
+                <label className="text-sm text-muted">
                   Task Quality Score
                 </label>
                 <p className="text-lg font-semibold">
@@ -410,7 +410,7 @@ export default function ProjectHealthDisplay({
                 </p>
               </div>
               <div>
-                <label className="text-sm text-gray-600 dark:text-gray-400">
+                <label className="text-sm text-muted">
                   WBS Completion Consistency
                 </label>
                 <p className="text-lg font-semibold">
@@ -418,7 +418,7 @@ export default function ProjectHealthDisplay({
                 </p>
               </div>
               <div>
-                <label className="text-sm text-gray-600 dark:text-gray-400">
+                <label className="text-sm text-muted">
                   Deliverable Quality
                 </label>
                 <p className="text-lg font-semibold">
@@ -429,14 +429,14 @@ export default function ProjectHealthDisplay({
           </div>
 
           {/* Risk Management */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+          <div className="bg-surface rounded-lg border border-line p-6">
             <h3 className="text-lg font-semibold mb-4 flex items-center">
               <AlertTriangle className="h-5 w-5 mr-2" />
               Risk Management (15% weight)
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm text-gray-600 dark:text-gray-400">
+                <label className="text-sm text-muted">
                   Risk Exposure
                 </label>
                 <p className="text-lg font-semibold">
@@ -444,7 +444,7 @@ export default function ProjectHealthDisplay({
                 </p>
               </div>
               <div>
-                <label className="text-sm text-gray-600 dark:text-gray-400">
+                <label className="text-sm text-muted">
                   Risk Mitigation Effectiveness
                 </label>
                 <p className="text-lg font-semibold">
@@ -452,7 +452,7 @@ export default function ProjectHealthDisplay({
                 </p>
               </div>
               <div>
-                <label className="text-sm text-gray-600 dark:text-gray-400">
+                <label className="text-sm text-muted">
                   Issue Resolution Rate
                 </label>
                 <p className="text-lg font-semibold">
@@ -460,7 +460,7 @@ export default function ProjectHealthDisplay({
                 </p>
               </div>
               <div>
-                <label className="text-sm text-gray-600 dark:text-gray-400">
+                <label className="text-sm text-muted">
                   Risk Trend Analysis
                 </label>
                 <p className="text-lg font-semibold">
@@ -471,14 +471,14 @@ export default function ProjectHealthDisplay({
           </div>
 
           {/* Resource Management */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+          <div className="bg-surface rounded-lg border border-line p-6">
             <h3 className="text-lg font-semibold mb-4 flex items-center">
               <Users className="h-5 w-5 mr-2" />
               Resource Management (10% weight)
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm text-gray-600 dark:text-gray-400">
+                <label className="text-sm text-muted">
                   Resource Utilization
                 </label>
                 <p className="text-lg font-semibold">
@@ -486,7 +486,7 @@ export default function ProjectHealthDisplay({
                 </p>
               </div>
               <div>
-                <label className="text-sm text-gray-600 dark:text-gray-400">
+                <label className="text-sm text-muted">
                   Team Productivity
                 </label>
                 <p className="text-lg font-semibold">
@@ -494,7 +494,7 @@ export default function ProjectHealthDisplay({
                 </p>
               </div>
               <div>
-                <label className="text-sm text-gray-600 dark:text-gray-400">
+                <label className="text-sm text-muted">
                   Resource Availability
                 </label>
                 <p className="text-lg font-semibold">
@@ -502,7 +502,7 @@ export default function ProjectHealthDisplay({
                 </p>
               </div>
               <div>
-                <label className="text-sm text-gray-600 dark:text-gray-400">
+                <label className="text-sm text-muted">
                   Skills Alignment
                 </label>
                 <p className="text-lg font-semibold">
@@ -513,14 +513,14 @@ export default function ProjectHealthDisplay({
           </div>
 
           {/* Stakeholder & Communication */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+          <div className="bg-surface rounded-lg border border-line p-6">
             <h3 className="text-lg font-semibold mb-4 flex items-center">
               <MessageSquare className="h-5 w-5 mr-2" />
               Stakeholder & Communication (5% weight)
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm text-gray-600 dark:text-gray-400">
+                <label className="text-sm text-muted">
                   Approval Efficiency
                 </label>
                 <p className="text-lg font-semibold">
@@ -528,7 +528,7 @@ export default function ProjectHealthDisplay({
                 </p>
               </div>
               <div>
-                <label className="text-sm text-gray-600 dark:text-gray-400">
+                <label className="text-sm text-muted">
                   Communication Effectiveness
                 </label>
                 <p className="text-lg font-semibold">
@@ -536,7 +536,7 @@ export default function ProjectHealthDisplay({
                 </p>
               </div>
               <div>
-                <label className="text-sm text-gray-600 dark:text-gray-400">
+                <label className="text-sm text-muted">
                   Change Management
                 </label>
                 <p className="text-lg font-semibold">
@@ -552,20 +552,20 @@ export default function ProjectHealthDisplay({
         <div className="space-y-6">
           {/* Recommendations */}
           {healthData.recommendations.length > 0 ? (
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
-              <h3 className="text-lg font-semibold mb-4 flex items-center text-blue-800 dark:text-blue-200">
+            <div className="bg-info-soft border border-info rounded-xl p-6">
+              <h3 className="text-lg font-semibold mb-4 flex items-center text-info">
                 <TrendingUp className="h-5 w-5 mr-2" />
                 Actionable Recommendations
               </h3>
               <ul className="space-y-3">
                 {healthData.recommendations.map((recommendation, index) => (
                   <li key={index} className="flex items-start">
-                    <div className="flex-shrink-0 w-6 h-6 bg-blue-100 dark:bg-blue-800 rounded-full flex items-center justify-center mr-3 mt-0.5">
-                      <span className="text-xs font-medium text-blue-600 dark:text-blue-200">
+                    <div className="flex-shrink-0 w-6 h-6 bg-info-soft rounded-full flex items-center justify-center mr-3 mt-0.5">
+                      <span className="text-xs font-medium text-info">
                         {index + 1}
                       </span>
                     </div>
-                    <span className="text-sm text-blue-700 dark:text-blue-300">
+                    <span className="text-sm text-info">
                       {recommendation}
                     </span>
                   </li>
@@ -573,12 +573,12 @@ export default function ProjectHealthDisplay({
               </ul>
             </div>
           ) : (
-            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-6 text-center">
-              <CheckCircle className="mx-auto h-12 w-12 text-green-600 mb-3" />
-              <h3 className="text-lg font-semibold text-green-800 dark:text-green-200 mb-2">
+            <div className="bg-success-soft border border-success rounded-xl p-6 text-center">
+              <CheckCircle className="mx-auto h-12 w-12 text-success mb-3" />
+              <h3 className="text-lg font-semibold text-success mb-2">
                 Great Job!
               </h3>
-              <p className="text-sm text-green-700 dark:text-green-300">
+              <p className="text-sm text-success">
                 Your project is performing well across all health metrics. No
                 specific recommendations at this time.
               </p>
@@ -586,12 +586,12 @@ export default function ProjectHealthDisplay({
           )}
 
           {/* Health Score Explanation */}
-          <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6">
+          <div className="bg-surface-2 border border-line rounded-xl p-6">
             <h3 className="text-lg font-semibold mb-4 flex items-center">
               <Info className="h-5 w-5 mr-2" />
               How Health Score is Calculated
             </h3>
-            <div className="space-y-4 text-sm text-gray-600 dark:text-gray-400">
+            <div className="space-y-4 text-sm text-muted">
               <p>
                 The Project Health Score is a comprehensive metric that
                 evaluates your project's performance across six key dimensions:

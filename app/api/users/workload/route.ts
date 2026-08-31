@@ -27,7 +27,20 @@ export async function GET(request: NextRequest) {
     );
     const totalCapacityHours = workingHoursPerWeek * weeksInPeriod;
 
-    const userWhere = userIds && userIds.length > 0 ? { user_id: { in: userIds } } : {};
+    // The seeded SYSTEM account is not a person: it cannot sign in and cannot
+    // be assigned work, so it is left out when browsing for users. An explicit
+    // user_ids lookup still resolves it, since that caller already knows which
+    // record it wants.
+    //
+    // User itself is filtered directly on its own role relation; the other
+    // three models don't have a `role` field, so they're filtered by walking
+    // through their `user` relation instead.
+    const userWhere = userIds && userIds.length > 0
+      ? { user_id: { in: userIds } }
+      : { role: { name: { not: 'SYSTEM' } } };
+    const byUserWhere = userIds && userIds.length > 0
+      ? { user_id: { in: userIds } }
+      : { user: { role: { name: { not: 'SYSTEM' } } } };
 
     const [users, projectTeamMembers, taskAssignments, timeEntries] = await Promise.all([
       prisma.user.findMany({
@@ -38,13 +51,13 @@ export async function GET(request: NextRequest) {
         },
       }),
       prisma.projectTeamMember.findMany({
-        where: userWhere,
+        where: byUserWhere,
         include: {
           project: { select: { project_id: true, status: true } },
         },
       }),
       prisma.taskAssignment.findMany({
-        where: userWhere,
+        where: byUserWhere,
         include: {
           task: {
             select: {
@@ -59,7 +72,7 @@ export async function GET(request: NextRequest) {
       }),
       prisma.timeEntry.findMany({
         where: {
-          ...userWhere,
+          ...byUserWhere,
           date: { gte: startDate, lte: endDate },
         },
         select: { user_id: true, hours_spent: true },

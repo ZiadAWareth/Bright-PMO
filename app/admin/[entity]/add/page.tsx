@@ -114,7 +114,7 @@ export default function AddPage({ params }: PageProps) {
         <div key={field.name} className="space-y-2">
           <Label htmlFor={field.name}>
             {label}
-            {field.isRequired && <span className="text-red-500">*</span>}
+            {field.isRequired && <span className="text-danger">*</span>}
           </Label>
           <Select
             value={formData[field.name] || ''}
@@ -139,7 +139,7 @@ export default function AddPage({ params }: PageProps) {
       <div key={field.name} className="space-y-2">
         <Label htmlFor={field.name}>
           {label}
-          {field.isRequired && <span className="text-red-500">*</span>}
+          {field.isRequired && <span className="text-danger">*</span>}
         </Label>
         {field.type === 'string' && field.name.includes('description') ? (
           <Textarea

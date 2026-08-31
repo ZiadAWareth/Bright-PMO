@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import { Calendar, Target, Plus, CheckCircle } from "lucide-react";
 import { GanttTask } from "./types";
+import { Spinner } from "@/components/ui/spinner";
+import { Dropdown } from "@/components/ui/dropdown";
 
 interface CreateTaskModalProps {
   onClose: () => void;
@@ -169,16 +171,16 @@ const CreateTaskModal = ({
 
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-surface rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+            <h2 className="text-xl font-bold text-ink">
               {editingTask ? "Edit" : "Create New"}{" "}
               {createType === "milestone" ? "Milestone" : "Task"}
             </h2>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+              className="p-2 hover:bg-surface-2 rounded-lg"
               disabled={creating}
             >
               <Plus size={20} className="rotate-45" />
@@ -188,31 +190,31 @@ const CreateTaskModal = ({
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Task/Milestone Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-ink-3 mb-1">
                 {createType === "milestone" ? "Milestone" : "Task"} Name *
               </label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => handleInputChange("name", e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-info focus:border-transparent ${
                   errors.name
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-gray-600"
-                } bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
+                    ? "border-danger"
+                    : "border-line"
+                } bg-surface  text-ink`}
                 placeholder={`Enter ${
                   createType === "milestone" ? "milestone" : "task"
                 } name`}
                 disabled={creating}
               />
               {errors.name && (
-                <p className="text-red-500 text-xs mt-1">{errors.name}</p>
+                <p className="text-danger text-xs mt-1">{errors.name}</p>
               )}
             </div>
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-ink-3 mb-1">
                 Description
               </label>
               <textarea
@@ -221,7 +223,7 @@ const CreateTaskModal = ({
                   handleInputChange("description", e.target.value)
                 }
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="w-full px-3 py-2 border border-line rounded-lg focus:ring-2 focus:ring-info focus:border-transparent bg-surface text-ink"
                 placeholder={`Enter ${
                   createType === "milestone" ? "milestone" : "task"
                 } description`}
@@ -231,28 +233,21 @@ const CreateTaskModal = ({
 
             {/* WBS Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-ink-3 mb-1">
                 WBS Item *
               </label>
-              <select
-                value={formData.wbs_id}
-                onChange={(e) => handleInputChange("wbs_id", e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.wbs_id
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-gray-600"
-                } bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
+              <Dropdown
+                value={String(formData.wbs_id ?? '')}
+                onChange={(__v: string) => handleInputChange("wbs_id", __v)}
+                options={[
+                { value: String(""), label: "Select WBS Item" },
+                ...wbsItems.map((wbs) => ({ value: String(wbs.wbs_id), label: `${wbs.wbs_code} - ${wbs.name} (Level ${wbs.level})` })),
+              ]}
                 disabled={creating}
-              >
-                <option value="">Select WBS Item</option>
-                {wbsItems.map((wbs) => (
-                  <option key={wbs.wbs_id} value={wbs.wbs_id}>
-                    {wbs.wbs_code} - {wbs.name} (Level {wbs.level})
-                  </option>
-                ))}
-              </select>
+                modal
+              />
               {errors.wbs_id && (
-                <p className="text-red-500 text-xs mt-1">{errors.wbs_id}</p>
+                <p className="text-danger text-xs mt-1">{errors.wbs_id}</p>
               )}
 
               {/* Show WBS date constraints */}
@@ -266,17 +261,17 @@ const CreateTaskModal = ({
                     (selectedWBS.start_date || selectedWBS.end_date)
                   ) {
                     return (
-                      <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <div className="mt-2 p-3 bg-info-soft border border-info rounded-lg">
                         <div className="flex items-center space-x-2 mb-1">
                           <Calendar
                             size={14}
-                            className="text-blue-600 dark:text-blue-400"
+                            className="text-info"
                           />
-                          <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                          <span className="text-sm font-medium text-info">
                             WBS Date Constraints
                           </span>
                         </div>
-                        <div className="text-xs text-blue-700 dark:text-blue-300">
+                        <div className="text-xs text-info">
                           {selectedWBS.start_date && (
                             <div>
                               • Task must start on or after:{" "}
@@ -304,7 +299,7 @@ const CreateTaskModal = ({
             {/* Date Range */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-ink-3 mb-1">
                   Start Date *
                 </label>
                 <input
@@ -313,22 +308,22 @@ const CreateTaskModal = ({
                   onChange={(e) =>
                     handleInputChange("start_date", e.target.value)
                   }
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-info focus:border-transparent ${
                     errors.start_date
-                      ? "border-red-500"
-                      : "border-gray-300 dark:border-gray-600"
-                  } bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
+                      ? "border-danger"
+                      : "border-line"
+                  } bg-surface  text-ink`}
                   disabled={creating}
                 />
                 {errors.start_date && (
-                  <p className="text-red-500 text-xs mt-1">
+                  <p className="text-danger text-xs mt-1">
                     {errors.start_date}
                   </p>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-ink-3 mb-1">
                   End Date *
                 </label>
                 <input
@@ -337,15 +332,15 @@ const CreateTaskModal = ({
                   onChange={(e) =>
                     handleInputChange("end_date", e.target.value)
                   }
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-info focus:border-transparent ${
                     errors.end_date
-                      ? "border-red-500"
-                      : "border-gray-300 dark:border-gray-600"
-                  } bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
+                      ? "border-danger"
+                      : "border-line"
+                  } bg-surface  text-ink`}
                   disabled={creating}
                 />
                 {errors.end_date && (
-                  <p className="text-red-500 text-xs mt-1">{errors.end_date}</p>
+                  <p className="text-danger text-xs mt-1">{errors.end_date}</p>
                 )}
               </div>
             </div>
@@ -353,7 +348,7 @@ const CreateTaskModal = ({
             {/* Duration & Hours */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-ink-3 mb-1">
                   Duration (Days)
                 </label>
                 <input
@@ -363,24 +358,24 @@ const CreateTaskModal = ({
                   onChange={(e) =>
                     handleInputChange("duration", parseInt(e.target.value) || 1)
                   }
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-info focus:border-transparent ${
                     errors.duration
-                      ? "border-red-500"
-                      : "border-gray-300 dark:border-gray-600"
-                  } bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-400`}
+                      ? "border-danger"
+                      : "border-line"
+                  } bg-surface-2  text-ink-3`}
                   disabled={true}
                 />
                 {errors.duration && (
-                  <p className="text-red-500 text-xs mt-1">{errors.duration}</p>
+                  <p className="text-danger text-xs mt-1">{errors.duration}</p>
                 )}
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted mt-1">
                   Auto-calculated from date range
                 </p>
               </div>
 
               {createType !== "milestone" && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-ink-3 mb-1">
                     Estimated Hours
                   </label>
                   <input
@@ -394,15 +389,15 @@ const CreateTaskModal = ({
                         parseFloat(e.target.value) || 0
                       )
                     }
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-info focus:border-transparent ${
                       errors.estimated_hours
-                        ? "border-red-500"
-                        : "border-gray-300 dark:border-gray-600"
-                    } bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
+                        ? "border-danger"
+                        : "border-line"
+                    } bg-surface  text-ink`}
                     disabled={creating}
                   />
                   {errors.estimated_hours && (
-                    <p className="text-red-500 text-xs mt-1">
+                    <p className="text-danger text-xs mt-1">
                       {errors.estimated_hours}
                     </p>
                   )}
@@ -413,44 +408,45 @@ const CreateTaskModal = ({
             {/* Priority & Status */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-ink-3 mb-1">
                   Priority
                 </label>
-                <select
-                  value={formData.priority}
-                  onChange={(e) =>
-                    handleInputChange("priority", e.target.value)
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                <Dropdown
+                  value={String(formData.priority ?? '')}
+                  onChange={(__v: string) =>
+                    handleInputChange("priority", __v)}
+                  options={[
+                  { value: String("low"), label: "Low" },
+                  { value: String("medium"), label: "Medium" },
+                  { value: String("high"), label: "High" },
+                ]}
                   disabled={creating}
-                >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                </select>
+                  modal
+                />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-ink-3 mb-1">
                   Status
                 </label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => handleInputChange("status", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                <Dropdown
+                  value={String(formData.status ?? '')}
+                  onChange={(__v: string) => handleInputChange("status", __v)}
+                  options={[
+                  { value: String("todo"), label: "To Do" },
+                  { value: String("in_progress"), label: "In Progress" },
+                  { value: String("completed"), label: "Completed" },
+                  { value: String("on_hold"), label: "On Hold" },
+                ]}
                   disabled={creating}
-                >
-                  <option value="todo">To Do</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="completed">Completed</option>
-                  <option value="on_hold">On Hold</option>
-                </select>
+                  modal
+                />
               </div>
             </div>
 
             {/* Work Package */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-ink-3 mb-1">
                 Work Package
               </label>
               <input
@@ -459,7 +455,7 @@ const CreateTaskModal = ({
                 onChange={(e) =>
                   handleInputChange("work_package", e.target.value)
                 }
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="w-full px-3 py-2 border border-line rounded-lg focus:ring-2 focus:ring-info focus:border-transparent bg-surface text-ink"
                 placeholder="Enter work package (optional)"
                 disabled={creating}
               />
@@ -468,9 +464,9 @@ const CreateTaskModal = ({
             {/* Checkboxes */}
             <div className="space-y-3">
               {createType === "milestone" ? (
-                <div className="flex items-center space-x-3 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                  <Target className="w-4 h-4 text-orange-600" />
-                  <span className="text-sm font-medium text-orange-700 dark:text-orange-300">
+                <div className="flex items-center space-x-3 p-3 bg-bright-soft rounded-lg border border-bright">
+                  <Target className="w-4 h-4 text-bright" />
+                  <span className="text-sm font-medium text-bright-deep">
                     This will be created as a milestone
                   </span>
                 </div>
@@ -483,12 +479,12 @@ const CreateTaskModal = ({
                     onChange={(e) =>
                       handleInputChange("is_milestone", e.target.checked)
                     }
-                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                    className="w-4 h-4 text-info bg-surface-2 border-line rounded focus:ring-info"
                     disabled={creating}
                   />
                   <label
                     htmlFor="is_milestone"
-                    className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                    className="text-sm font-medium text-ink-3"
                   >
                     This is a milestone
                   </label>
@@ -497,11 +493,11 @@ const CreateTaskModal = ({
             </div>
 
             {/* Form Actions */}
-            <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-end space-x-3 pt-6 border-t border-line">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                className="px-4 py-2 text-ink-3 hover:bg-surface-2 rounded-lg transition-colors"
                 disabled={creating}
               >
                 Cancel
@@ -509,11 +505,11 @@ const CreateTaskModal = ({
               <button
                 type="submit"
                 disabled={creating}
-                className="flex items-center space-x-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center space-x-2 px-6 py-2 bg-info text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {creating ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <Spinner size={16} />
                     <span>{editingTask ? "Updating..." : "Creating..."}</span>
                   </>
                 ) : (

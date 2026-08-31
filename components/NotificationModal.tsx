@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, X, Clock, User, ExternalLink, Loader2 } from 'lucide-react';
+import { Trash2, X, Clock, User, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
+import { Spinner } from "@/components/ui/spinner";
 
 interface NotificationModalProps {
   notification: {
@@ -150,40 +151,40 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
   const getPriorityColor = (priority: string) => {
     switch (priority.toLowerCase()) {
       case 'urgent':
-        return 'bg-red-500 text-white';
+        return 'bg-danger text-white';
       case 'high':
-        return 'bg-orange-500 text-white';
+        return 'bg-bright text-white';
       case 'medium':
-        return 'bg-yellow-500 text-white';
+        return 'bg-warning text-white';
       case 'low':
-        return 'bg-green-500 text-white';
+        return 'bg-success text-white';
       default:
-        return 'bg-gray-500 text-white';
+        return 'bg-muted text-white';
     }
   };
 
   const getTypeColor = (type: string) => {
     switch (type.toLowerCase()) {
       case 'project_creation':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-info-soft text-info';
       case 'project_update':
-        return 'bg-purple-100 text-purple-800';
+        return 'bg-accent-violet-soft text-accent-violet';
       case 'task_assignment':
-        return 'bg-green-100 text-green-800';
+        return 'bg-success-soft text-success';
       case 'deadline_reminder':
-        return 'bg-orange-100 text-orange-800';
+        return 'bg-bright-soft text-bright';
       case 'budget_alert':
-        return 'bg-red-100 text-red-800';
+        return 'bg-danger-soft text-danger';
       case 'risk_alert':
-        return 'bg-red-100 text-red-800';
+        return 'bg-danger-soft text-danger';
       case 'document_update':
-        return 'bg-indigo-100 text-indigo-800';
+        return 'bg-accent-indigo-soft text-accent-indigo';
       case 'system_alert':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-surface-2 text-ink-2';
       case 'maintenance_due':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-warning-soft text-warning';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-surface-2 text-ink-2';
     }
   };
 
@@ -217,16 +218,16 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
 
         <div className="space-y-4">
           {/* Message Content */}
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <p className="text-gray-800 leading-relaxed">{notification.message}</p>
+          <div className="bg-surface-2 p-4 rounded-lg">
+            <p className="text-ink-2 leading-relaxed">{notification.message}</p>
           </div>
 
           {/* Description */}
           {notification.metadata?.description && (
             <div className="border-t pt-4">
-              <h4 className="font-medium text-gray-900 mb-2">Description</h4>
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <p className="text-sm text-gray-700 leading-relaxed">
+              <h4 className="font-medium text-ink mb-2">Description</h4>
+              <div className="bg-surface-2 p-3 rounded-lg">
+                <p className="text-sm text-ink-3 leading-relaxed">
                   {notification.metadata.description}
                 </p>
               </div>
@@ -235,12 +236,12 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
 
           {/* Notification Details */}
           <div className="border-t pt-4 space-y-3">
-            <h4 className="font-medium text-gray-900">Notification Details</h4>
+            <h4 className="font-medium text-ink">Notification Details</h4>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-gray-500" />
-                <span className="text-gray-600">Created:</span>
+                <Clock className="h-4 w-4 text-muted" />
+                <span className="text-muted">Created:</span>
                 <span className="font-medium">
                   {format(new Date(notification.created_at), 'MMM dd, yyyy HH:mm')}
                 </span>
@@ -248,8 +249,8 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
 
               {notification.read_at && (
                 <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-gray-500" />
-                  <span className="text-gray-600">Read:</span>
+                  <Clock className="h-4 w-4 text-muted" />
+                  <span className="text-muted">Read:</span>
                   <span className="font-medium">
                     {format(new Date(notification.read_at), 'MMM dd, yyyy HH:mm')}
                   </span>
@@ -257,8 +258,8 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
               )}
 
               <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-gray-500" />
-                <span className="text-gray-600">From:</span>
+                <User className="h-4 w-4 text-muted" />
+                <span className="text-muted">From:</span>
                 <span className="font-medium">{creatorName}</span>
               </div>
             </div>
@@ -268,14 +269,14 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
         <DialogFooter className="flex justify-between">
           <div className="flex gap-2">
             {isLoadingUrl ? (
-              <div className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
-                <Loader2 className="h-4 w-4 animate-spin" />
+              <div className="flex items-center gap-2 px-4 py-2 text-sm text-muted">
+                <Spinner size={16} />
                 <span>Loading navigation...</span>
               </div>
             ) : navigationUrl ? (
               <Button
                 onClick={handleView}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                className="flex items-center gap-2 bg-info hover:opacity-90 text-white"
               >
                 <ExternalLink className="h-4 w-4" />
                 View

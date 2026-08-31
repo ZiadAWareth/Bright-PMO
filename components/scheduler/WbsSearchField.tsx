@@ -64,14 +64,14 @@ export function WbsSearchField({
               setWbsSearchTerm("");
               setShowWbsDropdown(true);
             }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-surface-2 rounded"
             disabled={disabled}
           >
-            <X size={16} className="text-gray-500" />
+            <X size={16} className="text-muted" />
           </button>
         )}
         {showWbsDropdown && filteredWbsItems.length > 0 && (
-          <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          <div className="absolute z-10 w-full mt-1 bg-surface border border-line rounded-lg shadow-lg max-h-60 overflow-y-auto">
             {filteredWbsItems.map((wbs) => (
               <div
                 key={wbs.wbs_id}
@@ -80,7 +80,7 @@ export function WbsSearchField({
                   setWbsSearchTerm(`${wbs.wbs_code} - ${wbs.name} (Level ${wbs.level})`);
                   setShowWbsDropdown(false);
                 }}
-                className="px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="px-3 py-2 cursor-pointer hover:bg-surface-2 text-ink"
               >
                 {wbs.wbs_code} - {wbs.name} (Level {wbs.level})
               </div>
@@ -89,21 +89,21 @@ export function WbsSearchField({
         )}
       </div>
       {error && (
-        <p className="text-red-500 text-xs mt-1">{error}</p>
+        <p className="text-danger text-xs mt-1">{error}</p>
       )}
       {/* Show WBS date constraints */}
       {value && (() => {
         const selectedWBS = wbsItems.find((wbs) => wbs.wbs_id === parseInt(value));
         if (selectedWBS && (selectedWBS.start_date || selectedWBS.end_date)) {
           return (
-            <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className="mt-2 p-3 bg-info-soft border border-info rounded-lg">
               <div className="flex items-center space-x-2 mb-1">
-                <Calendar size={14} className="text-blue-600 dark:text-blue-400" />
-                <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                <Calendar size={14} className="text-info" />
+                <span className="text-sm font-medium text-info">
                   WBS Date Constraints
                 </span>
               </div>
-              <div className="text-xs text-blue-700 dark:text-blue-300">
+              <div className="text-xs text-info">
                 {selectedWBS.start_date && (
                   <div>
                     • Task must start on or after: {new Date(selectedWBS.start_date).toLocaleDateString("en-GB")}

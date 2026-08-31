@@ -41,6 +41,7 @@ import bcrypt from 'bcryptjs';
 export async function GET() {
   try {
     const users = await prisma.user.findMany({
+      where: { role: { name: { not: 'SYSTEM' } } },
       include: {
         account: {
           select: {
