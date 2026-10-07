@@ -1,6 +1,6 @@
 // path to your prisma client
 
-import { prisma } from "./prisma";
+import { prisma } from "@/legacy-server/prisma";
 
 export type FieldType = 
   | 'string'

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generatePptx } from '@/lib/reporting/pptxGenerator';
+import { generatePptx } from '@/legacy-server/reporting/pptxGenerator';
 
 export async function POST(req: NextRequest) {
   const { template, data } = await req.json();

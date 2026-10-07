@@ -1,5 +1,5 @@
-import { prisma } from "../prisma";
-import { entityConfig } from "../entities";
+import { prisma } from "@/legacy-server/prisma";
+import { entityConfig } from "@/lib/entities";
 import { PrismaClient, TaskStatus } from "@prisma/client";
 
 type PrismaModel = {

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { humanise } from "@/lib/services/portfolio-analytics";
+import { prisma } from "@/legacy-server/prisma";
+import { humanise } from "@/legacy-server/services/portfolio-analytics";
 
 export const dynamic = "force-dynamic";
 

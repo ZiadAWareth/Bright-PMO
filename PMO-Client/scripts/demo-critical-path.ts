@@ -1,5 +1,5 @@
-import { CriticalPathService } from '../src/lib/services/critical-path.service';
-import { prisma } from '../src/lib/prisma';
+import { CriticalPathService } from '../src/legacy-server/services/critical-path.service';
+import { prisma } from '../src/legacy-server/prisma';
 
 async function demonstrateCriticalPath() {
   console.log('🚀 Critical Path Method (CPM) Implementation Demo\n');

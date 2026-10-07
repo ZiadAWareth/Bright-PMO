@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { verifyToken } from '@/lib/jwt';
-import { getUserFromHeaders } from '@/lib/auth-helpers';
+import { prisma } from '@/legacy-server/prisma';
+import { verifyToken } from '@/legacy-server/jwt';
+import { getUserFromHeaders } from '@/legacy-server/auth-helpers';
 
 /**
  * @swagger

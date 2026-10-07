@@ -1,9 +1,9 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/legacy-server/prisma';
 import { NextResponse } from 'next/server';
 import { PrismaClient, Prisma } from '@prisma/client';
 import type { NotificationType, NotificationPriority, NotificationStatus, ImpactLevel, ProbabilityLevel, RiskLevel } from '@prisma/client';
-import { getUserFromHeaders } from '@/lib/auth-helpers';
-import { ActivityLogger } from '@/lib/activity-logger';
+import { getUserFromHeaders } from '@/legacy-server/auth-helpers';
+import { ActivityLogger } from '@/legacy-server/activity-logger';
 
 /**
  * @swagger

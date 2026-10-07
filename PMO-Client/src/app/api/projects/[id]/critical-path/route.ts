@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { CriticalPathService } from '@/lib/services/critical-path.service';
+import { CriticalPathService } from '@/legacy-server/services/critical-path.service';
 
 // GET - Fetch current critical path data
 export async function GET(
@@ -24,7 +24,7 @@ export async function GET(
     }
 
     // Get prisma instance
-    const { prisma } = await import('@/lib/prisma');
+    const { prisma } = await import('@/legacy-server/prisma');
     
     // Verify project exists
     const project = await prisma.project.findUnique({
@@ -147,7 +147,7 @@ export async function POST(
     }
 
     // Get prisma instance
-    const { prisma } = await import('@/lib/prisma');
+    const { prisma } = await import('@/legacy-server/prisma');
 
     // Verify project exists
     const project = await prisma.project.findUnique({
@@ -329,7 +329,7 @@ export async function DELETE(
     }
 
     // Get prisma instance
-    const { prisma } = await import('@/lib/prisma');
+    const { prisma } = await import('@/legacy-server/prisma');
 
     // Reset all critical path calculations for the project
     await prisma.task.updateMany({

@@ -1,4 +1,4 @@
-import { getEntityList } from '@/lib/server/entities';
+import { getEntityList } from '@/legacy-server/server/entities';
 import { NextResponse } from 'next/server';
 
 /**

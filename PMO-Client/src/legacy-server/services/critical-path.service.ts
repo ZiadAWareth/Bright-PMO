@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/legacy-server/prisma';
 import { DependencyType } from '@prisma/client';
 
 interface TaskCPM {

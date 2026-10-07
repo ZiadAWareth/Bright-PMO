@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { decodeJwt } from 'jose';
-import { prisma } from '@/lib/prisma';
-import { createToken } from '@/lib/jwt';
+import { prisma } from '@/legacy-server/prisma';
+import { createToken } from '@/legacy-server/jwt';
 import {
   IDP_COOKIE,
   SESSION_HANDOFF_MAX_AGE,
   cookieBaseOptions,
   resolveIdpConfig,
   sanitizeReturnTo,
-} from '@/lib/idp-config';
+} from '@/legacy-server/idp-config';
 
 function loginRedirect(request: NextRequest, error: string) {
   const url = new URL('/auth/login', request.url);

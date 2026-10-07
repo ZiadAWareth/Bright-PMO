@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getUserFromHeaders } from '@/lib/auth-helpers';
-import { TimesheetService } from '@/lib/services/timesheet.service';
+import { getUserFromHeaders } from '@/legacy-server/auth-helpers';
+import { TimesheetService } from '@/legacy-server/services/timesheet.service';
 
 /**
  * @swagger

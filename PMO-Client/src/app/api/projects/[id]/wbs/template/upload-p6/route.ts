@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getUserFromHeaders } from '@/lib/auth-helpers';
-import { processP6WBSFile } from '@/lib/wbs-p6-utils';
-import type { P6WBSRow } from '@/lib/wbs-p6-utils';
-import { weightedProgressAverage } from '@/lib/wbs-progress-utils';
+import { prisma } from '@/legacy-server/prisma';
+import { getUserFromHeaders } from '@/legacy-server/auth-helpers';
+import { processP6WBSFile } from '@/legacy-server/wbs-p6-utils';
+import type { P6WBSRow } from '@/legacy-server/wbs-p6-utils';
+import { weightedProgressAverage } from '@/legacy-server/wbs-progress-utils';
 
 /** Pre-calculated insert spec: parent and dates resolved before the transaction. */
 interface InsertSpec {

@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getUserFromHeaders } from '@/lib/auth-helpers';
-import { CriticalPathService } from '@/lib/services/critical-path.service';
-import { ActivityLogger } from '@/lib/activity-logger';
+import { prisma } from '@/legacy-server/prisma';
+import { getUserFromHeaders } from '@/legacy-server/auth-helpers';
+import { CriticalPathService } from '@/legacy-server/services/critical-path.service';
+import { ActivityLogger } from '@/legacy-server/activity-logger';
 
 /**
  * @swagger

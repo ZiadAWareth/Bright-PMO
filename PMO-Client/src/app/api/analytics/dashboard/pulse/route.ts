@@ -8,7 +8,7 @@ import {
   loadProjects,
   loadTasks,
   plannedProgressPct,
-} from "@/lib/services/portfolio-analytics";
+} from "@/legacy-server/services/portfolio-analytics";
 
 export const dynamic = "force-dynamic";
 

@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/legacy-server/prisma";
 import { NextResponse } from "next/server";
 
 // Helper function to extract mentions from message

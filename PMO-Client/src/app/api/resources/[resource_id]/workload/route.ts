@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/legacy-server/prisma';
 
 // Configurable thresholds (should match the overview endpoint)
 const WORKLOAD_THRESHOLDS = {

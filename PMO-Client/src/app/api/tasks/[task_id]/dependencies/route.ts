@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { WorkflowTriggerService } from '@/lib/services/workflow-trigger.service';
+import { prisma } from '@/legacy-server/prisma';
+import { WorkflowTriggerService } from '@/legacy-server/services/workflow-trigger.service';
 import { DependencyType } from '@prisma/client';
 
 /**

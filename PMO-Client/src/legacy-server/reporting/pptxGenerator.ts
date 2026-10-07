@@ -1,6 +1,6 @@
 // This file must only be imported server-side (API routes or server actions). Never import in client or shared code.
 import PptxGenJS from 'pptxgenjs';
-import { ReportTemplate } from './types';
+import { ReportTemplate } from '@/lib/reporting/types';
 
 export function generatePptx(template: ReportTemplate, data: any) {
   const pptx = new PptxGenJS();

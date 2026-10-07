@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { createToken } from '@/lib/jwt';
-import { verifyToken } from '@/lib/jwt';
+import { createToken } from '@/legacy-server/jwt';
+import { verifyToken } from '@/legacy-server/jwt';
 import {
   SESSION_HANDOFF_MAX_AGE,
   cookieBaseOptions,
-} from '@/lib/idp-config';
+} from '@/legacy-server/idp-config';
 
 /**
  * @swagger

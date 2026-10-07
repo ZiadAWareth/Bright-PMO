@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { getUserFromHeaders } from "@/lib/auth-helpers";
+import { prisma } from "@/legacy-server/prisma";
+import { getUserFromHeaders } from "@/legacy-server/auth-helpers";
 
 export async function PATCH(
     request: NextRequest,
@@ -68,7 +68,7 @@ export async function PATCH(
         const buffer = Buffer.from(await file.arrayBuffer());
 
         let file_path: string;
-        const { isS3Configured, uploadBuffer } = await import('@/lib/s3-upload');
+        const { isS3Configured, uploadBuffer } = await import('@/legacy-server/s3-upload');
         if (isS3Configured()) {
             const key = `uploads/${project.project_code}/closure/${versionedFileName}`;
             await uploadBuffer(key, buffer, file.type);

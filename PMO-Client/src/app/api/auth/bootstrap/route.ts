@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { verifyToken } from '@/lib/jwt';
+import { verifyToken } from '@/legacy-server/jwt';
 import {
   IDP_COOKIE,
   SESSION_HANDOFF_MAX_AGE,
   cookieBaseOptions,
   isUseIdpAuth,
-} from '@/lib/idp-config';
+} from '@/legacy-server/idp-config';
 
 /**
  * One-time: reads app JWT from httpOnly handoff cookie, returns it for localStorage mirroring.

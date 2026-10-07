@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getUserFromHeaders } from '@/lib/auth-helpers';
-import { WBSTemplateProcessor, wbsTemplateConfig } from '@/lib/wbs-template-utils';
+import { prisma } from '@/legacy-server/prisma';
+import { getUserFromHeaders } from '@/legacy-server/auth-helpers';
+import { WBSTemplateProcessor, wbsTemplateConfig } from '@/legacy-server/wbs-template-utils';
 
 // Function to generate consistent WBS code
 function generateWbsCode(level: number, wbsId: number, projectId: number) {

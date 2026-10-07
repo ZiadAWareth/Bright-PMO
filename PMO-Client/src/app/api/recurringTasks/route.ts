@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { RecurringTaskService } from '@/lib/services/recurring-task.service';
+import { RecurringTaskService } from '@/legacy-server/services/recurring-task.service';
 import { RecurrenceFrequency } from '@prisma/client';
 
 /**

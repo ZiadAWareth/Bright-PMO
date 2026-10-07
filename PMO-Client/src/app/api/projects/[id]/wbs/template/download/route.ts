@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getUserFromHeaders } from '@/lib/auth-helpers';
-import { WBSTemplateGenerator, wbsTemplateConfig } from '@/lib/wbs-template-utils';
+import { prisma } from '@/legacy-server/prisma';
+import { getUserFromHeaders } from '@/legacy-server/auth-helpers';
+import { WBSTemplateGenerator, wbsTemplateConfig } from '@/legacy-server/wbs-template-utils';
 
 /**
  * @swagger

@@ -14,7 +14,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/legacy-server/prisma";
 import bcrypt from "bcryptjs";
 
 const WEBHOOK_SECRET = process.env.IDP_WEBHOOK_SECRET || "";

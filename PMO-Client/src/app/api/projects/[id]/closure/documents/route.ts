@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { getUserFromHeaders } from "@/lib/auth-helpers";
+import { prisma } from "@/legacy-server/prisma";
+import { getUserFromHeaders } from "@/legacy-server/auth-helpers";
 import { ClosureDocumentType } from "@prisma/client";
 
 /**
@@ -208,7 +208,7 @@ export async function POST(
     }> = [];
 
     const path = await import('path');
-    const { isS3Configured, uploadBuffer } = await import('@/lib/s3-upload');
+    const { isS3Configured, uploadBuffer } = await import('@/legacy-server/s3-upload');
     const useS3 = isS3Configured();
 
     for (const file of files) {

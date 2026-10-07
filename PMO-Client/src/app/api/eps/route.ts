@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { verifyToken } from '@/lib/jwt';
-import { ActivityLogger } from '@/lib/activity-logger';
-import { getUserFromHeaders } from '@/lib/auth-helpers';
+import { prisma } from '@/legacy-server/prisma';
+import { verifyToken } from '@/legacy-server/jwt';
+import { ActivityLogger } from '@/legacy-server/activity-logger';
+import { getUserFromHeaders } from '@/legacy-server/auth-helpers';
 import type { Prisma } from '@prisma/client';
 
 /**

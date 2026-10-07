@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { calculateAndUpdateProjectHealth } from '@/lib/services/project-health-calculator';
+import { calculateAndUpdateProjectHealth } from '@/legacy-server/services/project-health-calculator';
 
 /**
  * Calculate and update health score for a specific project
@@ -67,7 +67,7 @@ export async function GET(
     }
 
     // Just calculate without updating (for viewing purposes)
-    const { calculateAndUpdateProjectHealth } = await import('@/lib/services/project-health-calculator');
+    const { calculateAndUpdateProjectHealth } = await import('@/legacy-server/services/project-health-calculator');
     const healthResult = await calculateAndUpdateProjectHealth(projectId);
 
     return NextResponse.json({

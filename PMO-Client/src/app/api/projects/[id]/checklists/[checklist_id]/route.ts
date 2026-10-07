@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { getUserFromHeaders } from "@/lib/auth-helpers";
+import { prisma } from "@/legacy-server/prisma";
+import { getUserFromHeaders } from "@/legacy-server/auth-helpers";
 
 // GET a specific checklist
 export async function GET(

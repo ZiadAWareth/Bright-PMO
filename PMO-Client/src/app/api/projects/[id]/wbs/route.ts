@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { getUserFromHeaders } from "@/lib/auth-helpers";
-import { weightedProgressAverage } from "@/lib/wbs-progress-utils";
+import { prisma } from "@/legacy-server/prisma";
+import { getUserFromHeaders } from "@/legacy-server/auth-helpers";
+import { weightedProgressAverage } from "@/legacy-server/wbs-progress-utils";
 
 // Helper function to recalculate progress for all WBS items that have children (uses optional progress_weight)
 async function recalculateAllParentProgress(projectId: number): Promise<void> {

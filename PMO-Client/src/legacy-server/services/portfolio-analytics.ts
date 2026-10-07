@@ -11,7 +11,7 @@
  * measured do we fall back to deriving EV from budget × progress, and the API
  * reports which basis was used.
  */
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/legacy-server/prisma";
 import type { Prisma, ProjectStatus, TaskStatus } from "@prisma/client";
 
 /** Statuses that mean a project is still being delivered. */

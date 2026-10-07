@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getUserFromHeaders } from '@/lib/auth-helpers';
+import { prisma } from '@/legacy-server/prisma';
+import { getUserFromHeaders } from '@/legacy-server/auth-helpers';
 
 // PUT /api/schedules/[id]/wbs/[wbsId] - Update a WBS item
 export async function PUT(

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { CriticalPathService } from '@/lib/services/critical-path.service';
+import { prisma } from '@/legacy-server/prisma';
+import { CriticalPathService } from '@/legacy-server/services/critical-path.service';
 
 /**
  * @swagger

@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { checkMilestoneCompletion, triggerEVMCalculation } from '@/lib/server/entities';
-import { WorkflowTriggerService } from '@/lib/services/workflow-trigger.service';
-import { CriticalPathService } from '@/lib/services/critical-path.service';
-import { getUserFromHeaders } from '@/lib/auth-helpers';
-import { weightedProgressAverage } from '@/lib/wbs-progress-utils';
+import { prisma } from '@/legacy-server/prisma';
+import { checkMilestoneCompletion, triggerEVMCalculation } from '@/legacy-server/server/entities';
+import { WorkflowTriggerService } from '@/legacy-server/services/workflow-trigger.service';
+import { CriticalPathService } from '@/legacy-server/services/critical-path.service';
+import { getUserFromHeaders } from '@/legacy-server/auth-helpers';
+import { weightedProgressAverage } from '@/legacy-server/wbs-progress-utils';
 
 
 /**

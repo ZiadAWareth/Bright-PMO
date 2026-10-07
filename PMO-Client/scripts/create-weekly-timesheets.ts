@@ -6,7 +6,7 @@
  * or: ts-node scripts/create-weekly-timesheets.ts
  */
 
-import { TimesheetService } from '../src/lib/services/timesheet.service';
+import { TimesheetService } from '../src/legacy-server/services/timesheet.service';
 
 async function main() {
     console.log('🚀 Starting manual weekly timesheet creation...');

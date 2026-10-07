@@ -6,7 +6,7 @@ import {
   cookieBaseOptions,
   resolveIdpConfig,
   sanitizeReturnTo,
-} from '@/lib/idp-config';
+} from '@/legacy-server/idp-config';
 
 function base64UrlEncode(buf: Buffer): string {
   return buf

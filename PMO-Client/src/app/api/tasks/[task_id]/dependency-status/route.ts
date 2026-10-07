@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { checkTaskDependencies, canAccessLockedTask } from '@/lib/task-dependency-utils';
-import { getUserFromHeaders } from '@/lib/auth-helpers';
+import { canAccessLockedTask } from '@/lib/task-dependency-utils';
+import { checkTaskDependencies } from '@/legacy-server/task-dependency-utils';
+import { getUserFromHeaders } from '@/legacy-server/auth-helpers';
 
 /**
  * @swagger

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { verifyToken } from '@/lib/jwt';
+import { prisma } from '@/legacy-server/prisma';
+import { verifyToken } from '@/legacy-server/jwt';
 
 /**
  * @swagger

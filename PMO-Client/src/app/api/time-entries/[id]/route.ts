@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getUserFromHeaders } from '@/lib/auth-helpers';
+import { prisma } from '@/legacy-server/prisma';
+import { getUserFromHeaders } from '@/legacy-server/auth-helpers';
 import { TimeEntryStatus } from '@prisma/client';
-import { validateTimeEntry } from '@/lib/time-entry-validation';
+import { validateTimeEntry } from '@/legacy-server/time-entry-validation';
 
 
 

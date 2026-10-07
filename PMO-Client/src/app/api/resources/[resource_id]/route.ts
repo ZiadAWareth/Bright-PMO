@@ -1,6 +1,6 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/legacy-server/prisma";
 import { NextResponse } from "next/server";
-import { getUserFromHeaders } from '@/lib/auth-helpers';
+import { getUserFromHeaders } from '@/legacy-server/auth-helpers';
 
 /**
  * @swagger

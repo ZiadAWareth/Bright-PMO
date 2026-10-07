@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/jwt';
+import { verifyToken } from '@/legacy-server/jwt';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();

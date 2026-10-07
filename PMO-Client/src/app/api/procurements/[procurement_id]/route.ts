@@ -1,5 +1,5 @@
 // app/api/procurements/[procurement_id]/route.ts
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/legacy-server/prisma";
 import { NextResponse } from "next/server";
 
 /**

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/legacy-server/prisma';
 import { PortfolioStatus, PortfolioPriority, Project, Prisma, RiskStatus } from '@prisma/client';
 
 interface ProjectWithMetrics {

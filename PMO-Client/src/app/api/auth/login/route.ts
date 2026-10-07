@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { createToken } from '@/lib/jwt';
+import { prisma } from '@/legacy-server/prisma';
+import { createToken } from '@/legacy-server/jwt';
 import bcrypt from 'bcryptjs';
 import {
   SESSION_HANDOFF_MAX_AGE,
   cookieBaseOptions,
-} from '@/lib/idp-config';
+} from '@/legacy-server/idp-config';
 
 /**
  * @swagger

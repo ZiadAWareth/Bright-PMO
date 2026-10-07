@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
-import { prisma } from "@/lib/prisma";
-import { isS3Configured, getObjectStream } from "@/lib/s3-upload";
+import { prisma } from "@/legacy-server/prisma";
+import { isS3Configured, getObjectStream } from "@/legacy-server/s3-upload";
 
 export async function GET(req: Request) {
   const url = new URL(req.url || "", "http://localhost");

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/legacy-server/prisma';
 
 // GET: Fetch ProjectSetup for a project
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

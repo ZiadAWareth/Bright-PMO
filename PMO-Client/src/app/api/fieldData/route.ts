@@ -1,6 +1,6 @@
-import { getUserFromHeaders } from "@/lib/auth-helpers";
-import { prisma } from "@/lib/prisma";
-import { weightedProgressAverage } from "@/lib/wbs-progress-utils";
+import { getUserFromHeaders } from "@/legacy-server/auth-helpers";
+import { prisma } from "@/legacy-server/prisma";
+import { weightedProgressAverage } from "@/legacy-server/wbs-progress-utils";
 import { NextResponse } from "next/server";
 
 /**

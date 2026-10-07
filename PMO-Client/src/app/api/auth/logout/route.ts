@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { IDP_COOKIE, isUseIdpAuth } from '@/lib/idp-config';
+import { IDP_COOKIE, isUseIdpAuth } from '@/legacy-server/idp-config';
 
 /**
  * @swagger

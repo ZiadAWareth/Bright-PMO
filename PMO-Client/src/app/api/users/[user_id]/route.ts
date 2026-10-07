@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/legacy-server/prisma';
 import bcrypt from 'bcryptjs';
-import { getUserFromHeaders } from '@/lib/auth-helpers';
+import { getUserFromHeaders } from '@/legacy-server/auth-helpers';
 
 /**
  * @swagger

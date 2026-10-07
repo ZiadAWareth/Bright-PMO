@@ -1,4 +1,4 @@
-import { RecurringTaskService } from '@/lib/services/recurring-task.service';
+import { RecurringTaskService } from '@/legacy-server/services/recurring-task.service';
 
 async function main() {
   try {

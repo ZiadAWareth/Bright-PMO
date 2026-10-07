@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getUserFromHeaders } from '@/lib/auth-helpers';
-import { migrateScheduleToProject } from '@/lib/server/entities';
+import { prisma } from '@/legacy-server/prisma';
+import { getUserFromHeaders } from '@/legacy-server/auth-helpers';
+import { migrateScheduleToProject } from '@/legacy-server/server/entities';
 
 // POST /api/schedules/[id]/approval/[approvalId]/approve
 export async function POST(

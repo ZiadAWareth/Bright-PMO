@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { calculateAllProjectHealthScores } from '@/lib/services/project-health-calculator';
+import { calculateAllProjectHealthScores } from '@/legacy-server/services/project-health-calculator';
 
 /**
  * Calculate health scores for all active projects

@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma'; 
-import { getUserFromHeaders } from '@/lib/auth-helpers'; 
-import { verifyToken } from '@/lib/jwt';
+import { prisma } from '@/legacy-server/prisma'; 
+import { getUserFromHeaders } from '@/legacy-server/auth-helpers'; 
+import { verifyToken } from '@/legacy-server/jwt';
 import { TimeEntryStatus } from '@prisma/client';
-import { validateTimeEntry } from '@/lib/time-entry-validation';
-import { findMatchingTimesheet } from '@/lib/timesheet-helpers';
+import { validateTimeEntry } from '@/legacy-server/time-entry-validation';
+import { findMatchingTimesheet } from '@/legacy-server/timesheet-helpers';
 
 
 /**

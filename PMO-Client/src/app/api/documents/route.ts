@@ -1,9 +1,9 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/legacy-server/prisma";
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
-import { getUserFromHeaders } from "@/lib/auth-helpers";
-import { isS3Configured, uploadBuffer } from "@/lib/s3-upload";
+import { getUserFromHeaders } from "@/legacy-server/auth-helpers";
+import { isS3Configured, uploadBuffer } from "@/legacy-server/s3-upload";
 
 /**
  * @swagger
