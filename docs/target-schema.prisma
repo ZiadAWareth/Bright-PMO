@@ -1,0 +1,2252 @@
+// ============================================================================
+// Bright PMO — target schema for the NestJS backend (PostgreSQL + Prisma)
+// Multi-tenant: one database, rows scoped by organization_id (see Tenancy).
+// Conventions: PascalCase models, camelCase fields, snake_case tables/columns
+// via @map/@@map, Int autoincrement ids (legacy ids are preserved by the ETL),
+// Decimal for money/hours/points, enums instead of free-text statuses.
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// @section tenancy
+// ---------------------------------------------------------------- Tenancy
+// Every tenant-owned top-level table carries organizationId. Child tables
+// (work items, sprints, budget lines, …) inherit the tenant through their parent
+// and are only ever reached through a tenant-scoped parent query.
+
+model Organization {
+  id                Int                @id @default(autoincrement())
+  name              String
+  slug              String             @unique // used in URLs and S3 key prefixes
+  status            OrganizationStatus @default(active)
+  idpOrganizationId String?            @unique @map("idp_organization_id") // tenant claim from the IdP
+  timezone          String             @default("UTC")
+  defaultCurrency   String             @default("EGP") @map("default_currency")
+  logoStorageKey    String?            @map("logo_storage_key")
+  settings          Json?
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+
+  users              User[]
+  roles              Role[]
+  eps                Eps[]
+  portfolios         Portfolio[]
+  categories         ProjectCategory[]
+  calendars          WorkCalendar[]
+  lifecycleTemplates LifecycleTemplate[]
+  closureTemplates   ClosureTemplate[]
+  approvalPolicies   ApprovalPolicy[]
+  projects           Project[]
+  resources          Resource[]
+  vendors            Vendor[]
+  documents          Document[]
+  reportDefinitions  ReportDefinition[]
+  activities         ActivityLog[]
+  apiKeys            ApiKey[]
+  integrations       IntegrationConnection[]
+
+  @@map("organizations")
+}
+
+/// Per-organisation keys for machine clients such as the finance module
+/// (replaces the single FINANCE_API_ACCESS_KEY env var). Only the hash is stored.
+model ApiKey {
+  id             Int          @id @default(autoincrement())
+  organizationId Int          @map("organization_id")
+  name           String
+  keyPrefix      String       @map("key_prefix") // first 8 chars, shown in the UI
+  keyHash        String       @unique @map("key_hash")
+  scopes         String[] // finance:read, finance:write, …
+  lastUsedAt     DateTime?    @map("last_used_at")
+  expiresAt      DateTime?    @map("expires_at")
+  revokedAt      DateTime?    @map("revoked_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("api_keys")
+}
+
+/// Per-organisation settings for external systems (HR, inventory, Metabase, …).
+/// Secrets inside config are encrypted at rest by the backend.
+model IntegrationConnection {
+  id             Int                 @id @default(autoincrement())
+  organizationId Int                 @map("organization_id")
+  provider       IntegrationProvider
+  baseUrl        String?             @map("base_url")
+  config         Json
+  isEnabled      Boolean             @default(true) @map("is_enabled")
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, provider])
+  @@map("integration_connections")
+}
+
+// @section identity
+// ---------------------------------------------------------------- Identity & access
+// User absorbs the old Account (first/last name, department, phone).
+// Role.permissions Json becomes RolePermission rows (module × action × scope).
+
+model User {
+  id             Int        @id @default(autoincrement())
+  organizationId Int?       @map("organization_id") // null = platform super-admin
+  username       String     @unique
+  email          String     @unique
+  passwordHash   String?    @map("password_hash") // null for IdP-only users
+  idpUserId      String?    @unique @map("idp_user_id")
+  firstName      String     @map("first_name")
+  lastName       String     @map("last_name")
+  department     String?
+  phoneNumber    String?    @map("phone_number")
+  status         UserStatus @default(active)
+  roleId         Int        @map("role_id")
+  lastLoginAt    DateTime?  @map("last_login_at")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  role                 Role                   @relation(fields: [roleId], references: [id])
+  refreshTokens        RefreshToken[]
+  managedPortfolios    Portfolio[]            @relation("PortfolioManager")
+  managedProjects      Project[]              @relation("ProjectManager")
+  createdProjects      Project[]              @relation("ProjectCreator")
+  projectMemberships   ProjectMember[]
+  createdWorkItems     WorkItem[]             @relation("WorkItemCreator")
+  reportedWorkItems    WorkItem[]             @relation("WorkItemReporter")
+  workItemAssignments  WorkItemAssignee[]
+  statusTransitions    StatusTransition[]
+  comments             Comment[]
+  mentions             CommentMention[]
+  sprintCapacities     SprintCapacity[]
+  lifecycleCompletions ProjectLifecycleStep[]
+  ownedRisks           Risk[]                 @relation("RiskOwner")
+  ownedMitigations     RiskMitigation[]       @relation("MitigationOwner")
+  assignedMitigations  RiskMitigation[]       @relation("MitigationAssignee")
+  uploadedDocuments    Document[]
+  timesheets           Timesheet[]            @relation("TimesheetOwner")
+  approvedTimesheets   Timesheet[]            @relation("TimesheetApprover")
+  timeEntries          TimeEntry[]
+  approvalRequests     ApprovalRequest[]      @relation("ApprovalRequester")
+  approvalDecisions    ApprovalStep[]         @relation("ApprovalDecider")
+  approvalAssignments  ApprovalStep[]         @relation("ApprovalAssignee")
+  closureItemsDone     ClosureItem[]
+  checklistItemsDone   ChecklistItem[]
+  punchItems           PunchListItem[]
+  inspections          Inspection[]
+  handovers            Handover[]
+  notifications        Notification[]         @relation("NotificationRecipient")
+  sentNotifications    Notification[]         @relation("NotificationSender")
+  activities           ActivityLog[]
+  lessons              Lesson[]
+  baselines            Baseline[]
+  progressReports      ProgressReport[]
+  managedSites         Site[]
+  equipmentLogs        EquipmentSiteLog[]
+  maintenanceLogs      MaintenanceLog[]
+  reportDefinitions    ReportDefinition[]
+  resource             Resource?
+  organization         Organization?          @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@map("users")
+}
+
+model Role {
+  id                  Int                  @id @default(autoincrement())
+  organizationId      Int?                 @map("organization_id") // null = platform role template
+  code                String // ADMIN, PMO, PJM, FIN, QAQC, IT, DIR, HR, LEGAL, PROC, USER
+  name                String
+  description         String?
+  isSystem            Boolean              @default(false) @map("is_system")
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+  users               User[]
+  permissions         RolePermission[]
+  approvalPolicySteps ApprovalPolicyStep[]
+  organization        Organization?        @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@map("roles")
+}
+
+/// One row per (role, module, action). `module` matches the AppModule registry
+/// in the backend (projects, work_items, sprints, budget, risks, …); `action` is
+/// read | create | update | delete | approve | notifications | export.
+model RolePermission {
+  id     Int             @id @default(autoincrement())
+  roleId Int             @map("role_id")
+  module String
+  action String
+  scope  PermissionScope @default(none)
+  role   Role            @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, module, action])
+  @@map("role_permissions")
+}
+
+model RefreshToken {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  userAgent String?   @map("user_agent")
+  createdAt DateTime  @default(now()) @map("created_at")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+/// Idempotent inbox for IdP webhook events (was IdpInbox).
+model IdpInboxEvent {
+  id             Int         @id @default(autoincrement())
+  idempotencyKey String      @unique @map("idempotency_key")
+  event          String
+  payload        Json
+  status         InboxStatus @default(received)
+  lastError      String?     @map("last_error")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  processedAt    DateTime?   @map("processed_at")
+
+  @@map("idp_inbox_events")
+}
+
+// @section organisation
+// ---------------------------------------------------------------- Organisation structure
+
+model Eps {
+  id             Int          @id @default(autoincrement())
+  organizationId Int          @map("organization_id")
+  code           String // EPS-001, generated by the service
+  name           String
+  description    String?
+  level          Int
+  parentId       Int?         @map("parent_id")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  parent         Eps?         @relation("EpsTree", fields: [parentId], references: [id])
+  children       Eps[]        @relation("EpsTree")
+  projects       Project[]
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, code])
+  @@index([parentId])
+  @@index([organizationId])
+  @@map("eps")
+}
+
+model Portfolio {
+  id                 Int             @id @default(autoincrement())
+  organizationId     Int             @map("organization_id")
+  name               String
+  description        String?
+  strategicObjective String?         @map("strategic_objective")
+  status             PortfolioStatus @default(active)
+  priority           Priority        @default(medium)
+  tags               String[]
+  budgetCapacity     Decimal?        @map("budget_capacity") @db.Decimal(18, 2)
+  managerId          Int             @map("manager_id")
+  createdAt          DateTime        @default(now()) @map("created_at")
+  updatedAt          DateTime        @updatedAt @map("updated_at")
+  manager            User            @relation("PortfolioManager", fields: [managerId], references: [id])
+  projects           Project[]
+  organization       Organization    @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@map("portfolios")
+}
+
+/// Admin-managed lookup that replaces the construction-only ProjectType enum.
+model ProjectCategory {
+  id                    Int                @id @default(autoincrement())
+  organizationId        Int                @map("organization_id")
+  code                  String // residential, commercial, software, …
+  name                  String
+  industry              String? // construction, it, …
+  description           String?
+  defaultMethodology    Methodology        @default(waterfall) @map("default_methodology")
+  defaultAgileFramework AgileFramework?    @map("default_agile_framework")
+  lifecycleTemplateId   Int?               @map("lifecycle_template_id")
+  closureTemplateId     Int?               @map("closure_template_id")
+  isActive              Boolean            @default(true) @map("is_active")
+  sortOrder             Int                @default(0) @map("sort_order")
+  createdAt             DateTime           @default(now()) @map("created_at")
+  updatedAt             DateTime           @updatedAt @map("updated_at")
+  lifecycleTemplate     LifecycleTemplate? @relation(fields: [lifecycleTemplateId], references: [id])
+  closureTemplate       ClosureTemplate?   @relation(fields: [closureTemplateId], references: [id])
+  projects              Project[]
+  benchmark             Benchmark?
+  organization          Organization       @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@map("project_categories")
+}
+
+/// Was keyed by the ProjectType enum; now one row per category.
+model Benchmark {
+  id                          Int             @id @default(autoincrement())
+  categoryId                  Int             @unique @map("category_id")
+  costPerM2                   Decimal?        @map("cost_per_m2") @db.Decimal(18, 2)
+  durationPerM2               Decimal?        @map("duration_per_m2") @db.Decimal(10, 4)
+  expectedRoi                 Decimal?        @map("expected_roi") @db.Decimal(7, 2)
+  costOverrunMax              Decimal?        @map("cost_overrun_max") @db.Decimal(7, 2)
+  scheduleSlipMax             Decimal?        @map("schedule_slip_max") @db.Decimal(7, 2)
+  cpiThreshold                Decimal?        @map("cpi_threshold") @db.Decimal(5, 2)
+  spiThreshold                Decimal?        @map("spi_threshold") @db.Decimal(5, 2)
+  efficiencyRatio             Decimal?        @map("efficiency_ratio") @db.Decimal(5, 2)
+  avgTaskDelayMax             Decimal?        @map("avg_task_delay_max") @db.Decimal(7, 2)
+  criticalPathDelayMax        Int?            @map("critical_path_delay_max")
+  expectedTaskCompletionRate  Decimal?        @map("expected_task_completion_rate") @db.Decimal(5, 2)
+  maxBudgetThresholdViolation Int?            @map("max_budget_threshold_violation")
+  velocityStabilityMin        Decimal?        @map("velocity_stability_min") @db.Decimal(5, 2) // agile
+  sprintCompletionRateMin     Decimal?        @map("sprint_completion_rate_min") @db.Decimal(5, 2) // agile
+  createdAt                   DateTime        @default(now()) @map("created_at")
+  updatedAt                   DateTime        @updatedAt @map("updated_at")
+  category                    ProjectCategory @relation(fields: [categoryId], references: [id])
+
+  @@map("benchmarks")
+}
+
+/// Working calendar used by CPM and date maths (was ProjectSetup.off_days).
+model WorkCalendar {
+  id              Int                 @id @default(autoincrement())
+  organizationId  Int                 @map("organization_id")
+  name            String
+  workingWeekdays Int[]               @map("working_weekdays") // 0=Sun … 6=Sat
+  hoursPerDay     Decimal             @default(8) @map("hours_per_day") @db.Decimal(4, 2)
+  isDefault       Boolean             @default(false) @map("is_default")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+  exceptions      CalendarException[]
+  projects        Project[]
+  organization    Organization        @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@map("work_calendars")
+}
+
+model CalendarException {
+  id         Int          @id @default(autoincrement())
+  calendarId Int          @map("calendar_id")
+  date       DateTime     @db.Date
+  isWorking  Boolean      @default(false) @map("is_working")
+  name       String?
+  calendar   WorkCalendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+
+  @@unique([calendarId, date])
+  @@map("calendar_exceptions")
+}
+
+// @section project
+// ---------------------------------------------------------------- Projects
+// ProjectSchedule (scheduler sandbox) folds in here as status = draft.
+// Closure fields move to ProjectClosure. Derived scores stay as cached columns
+// that background jobs recompute; they are never edited by users.
+
+model Project {
+  id                  Int              @id @default(autoincrement())
+  organizationId      Int              @map("organization_id")
+  code                String
+  keyPrefix           String           @map("key_prefix") // work-item keys: PRJ-142
+  workItemSeq         Int              @default(0) @map("work_item_seq")
+  name                String
+  description         String?
+  categoryId          Int              @map("category_id")
+  methodology         Methodology
+  agileFramework      AgileFramework?  @map("agile_framework")
+  estimationUnit      EstimationUnit   @default(hours) @map("estimation_unit")
+  progressMethod      ProgressMethod   @map("progress_method")
+  status              ProjectStatus    @default(draft)
+  priority            Priority         @default(medium)
+  strategicValue      StrategicValue   @default(medium) @map("strategic_value")
+  compliance          ComplianceStatus @default(pending)
+  epsId               Int              @map("eps_id")
+  portfolioId         Int              @map("portfolio_id")
+  managerId           Int              @map("manager_id")
+  createdById         Int              @map("created_by_id")
+  calendarId          Int?             @map("calendar_id")
+  startDate           DateTime         @map("start_date") @db.Date
+  plannedEndDate      DateTime?        @map("planned_end_date") @db.Date
+  mustFinishBy        DateTime?        @map("must_finish_by") @db.Date
+  actualEndDate       DateTime?        @map("actual_end_date") @db.Date
+  sprintLengthDays    Int?             @map("sprint_length_days") // scrum default cadence
+  enforceDependencies Boolean          @default(true) @map("enforce_dependencies")
+  budgetAmount        Decimal          @default(0) @map("budget_amount") @db.Decimal(18, 2)
+  pendingBudgetAmount Decimal?         @map("pending_budget_amount") @db.Decimal(18, 2)
+  expectedRoi         Decimal?         @map("expected_roi") @db.Decimal(7, 2)
+  location            String?
+  client              String?
+  contractor          String?
+  size                Decimal?         @db.Decimal(14, 2) // e.g. m² for construction
+  tags                String[]
+  // draft-only feasibility results (was ProjectSchedule)
+  feasibilityScore    Decimal?         @map("feasibility_score") @db.Decimal(5, 2)
+  lastAnalyzedAt      DateTime?        @map("last_analyzed_at")
+  // derived, recomputed by jobs
+  progressPct         Decimal          @default(0) @map("progress_pct") @db.Decimal(5, 2)
+  actualCost          Decimal          @default(0) @map("actual_cost") @db.Decimal(18, 2)
+  allocatedCost       Decimal          @default(0) @map("allocated_cost") @db.Decimal(18, 2)
+  roi                 Decimal?         @db.Decimal(7, 2)
+  healthScore         Decimal          @default(50) @map("health_score") @db.Decimal(5, 2)
+  riskScore           Decimal          @default(0) @map("risk_score") @db.Decimal(5, 2)
+  qualityScore        Decimal          @default(50) @map("quality_score") @db.Decimal(5, 2)
+  archivedAt          DateTime?        @map("archived_at")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
+
+  category         ProjectCategory        @relation(fields: [categoryId], references: [id])
+  eps              Eps                    @relation(fields: [epsId], references: [id])
+  portfolio        Portfolio              @relation(fields: [portfolioId], references: [id])
+  manager          User                   @relation("ProjectManager", fields: [managerId], references: [id])
+  createdBy        User                   @relation("ProjectCreator", fields: [createdById], references: [id])
+  calendar         WorkCalendar?          @relation(fields: [calendarId], references: [id])
+  members          ProjectMember[]
+  lifecycleSteps   ProjectLifecycleStep[]
+  conflicts        ProjectConflict[]
+  workflowStatuses WorkflowStatus[]
+  workItems        WorkItem[]
+  wbsNodes         WbsNode[]
+  sprints          Sprint[]
+  releases         Release[]
+  baselines        Baseline[]
+  evmSnapshots     EvmSnapshot[]
+  budgetLines      BudgetLine[]
+  transactions     CostTransaction[]
+  risks            Risk[]
+  procurements     Procurement[]
+  documents        Document[]
+  timesheets       Timesheet[]
+  timeEntries      TimeEntry[]
+  approvalRequests ApprovalRequest[]
+  closure          ProjectClosure?
+  checklists       Checklist[]
+  punchListItems   PunchListItem[]
+  inspections      Inspection[]
+  handovers        Handover[]
+  sites            Site[]
+  alerts           Alert[]
+  lessons          Lesson[]
+  workflowRules    WorkflowRule[]
+  recurringItems   RecurringWorkItem[]
+  organization     Organization           @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, code])
+  @@unique([organizationId, keyPrefix])
+  @@index([status])
+  @@index([portfolioId])
+  @@index([epsId])
+  @@index([managerId])
+  @@index([methodology])
+  @@index([organizationId])
+  @@map("projects")
+}
+
+/// Merges ProjectTeamMember + ProjectAssignment (+ ScheduleTeamMember).
+model ProjectMember {
+  id            Int         @id @default(autoincrement())
+  projectId     Int         @map("project_id")
+  userId        Int         @map("user_id")
+  projectRole   ProjectRole @default(member) @map("project_role")
+  title         String? // free-text job title on this project
+  department    String?
+  isLead        Boolean     @default(false) @map("is_lead")
+  allocationPct Decimal     @default(100) @map("allocation_pct") @db.Decimal(5, 2)
+  joinedAt      DateTime    @default(now()) @map("joined_at")
+  leftAt        DateTime?   @map("left_at")
+  project       Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id])
+
+  @@unique([projectId, userId])
+  @@index([userId])
+  @@map("project_members")
+}
+
+/// Admin-managed set-up flows (replaces the seven ProjectSetup booleans).
+model LifecycleTemplate {
+  id             Int                     @id @default(autoincrement())
+  organizationId Int                     @map("organization_id")
+  name           String
+  methodology    Methodology
+  gating         LifecycleGating
+  isDefault      Boolean                 @default(false) @map("is_default")
+  createdAt      DateTime                @default(now()) @map("created_at")
+  updatedAt      DateTime                @updatedAt @map("updated_at")
+  steps          LifecycleTemplateStep[]
+  categories     ProjectCategory[]
+  organization   Organization            @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@map("lifecycle_templates")
+}
+
+model LifecycleTemplateStep {
+  id          Int               @id @default(autoincrement())
+  templateId  Int               @map("template_id")
+  key         String // wbs, schedule, budget, team, risk, baseline, backlog, workflow, first_sprint, execution
+  title       String
+  description String?
+  sortOrder   Int               @map("sort_order")
+  isRequired  Boolean           @default(true) @map("is_required")
+  template    LifecycleTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, key])
+  @@map("lifecycle_template_steps")
+}
+
+model ProjectLifecycleStep {
+  id            Int                 @id @default(autoincrement())
+  projectId     Int                 @map("project_id")
+  key           String
+  title         String
+  sortOrder     Int                 @map("sort_order")
+  gating        LifecycleGating
+  isRequired    Boolean             @default(true) @map("is_required")
+  status        LifecycleStepStatus @default(locked)
+  completedAt   DateTime?           @map("completed_at")
+  completedById Int?                @map("completed_by_id")
+  project       Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  completedBy   User?               @relation(fields: [completedById], references: [id])
+
+  @@unique([projectId, key])
+  @@map("project_lifecycle_steps")
+}
+
+/// Feasibility findings for draft projects (was ScheduleConflict).
+model ProjectConflict {
+  id                  Int              @id @default(autoincrement())
+  projectId           Int              @map("project_id")
+  type                ConflictType
+  severity            ConflictSeverity
+  description         String
+  affectedWorkItemIds Int[]            @map("affected_work_item_ids")
+  affectedResourceIds Int[]            @map("affected_resource_ids")
+  suggestedResolution String?          @map("suggested_resolution")
+  resolvedAt          DateTime?        @map("resolved_at")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  project             Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("project_conflicts")
+}
+
+// @section work
+// ---------------------------------------------------------------- Work management (shared)
+// WorkItem replaces Task (and ScheduleTask). Scheduling fields are nullable;
+// the service enforces which are required per methodology and type.
+
+model WorkflowStatus {
+  id              Int                @id @default(autoincrement())
+  projectId       Int                @map("project_id")
+  name            String
+  category        StatusCategory
+  sortOrder       Int                @map("sort_order")
+  wipLimit        Int?               @map("wip_limit")
+  isDefault       Boolean            @default(false) @map("is_default") // initial status for new items
+  colorToken      String?            @map("color_token") // UI token name, never a hex value
+  archivedAt      DateTime?          @map("archived_at")
+  project         Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  workItems       WorkItem[]
+  transitionsFrom StatusTransition[] @relation("TransitionFrom")
+  transitionsTo   StatusTransition[] @relation("TransitionTo")
+
+  @@unique([projectId, name])
+  @@index([projectId, sortOrder])
+  @@map("workflow_statuses")
+}
+
+model WorkItem {
+  id                    Int             @id @default(autoincrement())
+  projectId             Int             @map("project_id")
+  key                   String // PRJ-142
+  type                  WorkItemType
+  title                 String
+  description           String?
+  acceptanceCriteria    String?         @map("acceptance_criteria")
+  parentId              Int?            @map("parent_id")
+  wbsNodeId             Int?            @map("wbs_node_id")
+  sprintId              Int?            @map("sprint_id")
+  releaseId             Int?            @map("release_id")
+  statusId              Int             @map("status_id")
+  priority              Priority        @default(medium)
+  rank                  String // LexoRank for backlog/board ordering
+  tags                  String[]
+  reporterId            Int?            @map("reporter_id")
+  createdById           Int             @map("created_by_id")
+  // scheduling (waterfall / hybrid phase level)
+  startDate             DateTime?       @map("start_date") @db.Date
+  endDate               DateTime?       @map("end_date") @db.Date
+  durationDays          Int?            @map("duration_days")
+  constraintType        ConstraintType? @map("constraint_type")
+  constraintDate        DateTime?       @map("constraint_date") @db.Date
+  actualStartDate       DateTime?       @map("actual_start_date")
+  actualEndDate         DateTime?       @map("actual_end_date")
+  earlyStart            DateTime?       @map("early_start") @db.Date
+  earlyFinish           DateTime?       @map("early_finish") @db.Date
+  lateStart             DateTime?       @map("late_start") @db.Date
+  lateFinish            DateTime?       @map("late_finish") @db.Date
+  totalFloatDays        Int?            @map("total_float_days")
+  freeFloatDays         Int?            @map("free_float_days")
+  isCritical            Boolean         @default(false) @map("is_critical")
+  progressWeight        Decimal?        @map("progress_weight") @db.Decimal(5, 2)
+  workPackage           String?         @map("work_package")
+  // estimation & effort (both)
+  storyPoints           Decimal?        @map("story_points") @db.Decimal(6, 1)
+  estimatedHours        Decimal         @default(0) @map("estimated_hours") @db.Decimal(10, 2)
+  remainingHours        Decimal?        @map("remaining_hours") @db.Decimal(10, 2)
+  actualHours           Decimal         @default(0) @map("actual_hours") @db.Decimal(10, 2) // rolled up from time entries
+  progressPct           Decimal         @default(0) @map("progress_pct") @db.Decimal(5, 2)
+  // sprint bookkeeping
+  addedAfterSprintStart Boolean         @default(false) @map("added_after_sprint_start")
+  completedAt           DateTime?       @map("completed_at")
+  deletedAt             DateTime?       @map("deleted_at")
+  createdAt             DateTime        @default(now()) @map("created_at")
+  updatedAt             DateTime        @updatedAt @map("updated_at")
+
+  project             Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parent              WorkItem?            @relation("WorkItemTree", fields: [parentId], references: [id])
+  children            WorkItem[]           @relation("WorkItemTree")
+  wbsNode             WbsNode?             @relation(fields: [wbsNodeId], references: [id])
+  sprint              Sprint?              @relation(fields: [sprintId], references: [id])
+  release             Release?             @relation(fields: [releaseId], references: [id])
+  status              WorkflowStatus       @relation(fields: [statusId], references: [id])
+  reporter            User?                @relation("WorkItemReporter", fields: [reporterId], references: [id])
+  createdBy           User                 @relation("WorkItemCreator", fields: [createdById], references: [id])
+  assignees           WorkItemAssignee[]
+  predecessors        WorkItemDependency[] @relation("DependencySuccessor")
+  successors          WorkItemDependency[] @relation("DependencyPredecessor")
+  linksOut            WorkItemLink[]       @relation("LinkSource")
+  linksIn             WorkItemLink[]       @relation("LinkTarget")
+  transitions         StatusTransition[]
+  comments            Comment[]
+  resourceAssignments ResourceAssignment[]
+  progressReports     ProgressReport[]
+  timeEntries         TimeEntry[]
+  budgetLines         BudgetLine[]
+  documents           Document[]
+  mitigations         RiskMitigation[]
+  escalations         Escalation[]
+  baselineItems       BaselineItem[]
+  triggerRules        WorkflowRule[]       @relation("RuleTrigger")
+  actionRules         WorkflowRule[]       @relation("RuleAction")
+  releaseMilestoneOf  Release[]            @relation("ReleaseMilestone")
+
+  @@unique([projectId, key])
+  @@index([projectId, statusId])
+  @@index([projectId, sprintId])
+  @@index([projectId, rank])
+  @@index([parentId])
+  @@index([wbsNodeId])
+  @@index([releaseId])
+  @@map("work_items")
+}
+
+model WorkItemAssignee {
+  workItemId Int      @map("work_item_id")
+  userId     Int      @map("user_id")
+  assignedAt DateTime @default(now()) @map("assigned_at")
+  workItem   WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@id([workItemId, userId])
+  @@index([userId])
+  @@map("work_item_assignees")
+}
+
+/// Scheduling logic used by CPM (was TaskDependency).
+model WorkItemDependency {
+  id            Int            @id @default(autoincrement())
+  predecessorId Int            @map("predecessor_id")
+  successorId   Int            @map("successor_id")
+  type          DependencyType @default(finish_to_start)
+  lagDays       Int            @default(0) @map("lag_days")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  predecessor   WorkItem       @relation("DependencyPredecessor", fields: [predecessorId], references: [id], onDelete: Cascade)
+  successor     WorkItem       @relation("DependencySuccessor", fields: [successorId], references: [id], onDelete: Cascade)
+
+  @@unique([predecessorId, successorId])
+  @@index([successorId])
+  @@map("work_item_dependencies")
+}
+
+/// Non-scheduling relations used by Agile (blocks / relates to / duplicates).
+model WorkItemLink {
+  id        Int              @id @default(autoincrement())
+  sourceId  Int              @map("source_id")
+  targetId  Int              @map("target_id")
+  type      WorkItemLinkType
+  createdAt DateTime         @default(now()) @map("created_at")
+  source    WorkItem         @relation("LinkSource", fields: [sourceId], references: [id], onDelete: Cascade)
+  target    WorkItem         @relation("LinkTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceId, targetId, type])
+  @@map("work_item_links")
+}
+
+/// Every status change; feeds cycle time, lead time, CFD and the audit trail.
+model StatusTransition {
+  id           Int             @id @default(autoincrement())
+  workItemId   Int             @map("work_item_id")
+  fromStatusId Int?            @map("from_status_id")
+  toStatusId   Int             @map("to_status_id")
+  changedById  Int             @map("changed_by_id")
+  changedAt    DateTime        @default(now()) @map("changed_at")
+  workItem     WorkItem        @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  fromStatus   WorkflowStatus? @relation("TransitionFrom", fields: [fromStatusId], references: [id])
+  toStatus     WorkflowStatus  @relation("TransitionTo", fields: [toStatusId], references: [id])
+  changedBy    User            @relation(fields: [changedById], references: [id])
+
+  @@index([workItemId, changedAt])
+  @@index([toStatusId, changedAt])
+  @@map("status_transitions")
+}
+
+model Comment {
+  id         Int              @id @default(autoincrement())
+  workItemId Int              @map("work_item_id")
+  authorId   Int              @map("author_id")
+  parentId   Int?             @map("parent_id")
+  body       String
+  editedAt   DateTime?        @map("edited_at")
+  deletedAt  DateTime?        @map("deleted_at")
+  createdAt  DateTime         @default(now()) @map("created_at")
+  workItem   WorkItem         @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  author     User             @relation(fields: [authorId], references: [id])
+  parent     Comment?         @relation("CommentReplies", fields: [parentId], references: [id])
+  replies    Comment[]        @relation("CommentReplies")
+  mentions   CommentMention[]
+
+  @@index([workItemId, createdAt])
+  @@map("comments")
+}
+
+model CommentMention {
+  commentId Int     @map("comment_id")
+  userId    Int     @map("user_id")
+  comment   Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id])
+
+  @@id([commentId, userId])
+  @@index([userId])
+  @@map("comment_mentions")
+}
+
+model WorkflowRule {
+  id              Int             @id @default(autoincrement())
+  projectId       Int             @map("project_id")
+  name            String
+  description     String?
+  trigger         WorkflowTrigger
+  triggerItemId   Int?            @map("trigger_item_id")
+  triggerCategory StatusCategory? @map("trigger_category")
+  action          WorkflowAction
+  actionItemId    Int?            @map("action_item_id")
+  actionConfig    Json?           @map("action_config")
+  isActive        Boolean         @default(true) @map("is_active")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+  project         Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  triggerItem     WorkItem?       @relation("RuleTrigger", fields: [triggerItemId], references: [id])
+  actionItem      WorkItem?       @relation("RuleAction", fields: [actionItemId], references: [id])
+
+  @@index([projectId, trigger])
+  @@map("workflow_rules")
+}
+
+model RecurringWorkItem {
+  id            Int                 @id @default(autoincrement())
+  projectId     Int                 @map("project_id")
+  wbsNodeId     Int?                @map("wbs_node_id")
+  title         String
+  description   String?
+  type          WorkItemType        @default(task)
+  frequency     RecurrenceFrequency
+  startDate     DateTime            @map("start_date") @db.Date
+  endDate       DateTime?           @map("end_date") @db.Date
+  lastCreatedAt DateTime?           @map("last_created_at")
+  isActive      Boolean             @default(true) @map("is_active")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+  project       Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  wbsNode       WbsNode?            @relation(fields: [wbsNodeId], references: [id])
+
+  @@map("recurring_work_items")
+}
+
+// @section waterfall
+// ---------------------------------------------------------------- Waterfall planning
+// WBS stays a tree; WBSItem is dropped (its cost data lives in BudgetLine).
+
+model WbsNode {
+  id             Int                 @id @default(autoincrement())
+  projectId      Int                 @map("project_id")
+  parentId       Int?                @map("parent_id")
+  code           String
+  name           String
+  description    String?
+  level          Int
+  sortOrder      Int                 @default(0) @map("sort_order")
+  isPhase        Boolean             @default(false) @map("is_phase") // phase-gate node (hybrid sprints attach here)
+  progressWeight Decimal?            @map("progress_weight") @db.Decimal(5, 2)
+  startDate      DateTime?           @map("start_date") @db.Date // rolled up from work items
+  endDate        DateTime?           @map("end_date") @db.Date
+  progressPct    Decimal             @default(0) @map("progress_pct") @db.Decimal(5, 2)
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+  project        Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parent         WbsNode?            @relation("WbsTree", fields: [parentId], references: [id])
+  children       WbsNode[]           @relation("WbsTree")
+  workItems      WorkItem[]
+  sprints        Sprint[]
+  budgetLines    BudgetLine[]
+  procurements   Procurement[]
+  documents      Document[]
+  recurringItems RecurringWorkItem[]
+
+  @@unique([projectId, code])
+  @@index([parentId])
+  @@map("wbs_nodes")
+}
+
+/// Baselines become rows instead of three Json blobs, so variance is a query.
+model Baseline {
+  id          Int            @id @default(autoincrement())
+  projectId   Int            @map("project_id")
+  name        String
+  description String?
+  type        BaselineType
+  isActive    Boolean        @default(false) @map("is_active") // the one variance is measured against
+  capturedAt  DateTime       @default(now()) @map("captured_at")
+  totalBudget Decimal        @map("total_budget") @db.Decimal(18, 2)
+  plannedEnd  DateTime?      @map("planned_end") @db.Date
+  createdById Int            @map("created_by_id")
+  project     Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy   User           @relation(fields: [createdById], references: [id])
+  items       BaselineItem[]
+
+  @@index([projectId])
+  @@map("baselines")
+}
+
+model BaselineItem {
+  id           Int       @id @default(autoincrement())
+  baselineId   Int       @map("baseline_id")
+  workItemId   Int       @map("work_item_id")
+  startDate    DateTime? @map("start_date") @db.Date
+  endDate      DateTime? @map("end_date") @db.Date
+  durationDays Int?      @map("duration_days")
+  plannedCost  Decimal   @default(0) @map("planned_cost") @db.Decimal(18, 2)
+  plannedHours Decimal   @default(0) @map("planned_hours") @db.Decimal(10, 2)
+  baseline     Baseline  @relation(fields: [baselineId], references: [id], onDelete: Cascade)
+  workItem     WorkItem  @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+
+  @@unique([baselineId, workItemId])
+  @@map("baseline_items")
+}
+
+model EvmSnapshot {
+  id            Int      @id @default(autoincrement())
+  projectId     Int      @map("project_id")
+  fiscalPeriod  String   @map("fiscal_period")
+  reportingDate DateTime @map("reporting_date") @db.Date
+  plannedValue  Decimal  @map("planned_value") @db.Decimal(18, 2)
+  earnedValue   Decimal  @map("earned_value") @db.Decimal(18, 2)
+  actualCost    Decimal  @map("actual_cost") @db.Decimal(18, 2)
+  cpi           Decimal  @db.Decimal(6, 3)
+  spi           Decimal  @db.Decimal(6, 3)
+  eac           Decimal  @db.Decimal(18, 2)
+  etc           Decimal  @db.Decimal(18, 2)
+  vac           Decimal  @db.Decimal(18, 2)
+  createdAt     DateTime @default(now()) @map("created_at")
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, reportingDate])
+  @@map("evm_snapshots")
+}
+
+// @section agile
+// ---------------------------------------------------------------- Agile delivery
+
+model Sprint {
+  id              Int              @id @default(autoincrement())
+  projectId       Int              @map("project_id")
+  phaseWbsNodeId  Int?             @map("phase_wbs_node_id") // hybrid: sprint runs inside a phase
+  name            String
+  goal            String?
+  state           SprintState      @default(planned)
+  startDate       DateTime         @map("start_date") @db.Date
+  endDate         DateTime         @map("end_date") @db.Date
+  committedPoints Decimal?         @map("committed_points") @db.Decimal(8, 1) // frozen at start
+  committedHours  Decimal?         @map("committed_hours") @db.Decimal(10, 2)
+  completedPoints Decimal?         @map("completed_points") @db.Decimal(8, 1) // frozen at close
+  completedHours  Decimal?         @map("completed_hours") @db.Decimal(10, 2)
+  startedAt       DateTime?        @map("started_at")
+  closedAt        DateTime?        @map("closed_at")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  phase           WbsNode?         @relation(fields: [phaseWbsNodeId], references: [id])
+  workItems       WorkItem[]
+  capacities      SprintCapacity[]
+  snapshots       SprintSnapshot[]
+  lessons         Lesson[]
+
+  @@index([projectId, state])
+  @@map("sprints")
+}
+
+model SprintCapacity {
+  id              Int      @id @default(autoincrement())
+  sprintId        Int      @map("sprint_id")
+  userId          Int      @map("user_id")
+  availableHours  Decimal  @map("available_hours") @db.Decimal(8, 2)
+  availablePoints Decimal? @map("available_points") @db.Decimal(6, 1)
+  daysOff         Int      @default(0) @map("days_off")
+  sprint          Sprint   @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id])
+
+  @@unique([sprintId, userId])
+  @@map("sprint_capacities")
+}
+
+/// One row per sprint per day, written by a nightly job (burndown / burnup).
+model SprintSnapshot {
+  id              Int      @id @default(autoincrement())
+  sprintId        Int      @map("sprint_id")
+  date            DateTime @db.Date
+  scopePoints     Decimal  @map("scope_points") @db.Decimal(8, 1)
+  completedPoints Decimal  @map("completed_points") @db.Decimal(8, 1)
+  scopeHours      Decimal  @map("scope_hours") @db.Decimal(10, 2)
+  remainingHours  Decimal  @map("remaining_hours") @db.Decimal(10, 2)
+  itemCount       Int      @map("item_count")
+  doneCount       Int      @map("done_count")
+  sprint          Sprint   @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+
+  @@unique([sprintId, date])
+  @@map("sprint_snapshots")
+}
+
+model Release {
+  id                  Int           @id @default(autoincrement())
+  projectId           Int           @map("project_id")
+  name                String // v1.4, "Phase 2 handover", …
+  description         String?
+  status              ReleaseStatus @default(planned)
+  targetDate          DateTime?     @map("target_date") @db.Date
+  releasedAt          DateTime?     @map("released_at")
+  milestoneWorkItemId Int?          @map("milestone_work_item_id") // hybrid: shared date with the schedule
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+  project             Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestone           WorkItem?     @relation("ReleaseMilestone", fields: [milestoneWorkItemId], references: [id])
+  workItems           WorkItem[]
+
+  @@unique([projectId, name])
+  @@map("releases")
+}
+
+// @section resources
+// ---------------------------------------------------------------- Resources & field operations
+
+model Resource {
+  id                   Int                   @id @default(autoincrement())
+  organizationId       Int                   @map("organization_id")
+  name                 String
+  type                 ResourceType
+  role                 String?
+  userId               Int?                  @unique @map("user_id") // labour resource backed by a user
+  department           String?
+  skills               String[]
+  rating               Int                   @default(0)
+  rate                 Decimal               @db.Decimal(12, 2) // per hour (labour/equipment) or per unit (material)
+  capacityHoursPerDay  Decimal               @default(8) @map("capacity_hours_per_day") @db.Decimal(4, 2)
+  availability         ResourceAvailability  @default(available)
+  unit                 String? // material: kg, m³, …
+  quantity             Decimal?              @db.Decimal(14, 3)
+  email                String?
+  phoneNumber          String?               @map("phone_number")
+  location             String?
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+  user                 User?                 @relation(fields: [userId], references: [id])
+  assignments          ResourceAssignment[]
+  equipmentLogs        EquipmentSiteLog[]
+  maintenanceSchedules MaintenanceSchedule[]
+  maintenanceLogs      MaintenanceLog[]
+  organization         Organization          @relation(fields: [organizationId], references: [id])
+
+  @@index([type, availability])
+  @@index([organizationId])
+  @@map("resources")
+}
+
+model ResourceAssignment {
+  id              Int              @id @default(autoincrement())
+  resourceId      Int              @map("resource_id")
+  workItemId      Int              @map("work_item_id")
+  allocationPct   Decimal          @map("allocation_pct") @db.Decimal(5, 2)
+  startDate       DateTime         @map("start_date") @db.Date
+  endDate         DateTime         @map("end_date") @db.Date
+  plannedHours    Decimal          @map("planned_hours") @db.Decimal(10, 2)
+  actualHours     Decimal          @default(0) @map("actual_hours") @db.Decimal(10, 2)
+  plannedQuantity Decimal?         @map("planned_quantity") @db.Decimal(14, 3) // material
+  progressPct     Decimal          @default(0) @map("progress_pct") @db.Decimal(5, 2)
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  resource        Resource         @relation(fields: [resourceId], references: [id])
+  workItem        WorkItem         @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  progressReports ProgressReport[]
+
+  @@index([resourceId, startDate, endDate])
+  @@index([workItemId])
+  @@map("resource_assignments")
+}
+
+/// Field progress reported against an assignment (was FieldData).
+model ProgressReport {
+  id                   Int                 @id @default(autoincrement())
+  workItemId           Int                 @map("work_item_id")
+  resourceAssignmentId Int?                @map("resource_assignment_id")
+  reportedById         Int                 @map("reported_by_id")
+  actualProgressPct    Decimal             @map("actual_progress_pct") @db.Decimal(5, 2)
+  actualHours          Decimal             @map("actual_hours") @db.Decimal(10, 2)
+  isOnPlan             Boolean             @map("is_on_plan")
+  notes                String?
+  reportedAt           DateTime            @default(now()) @map("reported_at")
+  workItem             WorkItem            @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  resourceAssignment   ResourceAssignment? @relation(fields: [resourceAssignmentId], references: [id])
+  reportedBy           User                @relation(fields: [reportedById], references: [id])
+
+  @@index([workItemId, reportedAt])
+  @@map("progress_reports")
+}
+
+model Site {
+  id            Int                @id @default(autoincrement())
+  code          String
+  projectId     Int                @map("project_id")
+  name          String
+  description   String?
+  address       String?
+  coordinates   String? // "lat,lng"
+  siteType      String?            @map("site_type")
+  managerId     Int?               @map("manager_id")
+  isActive      Boolean            @default(true) @map("is_active")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+  project       Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  manager       User?              @relation(fields: [managerId], references: [id])
+  equipmentLogs EquipmentSiteLog[]
+
+  @@unique([projectId, code])
+  @@map("sites")
+}
+
+model EquipmentSiteLog {
+  id              Int       @id @default(autoincrement())
+  resourceId      Int       @map("resource_id")
+  siteId          Int       @map("site_id")
+  loggedById      Int       @map("logged_by_id")
+  checkedInAt     DateTime  @map("checked_in_at")
+  checkedOutAt    DateTime? @map("checked_out_at")
+  usageHours      Decimal?  @map("usage_hours") @db.Decimal(10, 2)
+  conditionBefore String?   @map("condition_before")
+  conditionAfter  String?   @map("condition_after")
+  notes           String?
+  createdAt       DateTime  @default(now()) @map("created_at")
+  resource        Resource  @relation(fields: [resourceId], references: [id])
+  site            Site      @relation(fields: [siteId], references: [id])
+  loggedBy        User      @relation(fields: [loggedById], references: [id])
+
+  @@index([resourceId])
+  @@map("equipment_site_logs")
+}
+
+model MaintenanceSchedule {
+  id             Int                @id @default(autoincrement())
+  resourceId     Int                @map("resource_id")
+  type           MaintenanceType
+  triggerType    MaintenanceTrigger @map("trigger_type")
+  triggerValue   String             @map("trigger_value")
+  nextDueDate    DateTime           @map("next_due_date") @db.Date
+  status         MaintenanceStatus  @default(scheduled)
+  priority       Priority           @default(medium)
+  description    String?
+  estimatedHours Decimal?           @map("estimated_hours") @db.Decimal(8, 2)
+  estimatedCost  Decimal?           @map("estimated_cost") @db.Decimal(14, 2)
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+  resource       Resource           @relation(fields: [resourceId], references: [id])
+  logs           MaintenanceLog[]
+
+  @@index([nextDueDate, status])
+  @@map("maintenance_schedules")
+}
+
+model MaintenanceLog {
+  id              Int                  @id @default(autoincrement())
+  scheduleId      Int?                 @map("schedule_id")
+  resourceId      Int                  @map("resource_id")
+  type            MaintenanceType
+  performedAt     DateTime             @map("performed_at")
+  performedById   Int                  @map("performed_by_id")
+  workDescription String               @map("work_description")
+  partsUsed       String?              @map("parts_used")
+  laborHours      Decimal?             @map("labor_hours") @db.Decimal(8, 2)
+  partsCost       Decimal?             @map("parts_cost") @db.Decimal(14, 2)
+  laborCost       Decimal?             @map("labor_cost") @db.Decimal(14, 2)
+  totalCost       Decimal?             @map("total_cost") @db.Decimal(14, 2)
+  conditionBefore String?              @map("condition_before")
+  conditionAfter  String?              @map("condition_after")
+  nextServiceDate DateTime?            @map("next_service_date") @db.Date
+  notes           String?
+  createdAt       DateTime             @default(now()) @map("created_at")
+  schedule        MaintenanceSchedule? @relation(fields: [scheduleId], references: [id])
+  resource        Resource             @relation(fields: [resourceId], references: [id])
+  performedBy     User                 @relation(fields: [performedById], references: [id])
+
+  @@index([resourceId, performedAt])
+  @@map("maintenance_logs")
+}
+
+// @section cost
+// ---------------------------------------------------------------- Budget & cost
+
+model BudgetLine {
+  id            Int               @id @default(autoincrement())
+  projectId     Int               @map("project_id")
+  wbsNodeId     Int?              @map("wbs_node_id")
+  workItemId    Int?              @map("work_item_id")
+  costType      CostType          @map("cost_type")
+  description   String?
+  plannedAmount Decimal           @map("planned_amount") @db.Decimal(18, 2)
+  actualAmount  Decimal           @default(0) @map("actual_amount") @db.Decimal(18, 2) // derived from transactions
+  thresholdPct  Decimal           @default(0) @map("threshold_pct") @db.Decimal(5, 2)
+  fiscalYear    Int               @map("fiscal_year")
+  fiscalPeriod  String            @map("fiscal_period")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+  project       Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  wbsNode       WbsNode?          @relation(fields: [wbsNodeId], references: [id])
+  workItem      WorkItem?         @relation(fields: [workItemId], references: [id])
+  transactions  CostTransaction[]
+
+  @@index([projectId, fiscalYear])
+  @@map("budget_lines")
+}
+
+model CostTransaction {
+  id           Int               @id @default(autoincrement())
+  projectId    Int               @map("project_id")
+  budgetLineId Int?              @map("budget_line_id")
+  amount       Decimal           @db.Decimal(18, 2)
+  costType     CostType          @map("cost_type")
+  source       TransactionSource @default(manual)
+  externalRef  String?           @map("external_ref") // finance module id
+  occurredOn   DateTime          @map("occurred_on") @db.Date
+  description  String?
+  createdAt    DateTime          @default(now()) @map("created_at")
+  project      Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  budgetLine   BudgetLine?       @relation(fields: [budgetLineId], references: [id])
+
+  @@unique([source, externalRef])
+  @@index([projectId, occurredOn])
+  @@map("cost_transactions")
+}
+
+// @section risk
+// ---------------------------------------------------------------- Risk
+
+model Risk {
+  id                  Int                @id @default(autoincrement())
+  projectId           Int                @map("project_id")
+  ownerId             Int                @map("owner_id")
+  name                String
+  description         String?
+  category            RiskCategory       @default(other)
+  impact              RiskRating
+  probability         RiskRating
+  level               RiskRating         @default(medium) // derived from impact × probability
+  score               Int // derived
+  likelihoodScore     Decimal?           @map("likelihood_score") @db.Decimal(5, 2)
+  impactScore         Decimal?           @map("impact_score") @db.Decimal(5, 2)
+  status              RiskStatus         @default(identified)
+  approvalStatus      RiskApprovalStatus @default(not_submitted) @map("approval_status")
+  identifiedOn        DateTime           @map("identified_on") @db.Date
+  lastReviewedAt      DateTime?          @map("last_reviewed_at")
+  nextReviewOn        DateTime?          @map("next_review_on") @db.Date
+  reviewFrequencyDays Int?               @map("review_frequency_days")
+  createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @updatedAt @map("updated_at")
+  project             Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner               User               @relation("RiskOwner", fields: [ownerId], references: [id])
+  mitigations         RiskMitigation[]
+
+  @@index([projectId, status])
+  @@index([nextReviewOn])
+  @@map("risks")
+}
+
+model RiskMitigation {
+  id             Int              @id @default(autoincrement())
+  riskId         Int              @map("risk_id")
+  workItemId     Int?             @map("work_item_id") // was required; agile mitigations need not be a task
+  ownerId        Int              @map("owner_id")
+  assigneeId     Int              @map("assignee_id")
+  description    String
+  actionPlan     String           @map("action_plan")
+  type           MitigationType   @default(mitigate)
+  status         MitigationStatus @default(planned)
+  startDate      DateTime         @map("start_date") @db.Date
+  dueDate        DateTime         @map("due_date") @db.Date
+  progressPct    Decimal          @default(0) @map("progress_pct") @db.Decimal(5, 2)
+  completedAt    DateTime?        @map("completed_at")
+  notes          String?
+  lastReminderAt DateTime?        @map("last_reminder_at") // replaces ReminderLog
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+  risk           Risk             @relation(fields: [riskId], references: [id], onDelete: Cascade)
+  workItem       WorkItem?        @relation(fields: [workItemId], references: [id])
+  owner          User             @relation("MitigationOwner", fields: [ownerId], references: [id])
+  assignee       User             @relation("MitigationAssignee", fields: [assigneeId], references: [id])
+
+  @@index([riskId])
+  @@index([assigneeId, status])
+  @@index([dueDate])
+  @@map("risk_mitigations")
+}
+
+// @section procurement
+// ---------------------------------------------------------------- Procurement
+
+model Vendor {
+  id                Int           @id @default(autoincrement())
+  organizationId    Int           @map("organization_id")
+  name              String
+  category          String
+  contactPerson     String?       @map("contact_person")
+  email             String?
+  phone             String?
+  address           String?
+  performanceRating Decimal       @default(0) @map("performance_rating") @db.Decimal(3, 2)
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+  contracts         Contract[]
+  rfqResponses      RfqResponse[]
+  organization      Organization  @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@map("vendors")
+}
+
+model Procurement {
+  id            Int               @id @default(autoincrement())
+  projectId     Int               @map("project_id")
+  wbsNodeId     Int?              @map("wbs_node_id")
+  type          ProcurementType
+  description   String
+  estimatedCost Decimal           @map("estimated_cost") @db.Decimal(18, 2)
+  actualCost    Decimal           @default(0) @map("actual_cost") @db.Decimal(18, 2)
+  status        ProcurementStatus @default(planned)
+  neededBy      DateTime?         @map("needed_by") @db.Date
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+  project       Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  wbsNode       WbsNode?          @relation(fields: [wbsNodeId], references: [id])
+  contracts     Contract[]
+  rfqResponses  RfqResponse[]
+
+  @@index([projectId, status])
+  @@map("procurements")
+}
+
+model RfqResponse {
+  id              Int               @id @default(autoincrement())
+  procurementId   Int               @map("procurement_id")
+  vendorId        Int               @map("vendor_id")
+  quoteAmount     Decimal           @map("quote_amount") @db.Decimal(18, 2)
+  deliveryDays    Int?              @map("delivery_days") // was free-text delivery_time
+  technicalScore  Int               @map("technical_score")
+  commercialScore Int               @map("commercial_score")
+  totalScore      Int               @map("total_score") // derived
+  status          RfqResponseStatus @default(submitted)
+  submittedAt     DateTime          @default(now()) @map("submitted_at")
+  notes           String?
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  procurement     Procurement       @relation(fields: [procurementId], references: [id], onDelete: Cascade)
+  vendor          Vendor            @relation(fields: [vendorId], references: [id])
+
+  @@unique([procurementId, vendorId])
+  @@map("rfq_responses")
+}
+
+model Contract {
+  id             Int            @id @default(autoincrement())
+  procurementId  Int            @map("procurement_id")
+  vendorId       Int            @map("vendor_id")
+  contractNumber String         @map("contract_number")
+  name           String
+  description    String?
+  startDate      DateTime       @map("start_date") @db.Date
+  endDate        DateTime       @map("end_date") @db.Date
+  value          Decimal        @db.Decimal(18, 2)
+  status         ContractStatus @default(draft)
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+  procurement    Procurement    @relation(fields: [procurementId], references: [id])
+  vendor         Vendor         @relation(fields: [vendorId], references: [id])
+
+  @@unique([procurementId, contractNumber])
+  @@map("contracts")
+}
+
+// @section documents
+// ---------------------------------------------------------------- Documents
+
+model Document {
+  id                Int           @id @default(autoincrement())
+  organizationId    Int           @map("organization_id") // project is optional, so the tenant is stored directly
+  name              String
+  description       String?
+  storageKey        String        @map("storage_key") // S3 object key, never a public URL
+  mimeType          String        @map("mime_type")
+  sizeBytes         Int           @map("size_bytes")
+  version           Int           @default(1)
+  previousVersionId Int?          @unique @map("previous_version_id")
+  projectId         Int?          @map("project_id")
+  wbsNodeId         Int?          @map("wbs_node_id")
+  workItemId        Int?          @map("work_item_id")
+  uploadedById      Int           @map("uploaded_by_id")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  previousVersion   Document?     @relation("DocumentVersions", fields: [previousVersionId], references: [id])
+  nextVersion       Document?     @relation("DocumentVersions")
+  project           Project?      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  wbsNode           WbsNode?      @relation(fields: [wbsNodeId], references: [id])
+  workItem          WorkItem?     @relation(fields: [workItemId], references: [id])
+  uploadedBy        User          @relation(fields: [uploadedById], references: [id])
+  closureItems      ClosureItem[]
+  handovers         Handover[]
+  organization      Organization  @relation(fields: [organizationId], references: [id])
+
+  @@index([projectId])
+  @@index([workItemId])
+  @@index([organizationId])
+  @@map("documents")
+}
+
+// @section time
+// ---------------------------------------------------------------- Time tracking
+
+model Timesheet {
+  id           Int             @id @default(autoincrement())
+  userId       Int             @map("user_id")
+  projectId    Int             @map("project_id")
+  periodStart  DateTime        @map("period_start") @db.Date
+  periodEnd    DateTime        @map("period_end") @db.Date
+  status       TimesheetStatus @default(draft)
+  totalHours   Decimal         @default(0) @map("total_hours") @db.Decimal(8, 2) // derived
+  comments     String?
+  submittedAt  DateTime?       @map("submitted_at")
+  approvedById Int?            @map("approved_by_id")
+  decidedAt    DateTime?       @map("decided_at")
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+  user         User            @relation("TimesheetOwner", fields: [userId], references: [id])
+  project      Project         @relation(fields: [projectId], references: [id])
+  approvedBy   User?           @relation("TimesheetApprover", fields: [approvedById], references: [id])
+  entries      TimeEntry[]
+
+  @@unique([userId, projectId, periodStart])
+  @@index([approvedById, status])
+  @@map("timesheets")
+}
+
+model TimeEntry {
+  id          Int             @id @default(autoincrement())
+  userId      Int             @map("user_id")
+  projectId   Int             @map("project_id") // denormalised for querying; must match the work item's project
+  workItemId  Int             @map("work_item_id")
+  timesheetId Int?            @map("timesheet_id")
+  date        DateTime        @db.Date
+  startTime   DateTime?       @map("start_time")
+  endTime     DateTime?       @map("end_time")
+  hours       Decimal         @db.Decimal(6, 2)
+  description String?
+  status      TimeEntryStatus @default(draft)
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+  user        User            @relation(fields: [userId], references: [id])
+  project     Project         @relation(fields: [projectId], references: [id])
+  workItem    WorkItem        @relation(fields: [workItemId], references: [id])
+  timesheet   Timesheet?      @relation(fields: [timesheetId], references: [id])
+
+  @@index([userId, date])
+  @@index([workItemId])
+  @@map("time_entries")
+}
+
+// @section approvals
+// ---------------------------------------------------------------- Approvals engine
+// Replaces Approval, ProjectApproval and ScheduleApproval with one engine.
+// Policies (admin-managed) define the ordered steps per approval type.
+
+model ApprovalPolicy {
+  id             Int                  @id @default(autoincrement())
+  organizationId Int                  @map("organization_id")
+  type           ApprovalType
+  name           String
+  isActive       Boolean              @default(true) @map("is_active")
+  steps          ApprovalPolicyStep[]
+  organization   Organization         @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, type])
+  @@index([organizationId])
+  @@map("approval_policies")
+}
+
+model ApprovalPolicyStep {
+  id                Int            @id @default(autoincrement())
+  policyId          Int            @map("policy_id")
+  stepOrder         Int            @map("step_order")
+  approverRoleId    Int?           @map("approver_role_id")
+  useProjectManager Boolean        @default(false) @map("use_project_manager") // resolve to the project's PM
+  policy            ApprovalPolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  approverRole      Role?          @relation(fields: [approverRoleId], references: [id])
+
+  @@unique([policyId, stepOrder])
+  @@map("approval_policy_steps")
+}
+
+model ApprovalRequest {
+  id            Int            @id @default(autoincrement())
+  type          ApprovalType
+  status        ApprovalStatus @default(pending)
+  projectId     Int            @map("project_id")
+  entityType    String         @map("entity_type") // project, budget_change, checklist, wbs_node, closure
+  entityId      Int            @map("entity_id")
+  payload       Json? // e.g. { "budgetDelta": 150000, "reason": "…" }
+  requestedById Int            @map("requested_by_id")
+  requestedAt   DateTime       @default(now()) @map("requested_at")
+  resolvedAt    DateTime?      @map("resolved_at")
+  project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  requestedBy   User           @relation("ApprovalRequester", fields: [requestedById], references: [id])
+  steps         ApprovalStep[]
+
+  @@index([projectId, status])
+  @@index([entityType, entityId])
+  @@map("approval_requests")
+}
+
+model ApprovalStep {
+  id             Int             @id @default(autoincrement())
+  requestId      Int             @map("request_id")
+  stepOrder      Int             @map("step_order")
+  assigneeId     Int?            @map("assignee_id") // resolved approver; null = any user holding the role
+  approverRoleId Int?            @map("approver_role_id")
+  status         ApprovalStatus  @default(waiting) // first step starts as pending
+  decidedById    Int?            @map("decided_by_id")
+  decidedAt      DateTime?       @map("decided_at")
+  comments       String?
+  request        ApprovalRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  assignee       User?           @relation("ApprovalAssignee", fields: [assigneeId], references: [id])
+  decidedBy      User?           @relation("ApprovalDecider", fields: [decidedById], references: [id])
+
+  @@unique([requestId, stepOrder])
+  @@index([assigneeId, status])
+  @@map("approval_steps")
+}
+
+// @section closure
+// ---------------------------------------------------------------- Closure
+// Templated per category. Construction keeps punch list / inspection / handover;
+// software gets UAT sign-off, release notes, ops handover, retrospective.
+
+model ClosureTemplate {
+  id             Int                   @id @default(autoincrement())
+  organizationId Int                   @map("organization_id")
+  name           String
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
+  items          ClosureTemplateItem[]
+  categories     ProjectCategory[]
+  organization   Organization          @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@map("closure_templates")
+}
+
+model ClosureTemplateItem {
+  id           Int             @id @default(autoincrement())
+  templateId   Int             @map("template_id")
+  type         ClosureItemType
+  title        String
+  documentType String?         @map("document_type") // as_built_drawing, certificate_of_completion, release_notes, …
+  isRequired   Boolean         @default(true) @map("is_required")
+  sortOrder    Int             @map("sort_order")
+  template     ClosureTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@map("closure_template_items")
+}
+
+model ProjectClosure {
+  id         Int           @id @default(autoincrement())
+  projectId  Int           @unique @map("project_id")
+  status     ClosureStatus @default(in_progress)
+  startedAt  DateTime      @default(now()) @map("started_at")
+  approvedAt DateTime?     @map("approved_at")
+  finalNotes String?       @map("final_notes")
+  project    Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  items      ClosureItem[]
+
+  @@map("project_closures")
+}
+
+model ClosureItem {
+  id            Int               @id @default(autoincrement())
+  closureId     Int               @map("closure_id")
+  type          ClosureItemType
+  title         String
+  documentType  String?           @map("document_type")
+  isRequired    Boolean           @default(true) @map("is_required")
+  status        ClosureItemStatus @default(pending)
+  autoChecked   Boolean           @default(false) @map("auto_checked")
+  documentId    Int?              @map("document_id")
+  notes         String?
+  sortOrder     Int               @map("sort_order")
+  completedAt   DateTime?         @map("completed_at")
+  completedById Int?              @map("completed_by_id")
+  closure       ProjectClosure    @relation(fields: [closureId], references: [id], onDelete: Cascade)
+  document      Document?         @relation(fields: [documentId], references: [id])
+  completedBy   User?             @relation(fields: [completedById], references: [id])
+
+  @@map("closure_items")
+}
+
+/// Generic project checklist (was ProjectChecklist with items as Json).
+model Checklist {
+  id          Int               @id @default(autoincrement())
+  projectId   Int               @map("project_id")
+  title       String
+  description String?
+  category    ChecklistCategory @default(custom)
+  status      ChecklistStatus   @default(draft) // approval runs through ApprovalRequest
+  completedAt DateTime?         @map("completed_at")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+  project     Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  items       ChecklistItem[]
+
+  @@map("checklists")
+}
+
+model ChecklistItem {
+  id          Int       @id @default(autoincrement())
+  checklistId Int       @map("checklist_id")
+  label       String
+  isDone      Boolean   @default(false) @map("is_done")
+  doneAt      DateTime? @map("done_at")
+  doneById    Int?      @map("done_by_id")
+  sortOrder   Int       @map("sort_order")
+  checklist   Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  doneBy      User?     @relation(fields: [doneById], references: [id])
+
+  @@map("checklist_items")
+}
+
+model PunchListItem {
+  id          Int             @id @default(autoincrement())
+  projectId   Int             @map("project_id")
+  title       String
+  description String?
+  location    String?
+  status      PunchItemStatus @default(open)
+  assigneeId  Int?            @map("assignee_id")
+  dueOn       DateTime?       @map("due_on") @db.Date
+  resolvedAt  DateTime?       @map("resolved_at")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee    User?           @relation(fields: [assigneeId], references: [id])
+
+  @@index([projectId, status])
+  @@map("punch_list_items")
+}
+
+/// Was FinalInspection; date + "14:30" string merged into one timestamp.
+model Inspection {
+  id          Int              @id @default(autoincrement())
+  projectId   Int              @map("project_id")
+  kind        String           @default("final")
+  scheduledAt DateTime         @map("scheduled_at")
+  inspectorId Int?             @map("inspector_id")
+  status      InspectionStatus @default(scheduled)
+  notes       String?
+  completedAt DateTime?        @map("completed_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+  project     Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  inspector   User?            @relation(fields: [inspectorId], references: [id])
+
+  @@map("inspections")
+}
+
+model Handover {
+  id                Int            @id @default(autoincrement())
+  projectId         Int            @map("project_id")
+  scheduledAt       DateTime       @map("scheduled_at")
+  responsibleId     Int            @map("responsible_id")
+  recipient         String? // client / operations team
+  receiptDocumentId Int?           @map("receipt_document_id")
+  status            HandoverStatus @default(scheduled)
+  notes             String?
+  completedAt       DateTime?      @map("completed_at")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+  project           Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  responsible       User           @relation(fields: [responsibleId], references: [id])
+  receiptDocument   Document?      @relation(fields: [receiptDocumentId], references: [id])
+
+  @@map("handovers")
+}
+
+// @section comms
+// ---------------------------------------------------------------- Notifications, alerts, activity, lessons, reports
+
+model Notification {
+  id          Int                  @id @default(autoincrement())
+  recipientId Int                  @map("recipient_id")
+  senderId    Int?                 @map("sender_id") // null = system
+  type        NotificationType
+  priority    NotificationPriority @default(medium)
+  title       String
+  message     String
+  entityType  String?              @map("entity_type")
+  entityId    Int?                 @map("entity_id")
+  metadata    Json?
+  status      NotificationStatus   @default(unread)
+  readAt      DateTime?            @map("read_at")
+  expiresAt   DateTime?            @map("expires_at")
+  createdAt   DateTime             @default(now()) @map("created_at")
+  recipient   User                 @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  sender      User?                @relation("NotificationSender", fields: [senderId], references: [id])
+
+  @@index([recipientId, status, createdAt])
+  @@map("notifications")
+}
+
+model Alert {
+  id          Int           @id @default(autoincrement())
+  projectId   Int           @map("project_id")
+  type        AlertType
+  severity    AlertSeverity
+  message     String
+  metadata    Json?
+  escalated   Boolean       @default(false)
+  triggeredAt DateTime      @default(now()) @map("triggered_at")
+  resolvedAt  DateTime?     @map("resolved_at")
+  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, resolvedAt])
+  @@map("alerts")
+}
+
+model Escalation {
+  id          Int              @id @default(autoincrement())
+  workItemId  Int              @map("work_item_id")
+  escalatedTo String           @map("escalated_to")
+  reason      String
+  status      EscalationStatus @default(open)
+  triggeredAt DateTime         @default(now()) @map("triggered_at")
+  resolvedAt  DateTime?        @map("resolved_at")
+  workItem    WorkItem         @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+
+  @@map("escalations")
+}
+
+/// Was RecentActivity; written by an interceptor, never by controllers.
+model ActivityLog {
+  id             Int           @id @default(autoincrement())
+  organizationId Int?          @map("organization_id") // null = platform action
+  userId         Int           @map("user_id")
+  action         String // create, update, delete, assign, transition, approve, …
+  entityType     String        @map("entity_type")
+  entityId       Int?          @map("entity_id")
+  projectId      Int?          @map("project_id")
+  title          String
+  metadata       Json?
+  createdAt      DateTime      @default(now()) @map("created_at")
+  user           User          @relation(fields: [userId], references: [id])
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([entityType, entityId])
+  @@index([projectId, createdAt])
+  @@index([organizationId])
+  @@map("activity_logs")
+}
+
+/// Lessons learned (waterfall) and retrospective items (agile, sprintId set).
+model Lesson {
+  id              Int        @id @default(autoincrement())
+  projectId       Int        @map("project_id")
+  sprintId        Int?       @map("sprint_id")
+  type            LessonType @default(lesson)
+  title           String
+  description     String
+  category        String?
+  impact          String?
+  recommendations String?
+  submittedById   Int        @map("submitted_by_id")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+  project         Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sprint          Sprint?    @relation(fields: [sprintId], references: [id])
+  submittedBy     User       @relation(fields: [submittedById], references: [id])
+
+  @@index([projectId])
+  @@index([sprintId])
+  @@map("lessons")
+}
+
+/// Saved report definitions for the reporting engine (was Report).
+model ReportDefinition {
+  id             Int          @id @default(autoincrement())
+  organizationId Int          @map("organization_id")
+  name           String
+  description    String?
+  format         String // pdf, xlsx, pptx, csv
+  definition     Json // tables, columns, filters, grouping
+  createdById    Int          @map("created_by_id")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  createdBy      User         @relation(fields: [createdById], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@map("report_definitions")
+}
+
+// @section enums
+// ---------------------------------------------------------------- Enums
+
+enum OrganizationStatus {
+  trial
+  active
+  suspended
+}
+
+enum IntegrationProvider {
+  idp
+  hr
+  inventory
+  finance
+  metabase
+}
+
+enum UserStatus {
+  active
+  inactive
+  suspended
+}
+
+enum PermissionScope {
+  none
+  own
+  all
+}
+
+enum InboxStatus {
+  received
+  processing
+  processed
+  failed
+}
+
+enum Methodology {
+  waterfall
+  agile
+  hybrid
+}
+
+enum AgileFramework {
+  scrum
+  kanban
+}
+
+enum EstimationUnit {
+  hours
+  story_points
+}
+
+enum ProgressMethod {
+  duration_weighted
+  wbs_weighted
+  story_points
+  item_count
+  manual
+}
+
+enum ProjectStatus {
+  draft
+  pending_approval
+  rejected
+  planning
+  active
+  on_hold
+  closing
+  closed
+  cancelled
+}
+
+enum ProjectRole {
+  manager
+  product_owner
+  scrum_master
+  member
+  stakeholder
+  viewer
+}
+
+enum Priority {
+  low
+  medium
+  high
+  critical
+}
+
+enum StrategicValue {
+  low
+  medium
+  high
+}
+
+enum ComplianceStatus {
+  pending
+  compliant
+  non_compliant
+}
+
+enum PortfolioStatus {
+  active
+  on_hold
+  completed
+  archived
+}
+
+enum LifecycleGating {
+  sequential
+  free
+}
+
+enum LifecycleStepStatus {
+  locked
+  available
+  in_progress
+  completed
+  skipped
+}
+
+enum ConflictType {
+  resource_overallocation
+  skill_mismatch
+  dependency_violation
+  timeline_conflict
+  budget_exceeded
+  resource_unavailable
+  team_conflict
+}
+
+enum ConflictSeverity {
+  low
+  medium
+  high
+  critical
+}
+
+enum WorkItemType {
+  epic
+  feature
+  story
+  task
+  subtask
+  bug
+  milestone
+}
+
+enum StatusCategory {
+  todo
+  in_progress
+  done
+}
+
+enum DependencyType {
+  finish_to_start
+  start_to_start
+  finish_to_finish
+  start_to_finish
+}
+
+enum WorkItemLinkType {
+  blocks
+  relates_to
+  duplicates
+}
+
+enum ConstraintType {
+  asap
+  alap
+  must_start_on
+  must_finish_on
+  start_no_earlier_than
+  start_no_later_than
+  finish_no_earlier_than
+  finish_no_later_than
+}
+
+enum WorkflowTrigger {
+  status_category_changed
+  dependency_completed
+  sprint_started
+  sprint_completed
+}
+
+enum WorkflowAction {
+  start_item
+  move_to_status
+  send_notification
+  assign_resource
+  create_recurring_item
+  escalate_item
+  update_project_status
+}
+
+enum RecurrenceFrequency {
+  daily
+  weekly
+  monthly
+  quarterly
+  yearly
+}
+
+enum BaselineType {
+  initial
+  revised
+  re_baseline
+}
+
+enum SprintState {
+  planned
+  active
+  closed
+}
+
+enum ReleaseStatus {
+  planned
+  in_progress
+  released
+  cancelled
+}
+
+enum ResourceType {
+  labor
+  equipment
+  material
+}
+
+enum ResourceAvailability {
+  available
+  on_leave
+  inactive
+}
+
+enum MaintenanceType {
+  routine
+  repair
+  inspection
+  compliance
+  emergency
+}
+
+enum MaintenanceTrigger {
+  time_based
+  usage_based
+  condition_based
+  regulatory
+}
+
+enum MaintenanceStatus {
+  scheduled
+  in_progress
+  completed
+  overdue
+  cancelled
+}
+
+enum CostType {
+  labor
+  material
+  equipment
+  subcontract
+  overhead
+  other
+}
+
+enum TransactionSource {
+  manual
+  finance_sync
+  timesheet
+  procurement
+}
+
+enum RiskCategory {
+  technical
+  schedule
+  cost
+  resource
+  quality
+  communication
+  external
+  regulatory
+  environmental
+  security
+  other
+}
+
+enum RiskRating {
+  low
+  medium
+  high
+  critical
+}
+
+enum RiskStatus {
+  identified
+  assessed
+  monitoring
+  mitigated
+  escalated
+  closed
+}
+
+enum RiskApprovalStatus {
+  not_submitted
+  pending
+  approved
+  rejected
+}
+
+enum MitigationType {
+  avoid
+  transfer
+  mitigate
+  accept
+  contingency
+}
+
+enum MitigationStatus {
+  planned
+  in_progress
+  completed
+  on_hold
+  cancelled
+  overdue
+}
+
+enum ProcurementType {
+  material
+  service
+  equipment
+}
+
+enum ProcurementStatus {
+  planned
+  rfq_open
+  evaluating
+  awarded
+  ordered
+  delivered
+  closed
+  cancelled
+}
+
+enum RfqResponseStatus {
+  submitted
+  under_review
+  shortlisted
+  awarded
+  rejected
+}
+
+enum ContractStatus {
+  draft
+  active
+  completed
+  terminated
+  expired
+}
+
+enum TimesheetStatus {
+  draft
+  submitted
+  approved
+  rejected
+}
+
+enum TimeEntryStatus {
+  draft
+  submitted
+  approved
+  rejected
+}
+
+enum ApprovalType {
+  project_creation
+  budget_change
+  schedule_change
+  scope_change
+  phase_gate
+  checklist
+  project_closure
+}
+
+enum ApprovalStatus {
+  waiting
+  pending
+  approved
+  rejected
+  revision_requested
+  cancelled
+}
+
+enum ClosureStatus {
+  in_progress
+  pending_approval
+  approved
+}
+
+enum ClosureItemType {
+  document
+  checklist
+  inspection
+  punch_list
+  handover
+  approval
+  retrospective
+  release_notes
+  custom
+}
+
+enum ClosureItemStatus {
+  pending
+  complete
+  waived
+}
+
+enum ChecklistCategory {
+  document_verification
+  financial_closure
+  stakeholder_signoff
+  resource_release
+  lessons_learned
+  final_report
+  contract_closure
+  custom
+}
+
+enum ChecklistStatus {
+  draft
+  submitted
+  approved
+  rejected
+  needs_revision
+}
+
+enum PunchItemStatus {
+  open
+  in_progress
+  resolved
+}
+
+enum InspectionStatus {
+  scheduled
+  in_progress
+  passed
+  failed
+}
+
+enum HandoverStatus {
+  scheduled
+  in_progress
+  completed
+}
+
+enum NotificationType {
+  project_update
+  work_item_assigned
+  work_item_updated
+  mention
+  deadline_reminder
+  budget_alert
+  risk_alert
+  approval_requested
+  approval_decided
+  sprint_started
+  sprint_ending
+  sprint_completed
+  document_update
+  maintenance_due
+  system
+}
+
+enum NotificationPriority {
+  low
+  medium
+  high
+  urgent
+}
+
+enum NotificationStatus {
+  unread
+  read
+  archived
+}
+
+enum AlertType {
+  budget_threshold
+  schedule_slip
+  critical_path_change
+  risk_escalation
+  wip_limit_exceeded
+  sprint_at_risk
+  overdue_items
+}
+
+enum AlertSeverity {
+  info
+  warning
+  critical
+}
+
+enum EscalationStatus {
+  open
+  acknowledged
+  resolved
+}
+
+enum LessonType {
+  lesson
+  retro_went_well
+  retro_to_improve
+  retro_action
+}
