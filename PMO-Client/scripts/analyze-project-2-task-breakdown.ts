@@ -1,4 +1,4 @@
-import { prisma } from '../lib/prisma';
+import { prisma } from '../src/lib/prisma';
 
 async function analyzeProject2TaskBreakdown() {
   console.log('🔍 Analyzing Project 2 Task Breakdown\n');

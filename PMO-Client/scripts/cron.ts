@@ -1,6 +1,6 @@
 import cron from 'node-cron';
-import { RecurringTaskService } from '../lib/services/recurring-task.service.ts';
-import { TimesheetService } from '../lib/services/timesheet.service.ts';
+import { RecurringTaskService } from '../src/lib/services/recurring-task.service.ts';
+import { TimesheetService } from '../src/lib/services/timesheet.service.ts';
 
 // Run every minute for recurring tasks
 cron.schedule('*/1 * * * *', async () => {
