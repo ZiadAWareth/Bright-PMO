@@ -21,11 +21,14 @@ import { FilterBar, FilterSelect } from "@/components/ui/filter-bar";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ViewToggle, type ListViewMode } from "@/components/ui/view-toggle";
 import { PersonCell } from "@/components/ui/person-cell";
-import { LoadingState } from "@/components/ui/spinner";
 import {
+  CardSkeleton,
+  EntityCode,
   ListCard,
   ListHead,
   ListMessage,
+  ListRegion,
+  ListSkeleton,
   NewButton,
   RowAction,
   RowActions,
@@ -481,8 +484,18 @@ export default function EPSPage() {
             />
           </FilterBar>
 
+          <ListRegion busy={isLoading}>
           {isLoading ? (
-            <LoadingState />
+            view === "grid" ? (
+              <CardSkeleton />
+            ) : (
+              <ListCard>
+                <table className="w-full border-collapse">
+                  <ListHead columns={COLUMNS} />
+                  <ListSkeleton columns={COLUMNS.length} />
+                </table>
+              </ListCard>
+            )
           ) : topLevelCount === 0 ? (
             <EmptyState
               icon={<Layers className="h-10 w-10" />}
@@ -582,7 +595,7 @@ export default function EPSPage() {
                                   {eps.name}
                                 </div>
                                 <div className="truncate text-[11.5px] text-faint">
-                                  {eps.eps_code}
+                                  <EntityCode code={eps.eps_code} />
                                 </div>
                               </button>
                             </div>
@@ -636,6 +649,8 @@ export default function EPSPage() {
               </table>
             </ListCard>
           )}
+
+          </ListRegion>
 
           {!isLoading && topLevelCount > 0 && (
             <ListPagination

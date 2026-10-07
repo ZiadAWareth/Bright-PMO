@@ -241,39 +241,33 @@ export default function DynamicDashboard() {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout
+      title="Dynamic Analytics Dashboard"
+      subtitle="Interactive analytics and insights powered by Metabase"
+      actions={
+        <>
+          <button
+            onClick={refreshDashboard}
+            className="px-4 py-2 bg-surface-2 text-ink-3 rounded-lg hover:bg-surface-3 transition-colors flex items-center gap-2"
+          >
+            {healthStatus.status === 'checking' ? (
+              <Spinner size={16} />
+            ) : (
+              <RefreshCw className="w-4 h-4" />
+            )}
+            Refresh
+          </button>
+          <button
+            onClick={openMetabaseInNewTab}
+            className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors flex items-center gap-2"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Open in Metabase
+          </button>
+        </>
+      }
+    >
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-ink">
-              Dynamic Analytics Dashboard
-            </h1>
-            <p className="text-muted">
-              Interactive analytics and insights powered by Metabase
-            </p>
-          </div>
-          
-          <div className="flex gap-3">
-            <button
-              onClick={refreshDashboard}
-              className="px-4 py-2 bg-surface-2 text-ink-3 rounded-lg hover:bg-surface-3 transition-colors flex items-center gap-2"
-            >
-              {healthStatus.status === 'checking' ? (
-                <Spinner size={16} />
-              ) : (
-                <RefreshCw className="w-4 h-4" />
-              )}
-              Refresh
-            </button>
-            <button
-              onClick={openMetabaseInNewTab}
-              className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors flex items-center gap-2"
-            >
-              <ExternalLink className="w-4 h-4" />
-              Open in Metabase
-            </button>
-          </div>
-        </div>
 
         {metabaseAvailable ? (
           <div className="bg-surface border border-line rounded-xl overflow-hidden">

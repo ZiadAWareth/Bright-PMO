@@ -2212,6 +2212,7 @@ const ProjectCreatePage = () => {
                     />
                     {formData.objectives.length > 1 && (
                       <button
+                        aria-label="Remove objective"
                         onClick={() => removeArrayItem("objectives", index)}
                         className="p-2 text-danger hover:bg-danger-soft rounded-lg transition-colors"
                       >
@@ -2250,6 +2251,7 @@ const ProjectCreatePage = () => {
                     />
                     {formData.successCriteria.length > 1 && (
                       <button
+                        aria-label="Remove success criterion"
                         onClick={() =>
                           removeArrayItem("successCriteria", index)
                         }
@@ -2314,8 +2316,10 @@ const ProjectCreatePage = () => {
                         onClick={() => setShowPMSelection(!showPMSelection)}
                         className="px-3 py-3 bg-bright text-white border border-bright rounded-r-lg hover:bg-bright-deep transition-colors"
                         title="Select from database"
+                        aria-label="Select project manager from database"
+                        aria-expanded={showPMSelection}
                       >
-                        <Users size={18} />
+                        <Users size={18} aria-hidden="true" />
                       </button>
                     )}
                   </div>
@@ -2493,6 +2497,7 @@ const ProjectCreatePage = () => {
                         Select Users from Database
                       </h4>
                       <button
+                        aria-label="Close user selection"
                         type="button"
                         onClick={() => setShowUserSelection(false)}
                         className="text-faint hover:text-muted"
@@ -2910,6 +2915,7 @@ const ProjectCreatePage = () => {
                     />
                     {formData.technicalRequirements.length > 1 && (
                       <button
+                        aria-label="Remove technical requirement"
                         onClick={() =>
                           removeArrayItem("technicalRequirements", index)
                         }
@@ -2950,6 +2956,7 @@ const ProjectCreatePage = () => {
                     />
                     {formData.technologyStack.length > 1 && (
                       <button
+                        aria-label="Remove technology"
                         onClick={() =>
                           removeArrayItem("technologyStack", index)
                         }
@@ -3001,6 +3008,7 @@ const ProjectCreatePage = () => {
                   />
                   {formData.deliverables.length > 1 && (
                     <button
+                      aria-label="Remove deliverable"
                       onClick={() => removeArrayItem("deliverables", index)}
                       className="p-2 text-danger hover:bg-danger-soft rounded-lg transition-colors"
                     >
@@ -3108,6 +3116,7 @@ const ProjectCreatePage = () => {
                   />
                   {formData.governanceGates.length > 1 && (
                     <button
+                      aria-label="Remove governance gate"
                       onClick={() => removeArrayItem("governanceGates", index)}
                       className="p-2 text-danger hover:bg-danger-soft rounded-lg transition-colors"
                     >

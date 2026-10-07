@@ -6,10 +6,31 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
+  ChevronRight,
   Plus,
   type LucideIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
+
+/**
+ * Action button styles.
+ *
+ * Screens were colouring buttons semantically — green for "approve", blue for
+ * "schedule", red for "reject" — which put four saturated fills on one screen
+ * and left nothing to mark the primary action. Semantic colour belongs to
+ * *status*, which the reader interprets, not to *actions*, which they choose
+ * between. So there is one orange primary per view and everything else is
+ * neutral; a destructive action gets red text on a neutral ground rather than
+ * a red fill.
+ */
+export const actionPrimary =
+  "inline-flex h-9 items-center justify-center gap-2 rounded-md bg-bright px-3.5 text-[13px] font-semibold text-white transition-colors hover:bg-bright-deep focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-bright-soft disabled:cursor-not-allowed disabled:opacity-60";
+
+export const actionSecondary =
+  "inline-flex h-9 items-center justify-center gap-2 rounded-md border border-line bg-surface px-3.5 text-[13px] font-medium text-ink transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-bright-soft disabled:cursor-not-allowed disabled:opacity-60";
+
+export const actionDanger =
+  "inline-flex h-9 items-center justify-center gap-2 rounded-md border border-danger/30 bg-surface px-3.5 text-[13px] font-medium text-danger transition-colors hover:bg-danger-soft focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-danger/20 disabled:cursor-not-allowed disabled:opacity-60";
 
 /** Shared control styles so every form field on a screen matches. */
 export const inputClass =
@@ -77,7 +98,7 @@ export function PageHeader({
         }`}
       >
         <div className="min-w-0">
-          <h1 className="truncate text-[25px] font-semibold tracking-tight text-ink">
+          <h1 className="truncate font-display text-[25px] font-semibold tracking-tight text-ink">
             {title}
           </h1>
           {subtitle && (
@@ -98,6 +119,259 @@ export function PageHeader({
   );
 }
 
+/**
+ * The trail of ancestors above a nested screen's title.
+ *
+ * Sub-screens under a project (closure, budget, WBS, tasks) sit three levels
+ * deep, and a single "Back" link only ever exposes one of those levels. The
+ * trail names the parents so the current screen is locatable rather than just
+ * escapable.
+ *
+ * Rendered with `Link` rather than `router.push` on a `<button>`: several
+ * screens hand-rolled the button form, which silently drops middle-click,
+ * ctrl-click and "open in new tab", and announces a navigation control as a
+ * generic button. The final crumb is plain text carrying `aria-current`, since
+ * a link to the page you are already on is noise for keyboard and screen
+ * reader users alike.
+ */
+export function Breadcrumb({
+  items,
+  className,
+}: {
+  /** Ancestors first, current page last. Only the last may omit `href`. */
+  items: { label: ReactNode; href?: string }[];
+  className?: string;
+}) {
+  return (
+    <nav aria-label="Breadcrumb" className={className}>
+      <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[13px] text-muted">
+        {items.map((item, i) => {
+          const last = i === items.length - 1;
+          return (
+            <li key={i} className="flex items-center gap-x-1.5">
+              {i > 0 && (
+                <ChevronRight
+                  className="h-3.5 w-3.5 shrink-0 text-faint"
+                  aria-hidden="true"
+                />
+              )}
+              {item.href && !last ? (
+                <Link
+                  href={item.href}
+                  className="max-w-[22ch] truncate rounded-sm transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-bright-soft"
+                >
+                  {item.label}
+                </Link>
+              ) : (
+                <span
+                  aria-current={last ? "page" : undefined}
+                  className={
+                    last
+                      ? "max-w-[26ch] truncate font-medium text-ink"
+                      : "max-w-[22ch] truncate"
+                  }
+                >
+                  {item.label}
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+
+/**
+ * A full-panel message for a screen with nothing to show.
+ *
+ * Every screen previously wrote its own centred icon-plus-heading block, and
+ * they drifted apart in icon size, spacing and whether an action was offered
+ * at all. Three states share this shape — nothing created yet, work blocked on
+ * a precondition, and work finished — so `tone` selects the icon treatment
+ * while the layout stays fixed.
+ *
+ * The icon is `aria-hidden`: it repeats the heading beside it, so announcing
+ * it would make a screen reader read the same state twice.
+ */
+export function EmptyState({
+  icon: Icon,
+  title,
+  description,
+  tone = "neutral",
+  action,
+  children,
+}: {
+  icon: LucideIcon;
+  title: ReactNode;
+  description?: ReactNode;
+  /** Selects the icon tile colour; the surrounding panel stays neutral. */
+  tone?: "neutral" | "success" | "warning" | "info";
+  action?: ReactNode;
+  /** Extra content below the action, e.g. a status pill or summary grid. */
+  children?: ReactNode;
+}) {
+  const tones = {
+    neutral: "bg-surface-2 text-faint",
+    success: "bg-success-soft text-success",
+    warning: "bg-warning-soft text-warning",
+    info: "bg-info-soft text-info",
+  } as const;
+
+  return (
+    <div className="rounded-xl border border-line bg-surface px-6 py-14">
+      <div className="mx-auto flex max-w-md flex-col items-center text-center">
+        <span
+          className={`grid h-12 w-12 place-items-center rounded-full ${tones[tone]}`}
+        >
+          <Icon className="h-6 w-6" aria-hidden="true" />
+        </span>
+        <h3 className="mt-4 font-display text-[17px] font-semibold text-ink">
+          {title}
+        </h3>
+        {description && (
+          <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted">
+            {description}
+          </p>
+        )}
+        {action && <div className="mt-6">{action}</div>}
+        {children && <div className="mt-6 w-full">{children}</div>}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A single figure with its label, for the stat strip at the top of a section.
+ *
+ * Every project section previously filled these cards edge to edge with a soft
+ * semantic tint — blue for documents, green for checklist, orange for punch
+ * list — which put three saturated blocks side by side and made a section with
+ * nothing done yet look as loud as one in trouble. The tint now appears only
+ * on the icon, so the row reads as data rather than as three competing alerts,
+ * and the colour still marks which metric is which.
+ *
+ * `value` is set in tabular figures so a row of cards keeps its digits aligned
+ * as the numbers change.
+ */
+export function StatCard({
+  label,
+  value,
+  hint,
+  icon: Icon,
+  tone = "neutral",
+}: {
+  label: ReactNode;
+  value: ReactNode;
+  /** Secondary line under the figure, e.g. "3 approved" or "40% complete". */
+  hint?: ReactNode;
+  icon?: LucideIcon;
+  tone?: "neutral" | "success" | "warning" | "danger" | "info" | "brand";
+}) {
+  const tones = {
+    neutral: "bg-surface-2 text-muted",
+    success: "bg-success-soft text-success",
+    warning: "bg-warning-soft text-warning",
+    danger: "bg-danger-soft text-danger",
+    info: "bg-info-soft text-info",
+    brand: "bg-bright-soft text-bright-deep",
+  } as const;
+
+  return (
+    <div className="rounded-xl border border-line bg-surface p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[12.5px] font-medium text-muted">{label}</p>
+          <p className="mt-1 font-display text-[22px] font-semibold tabular-nums leading-none text-ink">
+            {value}
+          </p>
+          {hint && <p className="mt-1.5 text-[12px] text-muted">{hint}</p>}
+        </div>
+        {Icon && (
+          <span
+            className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${tones[tone]}`}
+          >
+            <Icon className="h-4 w-4" aria-hidden="true" />
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A panel of record detail — a scheduled inspection, a handover, an approval.
+ *
+ * These were previously flood-filled with a soft semantic tint, and the tint
+ * was applied to the text as well, so every label and every value came out
+ * blue or purple. That fails twice: soft-on-soft is the weakest contrast pair
+ * on the palette, and colouring the data makes a scheduled inspection look
+ * like a warning rather than a record. The panel now sits on the normal
+ * surface with an accent left border carrying the state, and the text returns
+ * to the standard ink ramp.
+ */
+export function DetailPanel({
+  title,
+  status,
+  tone = "brand",
+  rows,
+  children,
+  actions,
+}: {
+  title: ReactNode;
+  /** Rendered top-right, typically a StatusBadge. */
+  status?: ReactNode;
+  /** Selects the accent rule down the left edge. */
+  tone?: "brand" | "success" | "warning" | "danger" | "info" | "neutral";
+  /** Label/value pairs laid out two-up. */
+  rows?: { label: ReactNode; value: ReactNode }[];
+  children?: ReactNode;
+  actions?: ReactNode;
+}) {
+  const accents = {
+    brand: "border-l-bright",
+    success: "border-l-success",
+    warning: "border-l-warning",
+    danger: "border-l-danger",
+    info: "border-l-info",
+    neutral: "border-l-line",
+  } as const;
+
+  return (
+    <div
+      className={`rounded-xl border border-line border-l-[3px] bg-surface p-5 ${accents[tone]}`}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h3 className="font-display text-[14.5px] font-semibold text-ink">
+          {title}
+        </h3>
+        {status}
+      </div>
+
+      {rows && rows.length > 0 && (
+        <dl className="mt-4 grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
+          {rows.map((row, i) => (
+            <div key={i}>
+              <dt className="text-[12.5px] text-muted">{row.label}</dt>
+              <dd className="mt-0.5 text-[13.5px] font-medium text-ink">
+                {row.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
+
+      {children && <div className="mt-4">{children}</div>}
+
+      {actions && (
+        <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-line pt-4">
+          {actions}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Primary "New …" call to action used in list headers. */
 export function NewButton({
   href,
@@ -115,7 +389,11 @@ export function NewButton({
 
   if (href && !disabled) {
     return (
-      <Link href={href} className={className}>
+      <Link
+        href={href}
+        data-testid={`new-${testId(label)}`}
+        className={className}
+      >
         <Plus className="h-4 w-4" aria-hidden="true" />
         {label}
       </Link>
@@ -123,7 +401,13 @@ export function NewButton({
   }
 
   return (
-    <button type="button" onClick={onClick} disabled={disabled} className={className}>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      data-testid={`new-${testId(label)}`}
+      className={className}
+    >
       <Plus className="h-4 w-4" aria-hidden="true" />
       {label}
     </button>
@@ -606,6 +890,23 @@ export function RowActions({ children }: { children: ReactNode }) {
   return <div className="flex items-center justify-end gap-0.5">{children}</div>;
 }
 
+/**
+ * Turn a human label into a stable `data-testid`.
+ *
+ * Selecting an element in an end-to-end test by its visible text breaks the
+ * moment the wording is reworded or translated, and selecting by CSS class
+ * breaks whenever the styling is touched. Deriving the id from the label the
+ * component already receives gives every control a hook without asking each
+ * call site to invent one, and the id only changes when the underlying action
+ * changes name — "Edit project" stays `edit-project` regardless of restyling.
+ */
+export function testId(label: string): string {
+  return label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 /** A single icon button for use inside RowActions. */
 export function RowAction({
   icon: Icon,
@@ -629,13 +930,26 @@ export function RowAction({
 
   if (href) {
     return (
-      <Link href={href} aria-label={label} title={label} className={className}>
+      <Link
+        href={href}
+        aria-label={label}
+        title={label}
+        data-testid={`row-action-${testId(label)}`}
+        className={className}
+      >
         <Icon className="h-4 w-4" aria-hidden="true" />
       </Link>
     );
   }
   return (
-    <button type="button" onClick={onClick} aria-label={label} title={label} className={className}>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      data-testid={`row-action-${testId(label)}`}
+      className={className}
+    >
       <Icon className="h-4 w-4" aria-hidden="true" />
     </button>
   );
@@ -660,6 +974,168 @@ export function ListMessage({
         {children}
       </td>
     </tr>
+  );
+}
+
+/**
+ * A single shimmering placeholder bar.
+ *
+ * Sized in `em` so a bar inherits the type size of the cell it sits in, which
+ * is what keeps a skeleton row the same height as the real row that replaces
+ * it. `w-[70%]` rather than a fixed width so bars vary with the column.
+ */
+function SkeletonBar({ className }: { className?: string }) {
+  return (
+    <span
+      className={`block h-[0.9em] animate-pulse rounded-[4px] bg-line motion-reduce:animate-none ${
+        className ?? "w-[70%]"
+      }`}
+    />
+  );
+}
+
+/**
+ * A machine-readable identifier — a project code, EPS code, WBS number.
+ *
+ * Codes are scanned and compared character by character rather than read as
+ * words, so they are set in the mono face: fixed advance width makes digits
+ * line up column-wise down a list, and it separates `0`/`O` and `1`/`l`, which
+ * a proportional face runs together. `tabular-nums` keeps that alignment even
+ * where the mono stack falls back to a system font.
+ *
+ * Rendered as `<code>` so assistive technology announces it as code rather
+ * than prose; the slight colour lift marks it as an identifier without making
+ * it compete with the entity name beside it.
+ */
+export function EntityCode({
+  code,
+  className = "",
+}: {
+  code: ReactNode;
+  className?: string;
+}) {
+  return (
+    <code
+      className={`font-mono text-[0.95em] tabular-nums tracking-tight text-bright-deep ${className}`}
+    >
+      {code}
+    </code>
+  );
+}
+
+
+/**
+ * The placeholder rows a list table shows while its first page loads.
+ *
+ * Replaces a centred spinner. A spinner collapses the table to nothing and then
+ * snaps the real rows in, so the page visibly jumps at the moment data
+ * arrives — the jank was the layout shift, not the wait. Rows of the same
+ * height as the real ones mean the table occupies its final size immediately
+ * and the content fades into a shape that is already there.
+ *
+ * It also communicates more than a spinner does: the column count and the
+ * table's proportions are visible before any data exists, so the screen reads
+ * as "a table of projects is loading" rather than "something is happening".
+ *
+ * `aria-hidden` because the bars are decoration — the accessible announcement
+ * belongs to the `aria-busy` region wrapping the table, not to 48 individual
+ * placeholder cells, which a screen reader would otherwise walk through one by
+ * one.
+ */
+export function ListSkeleton({
+  columns,
+  rows = 8,
+  /** Adds a leading narrow cell for tables with a selection checkbox column. */
+  leadingCell = false,
+}: {
+  columns: number;
+  rows?: number;
+  leadingCell?: boolean;
+}) {
+  // Varying the widths per column stops the block reading as a solid grey
+  // rectangle; the pattern repeats every four columns.
+  const widths = ["w-[80%]", "w-[55%]", "w-[70%]", "w-[45%]"];
+
+  return (
+    <tbody aria-hidden="true">
+      {Array.from({ length: rows }).map((_, r) => (
+        <tr key={r} className="border-b border-line-2 last:border-0">
+          {leadingCell && (
+            <td className="w-0 px-4 py-3">
+              <SkeletonBar className="w-4" />
+            </td>
+          )}
+          {Array.from({ length: columns }).map((_, c) => (
+            <td key={c} className="px-4 py-3">
+              <SkeletonBar className={widths[c % widths.length]} />
+            </td>
+          ))}
+          {/* Matches the actions column `ListHead` always appends. */}
+          <td className="w-0 px-4 py-3">
+            <SkeletonBar className="w-8" />
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  );
+}
+
+/**
+ * The placeholder grid shown while a card view loads.
+ *
+ * The card equivalent of `ListSkeleton` — the list screens toggle between a
+ * table and a card grid, and switching to cards should not drop back to a
+ * spinner.
+ */
+export function CardSkeleton({ cards = 6 }: { cards?: number }) {
+  return (
+    <div
+      aria-hidden="true"
+      className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3"
+    >
+      {Array.from({ length: cards }).map((_, i) => (
+        <div
+          key={i}
+          className="rounded-[14px] border border-line bg-surface p-5 shadow-card"
+        >
+          <SkeletonBar className="w-[65%]" />
+          <div className="mt-2.5">
+            <SkeletonBar className="w-[40%]" />
+          </div>
+          <div className="mt-5 space-y-2.5">
+            <SkeletonBar className="w-full" />
+            <SkeletonBar className="w-[80%]" />
+          </div>
+          <div className="mt-5 flex items-center justify-between border-t border-line-2 pt-4">
+            <SkeletonBar className="w-[30%]" />
+            <SkeletonBar className="w-[18%]" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Wraps the region of a list screen that swaps between placeholder and real
+ * content, and announces the swap.
+ *
+ * `aria-busy` is the part a spinner was never giving us: assistive technology
+ * is told the region is updating and then told when it has settled, instead of
+ * silently finding different content on the next pass. One wrapper per screen
+ * keeps that to a single announcement rather than one per placeholder row.
+ */
+export function ListRegion({
+  busy,
+  children,
+}: {
+  busy: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div aria-busy={busy} aria-live="polite">
+      {children}
+    </div>
   );
 }
 

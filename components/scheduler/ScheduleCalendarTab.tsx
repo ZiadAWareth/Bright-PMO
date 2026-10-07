@@ -464,6 +464,7 @@ const ScheduleCalendarTab: React.FC<ScheduleCalendarTabProps> = ({
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center space-x-4">
                         <button
+                          aria-label="Previous month"
                             onClick={() => {
                                 const newDate = new Date(currentMonth);
                                 newDate.setMonth(newDate.getMonth() - 1);
@@ -471,7 +472,7 @@ const ScheduleCalendarTab: React.FC<ScheduleCalendarTabProps> = ({
                             }}
                             className="p-2 hover:bg-surface-2 rounded-lg"
                         >
-                            <ChevronLeft size={20} />
+                            <ChevronLeft size={20} aria-hidden="true" />
                         </button>
                         <button
                             onClick={() => setShowMonthYearPicker(true)}
@@ -483,6 +484,7 @@ const ScheduleCalendarTab: React.FC<ScheduleCalendarTabProps> = ({
                             })}
                         </button>
                         <button
+                          aria-label="Next month"
                             onClick={() => {
                                 const newDate = new Date(currentMonth);
                                 newDate.setMonth(newDate.getMonth() + 1);
@@ -490,7 +492,7 @@ const ScheduleCalendarTab: React.FC<ScheduleCalendarTabProps> = ({
                             }}
                             className="p-2 hover:bg-surface-2 rounded-lg"
                         >
-                            <ChevronRight size={20} />
+                            <ChevronRight size={20} aria-hidden="true" />
                         </button>
 
                         {/* Filter indicator */}

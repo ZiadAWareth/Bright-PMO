@@ -2556,11 +2556,17 @@ const ProjectGanttPage: React.FC = () => {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout
+      title={
+        userRole === "executive" ? "Project Timeline" : "Project Gantt Chart"
+      }
+      subtitle={`${project.name} - ${project.description}`}
+    >
       <div className="space-y-6">
         {/* Breadcrumb Navigation */}
         <nav className="flex items-center space-x-2 text-sm text-muted">
           <button
+            aria-label="Go to dashboard"
             onClick={() => router.push("/analytics/dashboard")}
             className="hover:text-info"
           >
@@ -2586,18 +2592,8 @@ const ProjectGanttPage: React.FC = () => {
           </span>
         </nav>
 
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-ink">
-              {userRole === "executive"
-                ? "Project Timeline"
-                : "Project Gantt Chart"}
-            </h1>
-            <p className="text-muted">
-              {project.name} - {project.description}
-            </p>
-          </div>
+        {/* Header actions — the title itself is rendered by DashboardLayout. */}
+        <div className="flex items-center justify-end">
           <div className="flex items-center space-x-3">
             {/* User Role Display */}
             {user && (
@@ -3189,8 +3185,9 @@ const ProjectGanttPage: React.FC = () => {
                             }
                             className="p-2 text-danger hover:text-danger hover:bg-danger-soft rounded-lg transition-colors"
                             title="Delete Task"
+                            aria-label="Delete task"
                           >
-                            <Trash2 size={16} />
+                            <Trash2 size={16} aria-hidden="true" />
                           </button>
                           <button
                             onClick={() => setSelectedTask(null)}
@@ -3351,6 +3348,7 @@ const ProjectGanttPage: React.FC = () => {
                   Confirm Deletion
                 </h2>
                 <button
+                  aria-label="Close dialog"
                   onClick={() => setShowDeleteConfirmation(false)}
                   className="p-2 hover:bg-surface-2 rounded-lg"
                 >

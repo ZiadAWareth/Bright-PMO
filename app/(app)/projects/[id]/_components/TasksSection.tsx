@@ -4,6 +4,7 @@ import React from "react";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { Target, CheckCircle, Clock, AlertTriangle, ExternalLink, Eye } from "lucide-react";
 import { ProjectWithRelations } from "@/types/project";
+import { StatCard } from "@/components/ui/form-shell";
 
 interface TasksSectionProps {
     project: ProjectWithRelations;
@@ -26,48 +27,30 @@ export default function TasksSection({ project, projectId, router }: TasksSectio
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-info-soft rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-info font-medium">Total Tasks</p>
-                            <p className="text-2xl font-bold text-info">{project.tasks?.length || 0}</p>
-                        </div>
-                        <Target className="w-8 h-8 text-info" />
-                    </div>
-                </div>
-                <div className="bg-success-soft rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-success font-medium">Completed</p>
-                            <p className="text-2xl font-bold text-success">
-                                {project.tasks?.filter((task) => task.status === "completed").length || 0}
-                            </p>
-                        </div>
-                        <CheckCircle className="w-8 h-8 text-success" />
-                    </div>
-                </div>
-                <div className="bg-warning-soft rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-warning font-medium">In Progress</p>
-                            <p className="text-2xl font-bold text-warning">
-                                {project.tasks?.filter((task) => task.status === "in_progress").length || 0}
-                            </p>
-                        </div>
-                        <Clock className="w-8 h-8 text-warning" />
-                    </div>
-                </div>
-                <div className="bg-danger-soft rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-danger font-medium">Overdue</p>
-                            <p className="text-2xl font-bold text-danger">
-                                {project.tasks?.filter((task) => new Date(task.end_date) < new Date() && task.status !== "completed").length || 0}
-                            </p>
-                        </div>
-                        <AlertTriangle className="w-8 h-8 text-danger" />
-                    </div>
-                </div>
+                <StatCard
+                    label="Total Tasks"
+                    value={project.tasks?.length || 0}
+                    icon={Target}
+                    tone="info"
+                />
+                <StatCard
+                    label="Completed"
+                    value={project.tasks?.filter((task) => task.status === "completed").length || 0}
+                    icon={CheckCircle}
+                    tone="success"
+                />
+                <StatCard
+                    label="In Progress"
+                    value={project.tasks?.filter((task) => task.status === "in_progress").length || 0}
+                    icon={Clock}
+                    tone="warning"
+                />
+                <StatCard
+                    label="Overdue"
+                    value={project.tasks?.filter((task) => new Date(task.end_date) < new Date() && task.status !== "completed").length || 0}
+                    icon={AlertTriangle}
+                    tone="danger"
+                />
             </div>
 
             <div className="space-y-4">

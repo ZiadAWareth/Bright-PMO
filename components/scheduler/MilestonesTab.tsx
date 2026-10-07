@@ -87,8 +87,9 @@ const MilestonesTab: React.FC<MilestonesTabProps> = ({
                                                     }
                                                     className="flex items-center space-x-1 px-2 py-1 bg-success-soft hover:bg-success-soft text-success rounded text-xs font-medium transition-colors"
                                                     title="Edit Milestone"
+                                                    aria-label="Edit milestone"
                                                 >
-                                                    <Edit2 size={10} />
+                                                    <Edit2 size={10} aria-hidden="true" />
                                                 </button>
                                                 <button
                                                     onClick={() =>
@@ -99,8 +100,9 @@ const MilestonesTab: React.FC<MilestonesTabProps> = ({
                                                     }
                                                     className="flex items-center space-x-1 px-2 py-1 bg-danger-soft hover:bg-danger-soft text-danger rounded text-xs font-medium transition-colors"
                                                     title="Delete Milestone"
+                                                    aria-label="Delete milestone"
                                                 >
-                                                    <Trash2 size={10} />
+                                                    <Trash2 size={10} aria-hidden="true" />
                                                 </button>
                                             </div>
                                             <div className="text-right">
@@ -162,7 +164,7 @@ const MilestonesTab: React.FC<MilestonesTabProps> = ({
                         {completedMilestones.slice(0, 5).map((milestone) => (
                             <div
                                 key={milestone.task_id}
-                                className="flex items-center justify-between p-4 bg-success-soft border border-success rounded-lg"
+                                className="flex items-center justify-between p-4 bg-surface border border-line border-l-[3px] border-l-success rounded-lg"
                             >
                                 <div className="flex items-center space-x-3">
                                     <CheckCircle

@@ -4,6 +4,7 @@ import React from "react";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { Calendar, Target, AlertTriangle, Clock, BarChart3, ExternalLink } from "lucide-react";
 import { ProjectWithRelations } from "@/types/project";
+import { DetailPanel, StatCard } from "@/components/ui/form-shell";
 
 interface ScheduleSectionProps {
     project: ProjectWithRelations;
@@ -23,81 +24,83 @@ export default function ScheduleSection({ project, projectId, router }: Schedule
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div className="bg-info-soft rounded-xl p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-semibold text-info">This Week</h4>
-                        <Calendar className="w-6 h-6 text-info" />
-                    </div>
-                    <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm text-info">Due Tasks</span>
-                            <span className="font-bold text-info">
-                                {project.tasks?.filter((task) => {
-                                    const taskDate = new Date(task.end_date);
-                                    const today = new Date();
-                                    const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-                                    return taskDate >= today && taskDate <= weekFromNow;
-                                }).length || 0}
-                            </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm text-info">Starting</span>
-                            <span className="font-bold text-info">
-                                {project.tasks?.filter((task) => {
-                                    const taskDate = new Date(task.start_date);
-                                    const today = new Date();
-                                    const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-                                    return taskDate >= today && taskDate <= weekFromNow;
-                                }).length || 0}
-                            </span>
-                        </div>
-                    </div>
-                </div>
+                <DetailPanel
+                    tone="info"
+                    title={
+                        <span className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-info" aria-hidden="true" />
+                            This Week
+                        </span>
+                    }
+                    rows={[
+                        {
+                            label: "Due tasks",
+                            value: project.tasks?.filter((task) => {
+                                const taskDate = new Date(task.end_date);
+                                const today = new Date();
+                                const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+                                return taskDate >= today && taskDate <= weekFromNow;
+                            }).length || 0,
+                        },
+                        {
+                            label: "Starting",
+                            value: project.tasks?.filter((task) => {
+                                const taskDate = new Date(task.start_date);
+                                const today = new Date();
+                                const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+                                return taskDate >= today && taskDate <= weekFromNow;
+                            }).length || 0,
+                        },
+                    ]}
+                />
 
-                <div className="bg-accent-violet-soft rounded-xl p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-semibold text-accent-violet">Next Milestone</h4>
-                        <Target className="w-6 h-6 text-accent-violet" />
-                    </div>
+                <DetailPanel
+                    tone="brand"
+                    title={
+                        <span className="flex items-center gap-2">
+                            <Target className="h-4 w-4 text-bright" aria-hidden="true" />
+                            Next Milestone
+                        </span>
+                    }
+                >
                     {(() => {
                         const nextMilestone = project.tasks
                             ?.filter((task) => task.is_milestone && new Date(task.end_date) > new Date())
                             .sort((a, b) => new Date(a.end_date).getTime() - new Date(b.end_date).getTime())[0];
                         return nextMilestone ? (
                             <div className="space-y-2">
-                                <h5 className="font-medium text-accent-violet">{nextMilestone.name}</h5>
-                                <p className="text-sm text-accent-violet">Due: {new Date(nextMilestone.end_date).toLocaleDateString()}</p>
-                                <div className="w-full bg-accent-violet-soft rounded-full h-2">
-                                    <div className="bg-accent-violet h-2 rounded-full" style={{ width: `${nextMilestone.progress_percentage}%` }}></div>
+                                <h5 className="text-[13.5px] font-medium text-ink">{nextMilestone.name}</h5>
+                                <p className="text-[12.5px] text-muted">Due: {new Date(nextMilestone.end_date).toLocaleDateString()}</p>
+                                <div className="w-full bg-surface-3 rounded-full h-2">
+                                    <div className="bg-bright h-2 rounded-full" style={{ width: `${nextMilestone.progress_percentage}%` }}></div>
                                 </div>
-                                <p className="text-xs text-accent-violet">{nextMilestone.progress_percentage}% Complete</p>
+                                <p className="text-[12px] text-muted">{nextMilestone.progress_percentage}% Complete</p>
                             </div>
                         ) : (
-                            <p className="text-sm text-accent-violet">No upcoming milestones</p>
+                            <p className="text-[12.5px] text-muted">No upcoming milestones</p>
                         );
                     })()}
-                </div>
+                </DetailPanel>
 
-                <div className="bg-danger-soft rounded-xl p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-semibold text-danger">Attention Needed</h4>
-                        <AlertTriangle className="w-6 h-6 text-danger" />
-                    </div>
-                    <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm text-danger">Overdue</span>
-                            <span className="font-bold text-danger">
-                                {project.tasks?.filter((task) => new Date(task.end_date) < new Date() && task.status !== "completed").length || 0}
-                            </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm text-danger">High Priority</span>
-                            <span className="font-bold text-danger">
-                                {project.tasks?.filter((task) => task.priority === "high" && task.status !== "completed").length || 0}
-                            </span>
-                        </div>
-                    </div>
-                </div>
+                <DetailPanel
+                    tone="danger"
+                    title={
+                        <span className="flex items-center gap-2">
+                            <AlertTriangle className="h-4 w-4 text-danger" aria-hidden="true" />
+                            Attention Needed
+                        </span>
+                    }
+                    rows={[
+                        {
+                            label: "Overdue",
+                            value: project.tasks?.filter((task) => new Date(task.end_date) < new Date() && task.status !== "completed").length || 0,
+                        },
+                        {
+                            label: "High priority",
+                            value: project.tasks?.filter((task) => task.priority === "high" && task.status !== "completed").length || 0,
+                        },
+                    ]}
+                />
             </div>
 
             <div className="mb-6">
@@ -169,10 +172,10 @@ export default function ScheduleSection({ project, projectId, router }: Schedule
                 </div>
             </div>
 
-            <div className="bg-gradient-to-r from-surface-2 to-surface-2 rounded-xl p-6">
+            <div className="rounded-xl border border-line bg-surface p-6">
                 <div className="flex items-center justify-between mb-4">
-                    <h4 className="font-semibold text-ink flex items-center space-x-2">
-                        <BarChart3 size={20} />
+                    <h4 className="font-display text-[14.5px] font-semibold text-ink flex items-center space-x-2">
+                        <BarChart3 size={20} aria-hidden="true" />
                         <span>Schedule Overview</span>
                     </h4>
                     <button onClick={() => router.push(`/projects/${projectId}/schedule`)} className="text-sm text-bright hover:text-bright-deep font-medium flex items-center space-x-1">
@@ -180,29 +183,27 @@ export default function ScheduleSection({ project, projectId, router }: Schedule
                         <ExternalLink size={14} />
                     </button>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    <div className="text-center">
-                        <p className="text-3xl font-bold text-ink">
-                            {Math.ceil((new Date(project.planned_end_date).getTime() - new Date(project.start_date).getTime()) / (1000 * 60 * 60 * 24))}
-                        </p>
-                        <p className="text-sm text-muted">Total Days</p>
-                    </div>
-                    <div className="text-center">
-                        <p className="text-3xl font-bold text-info">
-                            {Math.max(0, Math.ceil((new Date().getTime() - new Date(project.start_date).getTime()) / (1000 * 60 * 60 * 24)))}
-                        </p>
-                        <p className="text-sm text-muted">Days Elapsed</p>
-                    </div>
-                    <div className="text-center">
-                        <p className="text-3xl font-bold text-bright">
-                            {Math.max(0, Math.ceil((new Date(project.planned_end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))}
-                        </p>
-                        <p className="text-sm text-muted">Days Remaining</p>
-                    </div>
-                    <div className="text-center">
-                        <p className="text-3xl font-bold text-success">{project.progress_percentage}%</p>
-                        <p className="text-sm text-muted">Complete</p>
-                    </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <StatCard
+                        label="Total Days"
+                        value={Math.ceil((new Date(project.planned_end_date).getTime() - new Date(project.start_date).getTime()) / (1000 * 60 * 60 * 24))}
+                        tone="neutral"
+                    />
+                    <StatCard
+                        label="Days Elapsed"
+                        value={Math.max(0, Math.ceil((new Date().getTime() - new Date(project.start_date).getTime()) / (1000 * 60 * 60 * 24)))}
+                        tone="info"
+                    />
+                    <StatCard
+                        label="Days Remaining"
+                        value={Math.max(0, Math.ceil((new Date(project.planned_end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))}
+                        tone="brand"
+                    />
+                    <StatCard
+                        label="Complete"
+                        value={`${project.progress_percentage}%`}
+                        tone="success"
+                    />
                 </div>
 
                 <div className="mt-6">
@@ -211,7 +212,7 @@ export default function ScheduleSection({ project, projectId, router }: Schedule
                         <span>{new Date(project.start_date).toLocaleDateString()} - {new Date(project.planned_end_date).toLocaleDateString()}</span>
                     </div>
                     <div className="w-full bg-surface-3 rounded-full h-3">
-                        <div className="bg-gradient-to-r from-info to-success h-3 rounded-full transition-all duration-300" style={{ width: `${project.progress_percentage}%` }}></div>
+                        <div className="bg-bright h-3 rounded-full transition-all duration-300" style={{ width: `${project.progress_percentage}%` }}></div>
                     </div>
                 </div>
             </div>

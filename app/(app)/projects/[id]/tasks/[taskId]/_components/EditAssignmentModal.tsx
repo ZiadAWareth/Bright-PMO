@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { X } from "lucide-react";
+import { Modal } from "@/components/ui/modal";
 import type { Task } from "./types";
 import { Spinner } from "@/components/ui/spinner";
 import { Dropdown } from "@/components/ui/dropdown";
@@ -140,26 +141,13 @@ const EditAssignmentModal = ({
   };
 
   return (
-    <div
-      className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 p-4"
-      onClick={handleBackdropClick}
+    <Modal
+      open
+      onClose={onClose}
+      title="Edit Assignment"
+      maxWidthClass="max-w-lg"
     >
-      <div className="bg-surface rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-line">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-ink">
-              Edit Assignment
-            </h2>
-            <button
-              onClick={onClose}
-              className="text-faint hover:text-muted"
-            >
-              <X size={24} />
-            </button>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Resource Selection */}
           <div>
             <label className="block text-sm font-medium text-ink-3 mb-2">
@@ -379,8 +367,7 @@ const EditAssignmentModal = ({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 };
 

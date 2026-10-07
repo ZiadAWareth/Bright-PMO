@@ -33,8 +33,8 @@ export function ThemeToggle({ className }: { className?: string }) {
         className,
       )}
     >
-      <Sun className="h-[18px] w-[18px] rotate-0 scale-100 transition-transform duration-300 ease-out motion-reduce:transition-none dark:-rotate-90 dark:scale-0" />
-      <Moon className="absolute h-[18px] w-[18px] rotate-90 scale-0 transition-transform duration-300 ease-out motion-reduce:transition-none dark:rotate-0 dark:scale-100" />
+      <Sun className="h-[18px] w-[18px] rotate-0 scale-100 transition-transform duration-300 ease-out motion-reduce:transition-none dark:-rotate-90 dark:scale-0" aria-hidden="true" />
+      <Moon className="absolute h-[18px] w-[18px] rotate-90 scale-0 transition-transform duration-300 ease-out motion-reduce:transition-none dark:rotate-0 dark:scale-100" aria-hidden="true" />
     </button>
   );
 }

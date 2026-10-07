@@ -4,6 +4,7 @@ import React from "react";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { FolderTree, CheckCircle, Clock, Target, ExternalLink } from "lucide-react";
 import { ProjectWithRelations } from "@/types/project";
+import { StatCard } from "@/components/ui/form-shell";
 
 interface WBSSectionProps {
     project: ProjectWithRelations;
@@ -23,42 +24,30 @@ export default function WBSSection({ project, projectId, router }: WBSSectionPro
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-info-soft rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-info font-medium">Total WBS Items</p>
-                            <p className="text-2xl font-bold text-info">{project.wbs?.length || 0}</p>
-                        </div>
-                        <FolderTree className="w-8 h-8 text-info" />
-                    </div>
-                </div>
-                <div className="bg-success-soft rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-success font-medium">Completed</p>
-                            <p className="text-2xl font-bold text-success">{project.wbs?.filter((wbs) => wbs.progress_percentage === 100).length || 0}</p>
-                        </div>
-                        <CheckCircle className="w-8 h-8 text-success" />
-                    </div>
-                </div>
-                <div className="bg-warning-soft rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-warning font-medium">In Progress</p>
-                            <p className="text-2xl font-bold text-warning">{project.wbs?.filter((wbs) => wbs.progress_percentage > 0 && wbs.progress_percentage < 100).length || 0}</p>
-                        </div>
-                        <Clock className="w-8 h-8 text-warning" />
-                    </div>
-                </div>
-                <div className="bg-surface-2 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-muted font-medium">Not Started</p>
-                            <p className="text-2xl font-bold text-ink">{project.wbs?.filter((wbs) => wbs.progress_percentage === 0).length || 0}</p>
-                        </div>
-                        <Target className="w-8 h-8 text-muted" />
-                    </div>
-                </div>
+                <StatCard
+                    label="Total WBS Items"
+                    value={project.wbs?.length || 0}
+                    icon={FolderTree}
+                    tone="info"
+                />
+                <StatCard
+                    label="Completed"
+                    value={project.wbs?.filter((wbs) => wbs.progress_percentage === 100).length || 0}
+                    icon={CheckCircle}
+                    tone="success"
+                />
+                <StatCard
+                    label="In Progress"
+                    value={project.wbs?.filter((wbs) => wbs.progress_percentage > 0 && wbs.progress_percentage < 100).length || 0}
+                    icon={Clock}
+                    tone="warning"
+                />
+                <StatCard
+                    label="Not Started"
+                    value={project.wbs?.filter((wbs) => wbs.progress_percentage === 0).length || 0}
+                    icon={Target}
+                    tone="neutral"
+                />
             </div>
 
             <div className="space-y-4">
@@ -129,15 +118,15 @@ export default function WBSSection({ project, projectId, router }: WBSSectionPro
                         ))}
 
                         {project.wbs.some((wbs) => wbs.level > 1) && (
-                            <div className="bg-info-soft border border-info rounded-lg p-4">
+                            <div className="rounded-lg border border-line border-l-[3px] border-l-info bg-surface p-4">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center space-x-3">
-                                        <FolderTree className="w-5 h-5 text-info" />
-                                        <span className="text-sm font-medium text-info">
+                                        <FolderTree className="w-5 h-5 text-info" aria-hidden="true" />
+                                        <span className="text-sm font-medium text-ink">
                                             WBS structure contains {Math.max(...project.wbs.map((wbs) => wbs.level))} levels with detailed breakdown
                                         </span>
                                     </div>
-                                    <button onClick={() => router.push(`/projects/${projectId}/wbs`)} className="text-sm text-info hover:text-info font-medium">View Full Structure →</button>
+                                    <button onClick={() => router.push(`/projects/${projectId}/wbs`)} className="text-sm text-bright hover:text-bright-deep font-medium">View Full Structure →</button>
                                 </div>
                             </div>
                         )}

@@ -1005,7 +1005,7 @@ export function useProjectData(params: Promise<{ id: string }>) {
         getParams();
     }, [params]);
 
-    useEffect(() => {
+    const fetchRisks = () => {
         if (!projectId) return;
         axios
             .get(`/api/projects/${projectId}/risks`, {
@@ -1014,6 +1014,10 @@ export function useProjectData(params: Promise<{ id: string }>) {
                 },
             })
             .then((res) => setRisks(res.data));
+    };
+
+    useEffect(() => {
+        fetchRisks();
     }, [projectId]);
 
     useEffect(() => {
@@ -1380,6 +1384,7 @@ export function useProjectData(params: Promise<{ id: string }>) {
         // Data
         userTasks,
         risks,
+        fetchRisks,
         procurements,
         setProcurements,
 

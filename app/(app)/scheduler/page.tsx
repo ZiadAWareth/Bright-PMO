@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { Modal } from "@/components/ui/modal";
 import { FilterBar, FilterSelect } from "@/components/ui/filter-bar";
 import RoleGuard from "@/components/auth/RoleGuard";
 import useCurrentUser from "@/hooks/useCurrentUser";
@@ -61,7 +62,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import axios from "@/lib/axios";
-import { LoadingState, Spinner } from "@/components/ui/spinner";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ViewToggle, type ListViewMode } from "@/components/ui/view-toggle";
 import {
@@ -74,13 +74,17 @@ import {
     EntityStats,
 } from "@/components/ui/entity-card";
 import {
-    ListCard,
-    ListMessage,
-    ListRow,
-    NewButton,
-    RowAction,
-    RowActions,
-    StatusBadge,
+  CardSkeleton,
+  ListCard,
+  ListHead,
+  ListMessage,
+  ListRegion,
+  ListRow,
+  ListSkeleton,
+  NewButton,
+  RowAction,
+  RowActions,
+  StatusBadge,
 } from "@/components/ui/form-shell";
 import {
     feasibilityTone,
@@ -569,22 +573,6 @@ const SchedulerPage = () => {
         </FilterBar>
     );
 
-    if (loading) {
-        return (
-            <RoleGuard route="/scheduler" title="Project Scheduler">
-                <DashboardLayout
-                    title="Project Scheduler"
-                    activeView={activeView}
-                    onViewChange={setActiveView}
-                >
-                    <div className="flex items-center justify-center min-h-screen">
-                        <Spinner size={64} className="text-bright-primary" />
-                    </div>
-                </DashboardLayout>
-            </RoleGuard>
-        );
-    }
-
     return (
         <RoleGuard route="/scheduler" title="Project Scheduler">
             <DashboardLayout
@@ -719,7 +707,22 @@ const SchedulerPage = () => {
                     )}
 
                     {/* Schedules Grid/List */}
-                    {filteredSchedules.length === 0 ? (
+                    <ListRegion busy={loading}>
+                    {loading ? (
+                        viewMode === "grid" ? (
+                            <CardSkeleton />
+                        ) : (
+                            <ListCard>
+                                <table className="w-full border-collapse">
+                                    <ListHead columns={SCHEDULE_COLUMNS} />
+                                    <ListSkeleton
+                                        columns={SCHEDULE_COLUMNS.length}
+                                        leadingCell={canManageSchedules()}
+                                    />
+                                </table>
+                            </ListCard>
+                        )
+                    ) : filteredSchedules.length === 0 ? (
                         <EmptyState
                             icon={<Calendar className="h-10 w-10" />}
                             title="No schedules found"
@@ -1014,7 +1017,9 @@ const SchedulerPage = () => {
                         </ListCard>
                     )}
 
-                    {filteredSchedules.length > 0 && (
+                    </ListRegion>
+
+                    {!loading && filteredSchedules.length > 0 && (
                         <ListPagination
                             page={page}
                             pageCount={schedulePageCount}
@@ -1026,32 +1031,16 @@ const SchedulerPage = () => {
                     )}
 
                     {/* Delete Confirmation Modal */}
-                    <div
-                        className={`fixed inset-0 bg-transparent backdrop-blur-xs z-50 flex items-center justify-center ${
-                            showDeleteModal ? "block" : "hidden"
-                        }`}
-                        onClick={handleDeleteCancel}
+                    <Modal
+                        open={showDeleteModal}
+                        onClose={handleDeleteCancel}
+                        title="Delete Schedule"
+                        icon={
+                            <span className="grid h-9 w-9 place-items-center rounded-lg bg-bright-soft">
+                                <AlertTriangle className="h-5 w-5 text-bright" />
+                            </span>
+                        }
                     >
-                        <div
-                            className="bg-surface rounded-xl p-6 max-w-md w-full mx-4 shadow-xl"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center space-x-3">
-                                    <div className="p-2 bg-bright-soft rounded-lg">
-                                        <AlertTriangle className="h-6 w-6 text-bright" />
-                                    </div>
-                                    <h3 className="text-lg font-semibold text-ink">
-                                        Delete Schedule
-                                    </h3>
-                                </div>
-                                <button
-                                    onClick={handleDeleteCancel}
-                                    className="text-faint hover:text-bright"
-                                >
-                                    <X size={20} />
-                                </button>
-                            </div>
 
                             <p className="text-muted mb-6">
                                 Are you sure you want to delete{" "}
@@ -1080,8 +1069,7 @@ const SchedulerPage = () => {
                                         : "Delete Schedule"}
                                 </button>
                             </div>
-                        </div>
-                    </div>
+                    </Modal>
                 </div>
 
             </DashboardLayout>

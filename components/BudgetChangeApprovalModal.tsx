@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
-import { DollarSign, X, UserCheck } from "lucide-react";
+import { DollarSign, UserCheck } from "lucide-react";
+import { Modal } from "@/components/ui/modal";
 import { TeamUserSelect } from "@/components/TeamUserSelect";
 import { Spinner } from "@/components/ui/spinner";
 import { UserAvatar, personName } from "@/components/ui/person-cell";
@@ -126,34 +127,38 @@ export function BudgetChangeApprovalModal({
         }
     };
 
-    if (!isOpen) return null;
-
     const singlePmo = pmoUsers.length === 1 ? pmoUsers[0] : null;
     const isValid = newBudgetAmount && parseFloat(newBudgetAmount) > 0 && selectedPmoId && selectedFinId;
 
     return (
-        <div
-            className="fixed inset-0 z-50 flex items-center justify-center"
-            style={{ backgroundColor: "rgba(0,0,0,0.45)", backdropFilter: "blur(8px)" }}
-            onClick={onClose}
-        >
-            <div
-                className="bg-surface rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-6"
-                onClick={(e) => e.stopPropagation()}
-            >
-                {/* Header */}
-                <div className="flex items-center justify-between mb-5">
-                    <h2 className="text-lg font-semibold text-ink flex items-center gap-2">
-                        <DollarSign size={18} className="text-info" />
-                        Request Budget Change
-                    </h2>
+        <Modal
+            open={isOpen}
+            onClose={onClose}
+            title="Request Budget Change"
+            maxWidthClass="max-w-lg"
+            icon={<DollarSign size={18} className="text-info" />}
+            footer={
+                <>
                     <button
                         onClick={onClose}
-                        className="p-1 rounded-lg text-faint hover:text-ink-3 hover:bg-surface-2 transition-colors"
+                        className="px-4 py-2 text-sm font-medium text-ink-3 bg-surface-2 rounded-lg hover:bg-surface-3 transition-colors"
                     >
-                        <X size={20} />
+                        Cancel
                     </button>
-                </div>
+                    <button
+                        onClick={handleSubmit}
+                        disabled={submitting || !isValid}
+                        className="px-4 py-2 text-sm font-medium text-white bg-info rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                    >
+                        {submitting ? (
+                            <><Spinner size={14} /> Submitting…</>
+                        ) : (
+                            "Submit for Approval"
+                        )}
+                    </button>
+                </>
+            }
+        >
 
                 {/* Current budget context */}
                 <div className="bg-surface-2 rounded-lg p-3 mb-5 flex justify-between items-center text-sm">
@@ -258,27 +263,6 @@ export function BudgetChangeApprovalModal({
                     </div>
                 </div>
 
-                {/* Actions */}
-                <div className="flex justify-end gap-3 mt-6">
-                    <button
-                        onClick={onClose}
-                        className="px-4 py-2 text-sm font-medium text-ink-3 bg-surface-2 rounded-lg hover:bg-surface-3 transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={handleSubmit}
-                        disabled={submitting || !isValid}
-                        className="px-4 py-2 text-sm font-medium text-white bg-info rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-                    >
-                        {submitting ? (
-                            <><Spinner size={14} /> Submitting…</>
-                        ) : (
-                            "Submit for Approval"
-                        )}
-                    </button>
-                </div>
-            </div>
-        </div>
+        </Modal>
     );
 }

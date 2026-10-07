@@ -1856,6 +1856,7 @@ const ResourceCreatePage = () => {
           <div className="relative bg-surface rounded-xl p-8 max-w-md w-full mx-4 shadow-2xl border border-line">
             {/* Close button */}
             <button
+              aria-label="Close dialog"
               onClick={() => setShowSuccessModal(false)}
               className="absolute top-4 right-4 text-faint hover:text-muted"
             >
@@ -2148,6 +2149,7 @@ const SkillsEditor: React.FC<SkillsEditorProps> = ({ skills, onChange }) => {
                     )}
                   </div>
                   <button
+                    aria-label="Remove skill"
                     type="button"
                     onClick={() => removeSkill(skill.id)}
                     className="text-danger hover:text-danger"
@@ -2197,6 +2199,7 @@ const SkillsEditor: React.FC<SkillsEditorProps> = ({ skills, onChange }) => {
                     )}
                   </div>
                   <button
+                    aria-label="Remove skill"
                     type="button"
                     onClick={() => removeSkill(skill.id)}
                     className="text-danger hover:text-danger"

@@ -37,7 +37,8 @@ import {
   Save,
   X,
   Loader2,
-  Link
+  Link,
+  CheckSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,6 +57,7 @@ import ScheduleResourceAssignmentModal from '@/components/ScheduleResourceAssign
 import ScheduleTaskDependencyModal from '@/components/ScheduleTaskDependencyModal';
 import { Spinner } from "@/components/ui/spinner";
 import { UserAvatar, personName } from "@/components/ui/person-cell";
+import { Modal } from "@/components/ui/modal";
 import { Dropdown } from "@/components/ui/dropdown";
 // import ScheduleApprovalModal from '@/components/ScheduleApprovalModal';
 
@@ -180,6 +182,17 @@ function buildWBSTree(items: WBSItem[]): WBSItem[] {
   });
 
   return roots;
+}
+
+function wbsLevelDotColor(level: number) {
+  switch (level % 3) {
+    case 0:
+      return "bg-accent-violet";
+    case 1:
+      return "bg-info";
+    default:
+      return "bg-success";
+  }
 }
 
 const ScheduleDetailPage = () => {
@@ -522,181 +535,125 @@ const ScheduleDetailPage = () => {
     // Calculate visual indentation based on the item's actual level
     // Level 1 (root) = 0px indent, Level 2 = 24px, Level 3 = 48px, etc.
     const indentWidth = (item.level - 1) * 24; // 24px per level, starting from level 1
-
-    // Color schemes based on visual level (0-based for colors)
-    const colorSchemes = [
-      {
-        gradient: 'from-info to-info',
-        bg: 'bg-info',
-        light: 'bg-info-soft ',
-        border: 'border-info '
-      },
-      {
-        gradient: 'from-success to-success',
-        bg: 'bg-success',
-        light: 'bg-success-soft ',
-        border: 'border-success '
-      },
-      {
-        gradient: 'from-accent-violet to-accent-violet',
-        bg: 'bg-accent-violet',
-        light: 'bg-accent-violet-soft ',
-        border: 'border-accent-violet '
-      },
-      {
-        gradient: 'from-bright to-bright-deep',
-        bg: 'bg-bright',
-        light: 'bg-bright-soft ',
-        border: 'border-bright '
-      },
-      {
-        gradient: 'from-accent-pink to-accent-pink',
-        bg: 'bg-accent-pink',
-        light: 'bg-accent-pink-soft ',
-        border: 'border-accent-pink '
-      },
-      {
-        gradient: 'from-accent-indigo to-accent-indigo',
-        bg: 'bg-accent-indigo',
-        light: 'bg-accent-indigo-soft ',
-        border: 'border-accent-indigo '
-      }
-    ];
-    const colorScheme = colorSchemes[(item.level - 1) % colorSchemes.length];
+    const dotColor = wbsLevelDotColor(item.level);
 
     return (
-      <div key={item.id} className={`${item.level > 1 ? 'mt-4' : 'mb-6'}`} style={{ marginLeft: `${indentWidth}px` }}>
-        <div className="rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
-          {/* WBS Header with Gradient */}
-          <div className={`px-6 py-4 bg-gradient-to-r ${colorScheme.gradient} text-white relative overflow-hidden`}>
-            {/* Decorative background pattern */}
-            <div className="absolute inset-0 bg-white/10 opacity-20"></div>
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-16 translate-x-16"></div>
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-12 -translate-x-12"></div>
+      <div key={item.id} className={`${item.level > 1 ? 'mt-4' : 'mb-6'}`}>
+        <div className="grid items-center gap-4 rounded-xl border border-line bg-surface p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-3" style={{ paddingLeft: `${indentWidth}px` }}>
+              <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${dotColor}`} aria-hidden="true" />
+              <h3 className="truncate text-[14.5px] font-semibold text-ink">
+                {item.title}
+              </h3>
+            </div>
 
-            <div className="flex items-center justify-between relative z-10">
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center space-x-2">
-                  <div className={`w-3 h-3 rounded-full bg-surface shadow-md`}></div>
-                </div>
-
-                <div>
-                  <div className="flex items-center space-x-3 mb-1">
-                    <h3 className="text-base font-bold text-white drop-shadow-sm">
-                      {item.title}
-                    </h3>
-                  </div>
-
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-4">
-                {/* Budget Information with Edit Functionality */}
-                <div className="text-right">
-                  <div className="grid grid-cols-3 gap-6 text-xs">
-                    {/* Budget - Clickable for editing */}
-                    <div
-                      className={`cursor-pointer hover:bg-white/10 rounded px-2 py-1 transition-colors ${
-                        editingField?.id === item.id && editingField?.field === 'budget' ? 'bg-white/20 ring-2 ring-white/50' : ''
-                      }`}
-                      onClick={!readonly ? () => startEditing(item.id, 'budget', item.budget) : undefined}
-                    >
-                      <div className="text-white/80">Budget</div>
-                      {editingField?.id === item.id && editingField?.field === 'budget' ? (
-                        <div className="flex items-center space-x-1">
-                          <span className="text-xs text-white/90">OMR</span>
-                          <input
-                            type="number"
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onKeyDown={(e) => handleKeyPress(e, item, 'budget')}
-                            onBlur={() => handleBlur(item, 'budget')}
-                            className="w-20 px-1 py-0.5 text-xs border border-white/30 rounded bg-white/20 text-white placeholder-white/70 focus:outline-none focus:ring-1 focus:ring-white/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            autoFocus
-                            placeholder="0"
-                          />
-                        </div>
-                      ) : (
-                        <div className="font-bold text-white">OMR {(item.budget || 0).toLocaleString()}</div>
-                      )}
-                    </div>
-
-                    {/* Start Date - Clickable for editing */}
-                    <div
-                      className={`cursor-pointer hover:bg-white/10 rounded px-2 py-1 transition-colors ${
-                        editingField?.id === item.id && editingField?.field === 'start_date' ? 'bg-white/20 ring-2 ring-white/50' : ''
-                      }`}
-                      onClick={!readonly ? () => startEditing(item.id, 'start_date', item.start_date) : undefined}
-                    >
-                      <div className="text-white/80">Start</div>
-                      {editingField?.id === item.id && editingField?.field === 'start_date' ? (
-                        <input
-                          type="date"
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          onKeyDown={(e) => handleKeyPress(e, item, 'start_date')}
-                          onBlur={() => handleBlur(item, 'start_date')}
-                          className="w-28 px-1 py-0.5 text-xs border border-white/30 rounded bg-white/20 text-white placeholder-white/70 focus:outline-none focus:ring-1 focus:ring-white/50"
-                          autoFocus
-                        />
-                      ) : (
-                        <div className="font-bold text-white">
-                          {item.start_date ? new Date(item.start_date).toLocaleDateString() : '-'}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* End Date - Clickable for editing */}
-                    <div
-                      className={`cursor-pointer hover:bg-white/10 rounded px-2 py-1 transition-colors ${
-                        editingField?.id === item.id && editingField?.field === 'end_date' ? 'bg-white/20 ring-2 ring-white/50' : ''
-                      }`}
-                      onClick={!readonly ? () => startEditing(item.id, 'end_date', item.end_date) : undefined}
-                    >
-                      <div className="text-white/80">End</div>
-                      {editingField?.id === item.id && editingField?.field === 'end_date' ? (
-                        <input
-                          type="date"
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          onKeyDown={(e) => handleKeyPress(e, item, 'end_date')}
-                          onBlur={() => handleBlur(item, 'end_date')}
-                          className="w-28 px-1 py-0.5 text-xs border border-white/30 rounded bg-white/20 text-white placeholder-white/70 focus:outline-none focus:ring-1 focus:ring-white/50"
-                          autoFocus
-                        />
-                      ) : (
-                        <div className="font-bold text-white">
-                          {item.end_date ? new Date(item.end_date).toLocaleDateString() : '-'}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Delete Button */}
-                <button
-                  onClick={!readonly ? (e) => { e.stopPropagation(); handleDeleteClick({ id: item.id, type: 'wbs', name: item.title }); } : undefined}
-                  className={`p-1 rounded-full bg-white/20 hover:bg-danger/80 transition-colors${readonly ? ' opacity-50 cursor-not-allowed' : ''}`}
-                  title="Delete WBS"
-                  disabled={readonly}
-                >
-                  <Trash2 size={16} className="text-white" />
-                </button>
-
-                {/* Expand/Collapse Button */}
-                {(item.children && item.children.length > 0) || (item.tasks && item.tasks.length > 0) ? (
-                  <button
-                    onClick={() => toggleExpanded(item.id)}
-                    className="p-1 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+            <div className="flex items-center gap-4">
+              {/* Budget Information with Edit Functionality */}
+              <div className="text-right">
+                <div className="grid grid-cols-3 gap-6 text-xs">
+                  {/* Budget - Clickable for editing */}
+                  <div
+                    className={`cursor-pointer hover:bg-surface-2 rounded px-2 py-1 transition-colors ${
+                      editingField?.id === item.id && editingField?.field === 'budget' ? 'bg-bright-soft ring-1 ring-bright' : ''
+                    }`}
+                    onClick={!readonly ? () => startEditing(item.id, 'budget', item.budget) : undefined}
                   >
-                    {item.expanded ? (
-                      <ChevronDown size={16} className="text-white" />
+                    <div className="text-muted">Budget</div>
+                    {editingField?.id === item.id && editingField?.field === 'budget' ? (
+                      <div className="flex items-center space-x-1">
+                        <span className="text-[11px] text-muted">OMR</span>
+                        <input
+                          type="number"
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onKeyDown={(e) => handleKeyPress(e, item, 'budget')}
+                          onBlur={() => handleBlur(item, 'budget')}
+                          className="w-20 px-1 py-0.5 text-xs border border-line rounded bg-surface text-ink focus:outline-none focus:ring-1 focus:ring-bright [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          autoFocus
+                          placeholder="0"
+                        />
+                      </div>
                     ) : (
-                      <ChevronRight size={16} className="text-white" />
+                      <div className="font-semibold text-ink">OMR {(item.budget || 0).toLocaleString()}</div>
                     )}
-                  </button>
-                ) : null}
+                  </div>
+
+                  {/* Start Date - Clickable for editing */}
+                  <div
+                    className={`cursor-pointer hover:bg-surface-2 rounded px-2 py-1 transition-colors ${
+                      editingField?.id === item.id && editingField?.field === 'start_date' ? 'bg-bright-soft ring-1 ring-bright' : ''
+                    }`}
+                    onClick={!readonly ? () => startEditing(item.id, 'start_date', item.start_date) : undefined}
+                  >
+                    <div className="text-muted">Start</div>
+                    {editingField?.id === item.id && editingField?.field === 'start_date' ? (
+                      <input
+                        type="date"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        onKeyDown={(e) => handleKeyPress(e, item, 'start_date')}
+                        onBlur={() => handleBlur(item, 'start_date')}
+                        className="w-28 px-1 py-0.5 text-xs border border-line rounded bg-surface text-ink focus:outline-none focus:ring-1 focus:ring-bright"
+                        autoFocus
+                      />
+                    ) : (
+                      <div className="font-semibold text-ink">
+                        {item.start_date ? new Date(item.start_date).toLocaleDateString() : '-'}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* End Date - Clickable for editing */}
+                  <div
+                    className={`cursor-pointer hover:bg-surface-2 rounded px-2 py-1 transition-colors ${
+                      editingField?.id === item.id && editingField?.field === 'end_date' ? 'bg-bright-soft ring-1 ring-bright' : ''
+                    }`}
+                    onClick={!readonly ? () => startEditing(item.id, 'end_date', item.end_date) : undefined}
+                  >
+                    <div className="text-muted">End</div>
+                    {editingField?.id === item.id && editingField?.field === 'end_date' ? (
+                      <input
+                        type="date"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        onKeyDown={(e) => handleKeyPress(e, item, 'end_date')}
+                        onBlur={() => handleBlur(item, 'end_date')}
+                        className="w-28 px-1 py-0.5 text-xs border border-line rounded bg-surface text-ink focus:outline-none focus:ring-1 focus:ring-bright"
+                        autoFocus
+                      />
+                    ) : (
+                      <div className="font-semibold text-ink">
+                        {item.end_date ? new Date(item.end_date).toLocaleDateString() : '-'}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
+
+              {/* Delete Button */}
+              <button
+                onClick={!readonly ? (e) => { e.stopPropagation(); handleDeleteClick({ id: item.id, type: 'wbs', name: item.title }); } : undefined}
+                className={`p-1 rounded-full hover:bg-danger-soft hover:text-danger text-muted transition-colors${readonly ? ' opacity-50 cursor-not-allowed' : ''}`}
+                title="Delete WBS"
+                disabled={readonly}
+              >
+                <Trash2 size={16} />
+              </button>
+
+              {/* Expand/Collapse Button */}
+              {(item.children && item.children.length > 0) || (item.tasks && item.tasks.length > 0) ? (
+                <button
+                  onClick={() => toggleExpanded(item.id)}
+                  className="p-1 rounded-full hover:bg-surface-2 text-muted transition-colors"
+                >
+                  {item.expanded ? (
+                    <ChevronDown size={16} />
+                  ) : (
+                    <ChevronRight size={16} />
+                  )}
+                </button>
+              ) : null}
             </div>
           </div>
         </div>
@@ -723,176 +680,177 @@ const ScheduleDetailPage = () => {
                   className="mt-4"
                   style={{ marginLeft: `${(item.level) * 24}px` }}
                 >
-                  <div className="rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
-                    <div className="px-6 py-4 bg-gradient-to-r from-faint to-muted text-white relative overflow-hidden">
-                      {/* Row: Title/Description | Details | Actions */}
-                      <div className="flex items-center justify-between relative z-10 w-full">
-                        {/* Title & Description */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-3 mb-1">
-                            <h3 className="text-base font-bold text-white drop-shadow-sm truncate">{task.name}</h3>
-                          </div>
-                          <div className="text-xs text-white/80 truncate">{task.description}</div>
-                        </div>
-                        {/* Details */}
-                        <div className="flex items-center space-x-6 ml-6">
-                          {/* Budget - Clickable for editing */}
-                          <div
-                            className={`cursor-pointer hover:bg-white/10 rounded px-2 py-1 transition-colors flex flex-col items-end ${
-                              editingField?.id === `task-${task.task_id}` && editingField?.field === 'budget' ? 'bg-white/20 ring-2 ring-white/50' : ''
-                            }`}
-                            onClick={!readonly ? () => startEditing(`task-${task.task_id}`, 'budget', task.budget) : undefined}
-                          >
-                            <span className="text-[10px] text-white/80">Budget</span>
-                            {editingField?.id === `task-${task.task_id}` && editingField?.field === 'budget' ? (
-                              <div className="flex items-center space-x-1">
-                                <span className="text-[10px] text-white/90">OMR</span>
-                                <input
-                                  type="number"
-                                  value={editValue}
-                                  onChange={(e) => setEditValue(e.target.value)}
-                                  onKeyDown={(e) => handleKeyPress(e, { ...task, id: `task-${task.task_id}` }, 'budget')}
-                                  onBlur={() => handleBlur({ ...task, id: `task-${task.task_id}` }, 'budget')}
-                                  className="w-16 px-1 py-0.5 text-[10px] border border-white/30 rounded bg-white/20 text-white placeholder-white/70 focus:outline-none focus:ring-1 focus:ring-white/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                  autoFocus
-                                  placeholder="0"
-                                />
-                              </div>
-                            ) : (
-                              <span className="text-xs text-white">OMR {(task.budget || 0).toLocaleString()}</span>
-                            )}
-                          </div>
-                          {/* Start Date - Clickable for editing */}
-                          <div
-                            className={`cursor-pointer hover:bg-white/10 rounded px-2 py-1 transition-colors flex flex-col items-end ${
-                              editingField?.id === `task-${task.task_id}` && editingField?.field === 'start_date' ? 'bg-white/20 ring-2 ring-white/50' : ''
-                            }`}
-                            onClick={!readonly ? () => startEditing(`task-${task.task_id}`, 'start_date', task.start_date) : undefined}
-                          >
-                            <span className="text-[10px] text-white/80">Start</span>
-                            {editingField?.id === `task-${task.task_id}` && editingField?.field === 'start_date' ? (
-                              <input
-                                type="date"
-                                value={editValue}
-                                onChange={(e) => setEditValue(e.target.value)}
-                                onKeyDown={(e) => handleKeyPress(e, { ...task, id: `task-${task.task_id}` }, 'start_date')}
-                                onBlur={() => handleBlur({ ...task, id: `task-${task.task_id}` }, 'start_date')}
-                                className="w-20 px-1 py-0.5 text-[10px] border border-white/30 rounded bg-white/20 text-white placeholder-white/70 focus:outline-none focus:ring-1 focus:ring-white/50"
-                                autoFocus
-                              />
-                            ) : (
-                              <span className="text-xs text-white">{task.start_date ? new Date(task.start_date).toLocaleDateString() : '-'}</span>
-                            )}
-                          </div>
-                          {/* End Date - Clickable for editing */}
-                          <div
-                            className={`cursor-pointer hover:bg-white/10 rounded px-2 py-1 transition-colors flex flex-col items-end ${
-                              editingField?.id === `task-${task.task_id}` && editingField?.field === 'end_date' ? 'bg-white/20 ring-2 ring-white/50' : ''
-                            }`}
-                            onClick={!readonly ? () => startEditing(`task-${task.task_id}`, 'end_date', task.end_date) : undefined}
-                          >
-                            <span className="text-[10px] text-white/80">End</span>
-                            {editingField?.id === `task-${task.task_id}` && editingField?.field === 'end_date' ? (
-                              <input
-                                type="date"
-                                value={editValue}
-                                onChange={(e) => setEditValue(e.target.value)}
-                                onKeyDown={(e) => handleKeyPress(e, { ...task, id: `task-${task.task_id}` }, 'end_date')}
-                                onBlur={() => handleBlur({ ...task, id: `task-${task.task_id}` }, 'end_date')}
-                                className="w-20 px-1 py-0.5 text-[10px] border border-white/30 rounded bg-white/20 text-white placeholder-white/70 focus:outline-none focus:ring-1 focus:ring-white/50"
-                                autoFocus
-                              />
-                            ) : (
-                              <span className="text-xs text-white">{task.end_date ? new Date(task.end_date).toLocaleDateString() : '-'}</span>
-                            )}
-                          </div>
-                        </div>
-                        {/* Actions */}
-                        <div className="flex items-center space-x-2 ml-6">
-                          <button
-                            onClick={!readonly ? (e) => { e.stopPropagation(); handleDeleteClick({ id: `${task.task_id}`, type: 'task', name: task.name }); } : undefined}
-                            className={`p-1 rounded-full bg-white/20 hover:bg-danger/80 transition-colors${readonly ? ' opacity-50 cursor-not-allowed' : ''}`}
-                            title="Delete Task"
-                            disabled={readonly}
-                          >
-                            <Trash2 size={16} className="text-white" />
-                          </button>
-                          <button
-                            className="p-1 rounded bg-info-soft hover:bg-info-soft text-info text-xs flex items-center gap-1"
-                            onClick={!readonly ? (e) => {
-                              e.stopPropagation();
-                              setAssigningTask(task);
-                              setShowAssignModal(true);
-                              setSelectedAssignUser(availableMembers.length > 0 ? availableMembers[0].user_id.toString() : "");
-                            } : undefined}
-                            disabled={readonly || availableMembers.length === 0}
-                            title={availableMembers.length === 0 ? 'All team members assigned' : 'Assign team member'}
-                          >
-                            <User size={14} /> Assign
-                          </button>
-                          <button
-                            className="p-1 rounded bg-success-soft hover:bg-success-soft text-success text-xs flex items-center gap-1"
-                            onClick={!readonly ? () => handleOpenResourceModal(task) : undefined}
-                            title="Assign Resource"
-                            disabled={readonly}
-                          >
-                            <Users size={14} /> Resource
-                          </button>
-                          <button
-                            className="p-1 rounded bg-accent-violet-soft hover:bg-accent-violet-soft text-accent-violet text-xs flex items-center gap-1"
-                            onClick={!readonly ? () => handleOpenDependencyModal(task) : undefined}
-                            title="Manage Dependencies"
-                            disabled={readonly}
-                          >
-                            <Link size={14} /> Dependencies
-                          </button>
+                  <div className="rounded-xl border border-line bg-surface-2 p-4">
+                    {/* Row: Title/Description | Details | Actions */}
+                    <div className="flex items-center justify-between w-full gap-4">
+                      {/* Title & Description */}
+                      <div className="flex flex-1 min-w-0 items-start gap-2">
+                        <CheckSquare className="w-4 h-4 text-muted mt-0.5 shrink-0" aria-hidden="true" />
+                        <div className="min-w-0">
+                          <h3 className="text-[13.5px] font-semibold text-ink truncate">{task.name}</h3>
+                          {task.description && (
+                            <div className="text-xs text-muted truncate">{task.description}</div>
+                          )}
                         </div>
                       </div>
-                      {/* Divider */}
-                      <hr className="my-3 border-t border-white/30 w-full" />
-                      {/* Team Members */}
-                      {Array.isArray(task.user_assignments) && task.user_assignments.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {task.user_assignments.map((assignment: any) => {
-                            const user = assignment.user;
-                            return (
-                              <div key={user.user_id} className="flex items-center bg-white/80 rounded-lg px-2 py-1 shadow text-ink-2">
-                                <UserAvatar
-                                  name={personName(user)}
-                                  className="mr-2 h-7 w-7 text-xs"
-                                />
-                                <div className="flex flex-col">
-                                  <span className="font-medium text-xs leading-tight">{user.account.first_name} {user.account.last_name}</span>
-                                  <span className="text-[10px] text-muted">{assignment.role || user.role?.name || 'Team Member'}</span>
-                                </div>
-                              </div>
-                            );
-                          })}
+                      {/* Details */}
+                      <div className="flex items-center space-x-6 ml-6">
+                        {/* Budget - Clickable for editing */}
+                        <div
+                          className={`cursor-pointer hover:bg-surface-3 rounded px-2 py-1 transition-colors flex flex-col items-end ${
+                            editingField?.id === `task-${task.task_id}` && editingField?.field === 'budget' ? 'bg-bright-soft ring-1 ring-bright' : ''
+                          }`}
+                          onClick={!readonly ? () => startEditing(`task-${task.task_id}`, 'budget', task.budget) : undefined}
+                        >
+                          <span className="text-[10px] text-muted">Budget</span>
+                          {editingField?.id === `task-${task.task_id}` && editingField?.field === 'budget' ? (
+                            <div className="flex items-center space-x-1">
+                              <span className="text-[10px] text-muted">OMR</span>
+                              <input
+                                type="number"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onKeyDown={(e) => handleKeyPress(e, { ...task, id: `task-${task.task_id}` }, 'budget')}
+                                onBlur={() => handleBlur({ ...task, id: `task-${task.task_id}` }, 'budget')}
+                                className="w-16 px-1 py-0.5 text-[10px] border border-line rounded bg-surface text-ink focus:outline-none focus:ring-1 focus:ring-bright [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                autoFocus
+                                placeholder="0"
+                              />
+                            </div>
+                          ) : (
+                            <span className="text-xs font-semibold text-ink">OMR {(task.budget || 0).toLocaleString()}</span>
+                          )}
                         </div>
-                      )}
-                      {/* Assigned Resources */}
-                      {Array.isArray(task.assignments) && task.assignments.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {task.assignments.map((assignment: any) => {
-                            const resource = assignment.resource;
-                            const initials = `${resource.name?.[0] || ''}`.toUpperCase();
-                            return (
-                              <div key={assignment.id} className="flex items-center gap-2 bg-success-soft text-success rounded-full px-3 py-1 text-xs font-medium border border-success">
-                                <span className="w-6 h-6 flex items-center justify-center rounded-full bg-success text-white font-bold">
-                                  {initials}
-                                </span>
-                                <span>{resource.name}</span>
-                                <span className="ml-1 text-success">({resource.type})</span>
-                                <span className="ml-2">{assignment.allocation_percentage}%</span>
-                                {resource.rate && (
-                                  <span className="ml-2">@ {resource.rate}/hr</span>
-                                )}
-                              </div>
-                            );
-                          })}
+                        {/* Start Date - Clickable for editing */}
+                        <div
+                          className={`cursor-pointer hover:bg-surface-3 rounded px-2 py-1 transition-colors flex flex-col items-end ${
+                            editingField?.id === `task-${task.task_id}` && editingField?.field === 'start_date' ? 'bg-bright-soft ring-1 ring-bright' : ''
+                          }`}
+                          onClick={!readonly ? () => startEditing(`task-${task.task_id}`, 'start_date', task.start_date) : undefined}
+                        >
+                          <span className="text-[10px] text-muted">Start</span>
+                          {editingField?.id === `task-${task.task_id}` && editingField?.field === 'start_date' ? (
+                            <input
+                              type="date"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={(e) => handleKeyPress(e, { ...task, id: `task-${task.task_id}` }, 'start_date')}
+                              onBlur={() => handleBlur({ ...task, id: `task-${task.task_id}` }, 'start_date')}
+                              className="w-20 px-1 py-0.5 text-[10px] border border-line rounded bg-surface text-ink focus:outline-none focus:ring-1 focus:ring-bright"
+                              autoFocus
+                            />
+                          ) : (
+                            <span className="text-xs font-semibold text-ink">{task.start_date ? new Date(task.start_date).toLocaleDateString() : '-'}</span>
+                          )}
                         </div>
-                      )}
+                        {/* End Date - Clickable for editing */}
+                        <div
+                          className={`cursor-pointer hover:bg-surface-3 rounded px-2 py-1 transition-colors flex flex-col items-end ${
+                            editingField?.id === `task-${task.task_id}` && editingField?.field === 'end_date' ? 'bg-bright-soft ring-1 ring-bright' : ''
+                          }`}
+                          onClick={!readonly ? () => startEditing(`task-${task.task_id}`, 'end_date', task.end_date) : undefined}
+                        >
+                          <span className="text-[10px] text-muted">End</span>
+                          {editingField?.id === `task-${task.task_id}` && editingField?.field === 'end_date' ? (
+                            <input
+                              type="date"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={(e) => handleKeyPress(e, { ...task, id: `task-${task.task_id}` }, 'end_date')}
+                              onBlur={() => handleBlur({ ...task, id: `task-${task.task_id}` }, 'end_date')}
+                              className="w-20 px-1 py-0.5 text-[10px] border border-line rounded bg-surface text-ink focus:outline-none focus:ring-1 focus:ring-bright"
+                              autoFocus
+                            />
+                          ) : (
+                            <span className="text-xs font-semibold text-ink">{task.end_date ? new Date(task.end_date).toLocaleDateString() : '-'}</span>
+                          )}
+                        </div>
+                      </div>
+                      {/* Actions */}
+                      <div className="flex items-center space-x-2 ml-6">
+                        <button
+                          onClick={!readonly ? (e) => { e.stopPropagation(); handleDeleteClick({ id: `${task.task_id}`, type: 'task', name: task.name }); } : undefined}
+                          className={`p-1 rounded-full hover:bg-danger-soft hover:text-danger text-muted transition-colors${readonly ? ' opacity-50 cursor-not-allowed' : ''}`}
+                          title="Delete Task"
+                          disabled={readonly}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                        <button
+                          className="p-1 rounded bg-info-soft hover:opacity-80 text-info text-xs flex items-center gap-1"
+                          onClick={!readonly ? (e) => {
+                            e.stopPropagation();
+                            setAssigningTask(task);
+                            setShowAssignModal(true);
+                            setSelectedAssignUser(availableMembers.length > 0 ? availableMembers[0].user_id.toString() : "");
+                          } : undefined}
+                          disabled={readonly || availableMembers.length === 0}
+                          title={availableMembers.length === 0 ? 'All team members assigned' : 'Assign team member'}
+                        >
+                          <User size={14} /> Assign
+                        </button>
+                        <button
+                          className="p-1 rounded bg-success-soft hover:opacity-80 text-success text-xs flex items-center gap-1"
+                          onClick={!readonly ? () => handleOpenResourceModal(task) : undefined}
+                          title="Assign Resource"
+                          disabled={readonly}
+                        >
+                          <Users size={14} /> Resource
+                        </button>
+                        <button
+                          className="p-1 rounded bg-accent-violet-soft hover:opacity-80 text-accent-violet text-xs flex items-center gap-1"
+                          onClick={!readonly ? () => handleOpenDependencyModal(task) : undefined}
+                          title="Manage Dependencies"
+                          disabled={readonly}
+                        >
+                          <Link size={14} /> Dependencies
+                        </button>
+                      </div>
                     </div>
+                    {/* Divider */}
+                    <hr className="my-3 border-t border-line w-full" />
+                    {/* Team Members */}
+                    {Array.isArray(task.user_assignments) && task.user_assignments.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {task.user_assignments.map((assignment: any) => {
+                          const user = assignment.user;
+                          return (
+                            <div key={user.user_id} className="flex items-center bg-surface rounded-lg border border-line px-2 py-1 text-ink-2">
+                              <UserAvatar
+                                name={personName(user)}
+                                className="mr-2 h-7 w-7 text-xs"
+                              />
+                              <div className="flex flex-col">
+                                <span className="font-medium text-xs leading-tight">{user.account.first_name} {user.account.last_name}</span>
+                                <span className="text-[10px] text-muted">{assignment.role || user.role?.name || 'Team Member'}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {/* Assigned Resources */}
+                    {Array.isArray(task.assignments) && task.assignments.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {task.assignments.map((assignment: any) => {
+                          const resource = assignment.resource;
+                          const initials = `${resource.name?.[0] || ''}`.toUpperCase();
+                          return (
+                            <div key={assignment.id} className="flex items-center gap-2 bg-success-soft text-success rounded-full px-3 py-1 text-xs font-medium border border-success">
+                              <span className="w-6 h-6 flex items-center justify-center rounded-full bg-success text-white font-bold">
+                                {initials}
+                              </span>
+                              <span>{resource.name}</span>
+                              <span className="ml-1 text-success">({resource.type})</span>
+                              <span className="ml-2">{assignment.allocation_percentage}%</span>
+                              {resource.rate && (
+                                <span className="ml-2">@ {resource.rate}/hr</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -1177,7 +1135,6 @@ const ScheduleDetailPage = () => {
           backLabel="Back to Scheduler"
         >
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-ink mb-4">Schedule Not Found</h1>
             <p className="text-muted mb-6">The schedule you're looking for doesn't exist or you don't have permission to view it.</p>
             <Button onClick={() => router.push("/scheduler")} className="bg-gradient-to-r from-bright to-bright-deep hover:from-bright-deep hover:to-bright">
               Back to Schedules
@@ -1302,13 +1259,13 @@ const ScheduleDetailPage = () => {
 
           {/* Approval Section */}
           {userApproval && currentUser && (
-            <div className="px-6 py-4 border-b border-line bg-info-soft flex-shrink-0">
+            <div className="mx-6 mt-4 rounded-xl border border-line border-l-[3px] border-l-info bg-surface p-4 flex-shrink-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <CheckCircle size={20} className="text-info" />
+                  <CheckCircle size={20} className="text-info shrink-0" aria-hidden="true" />
                   <div>
-                    <h3 className="text-sm font-medium text-info">Pending Approval Required</h3>
-                    <p className="text-xs text-info">You have a pending approval for this schedule</p>
+                    <h3 className="text-[14.5px] font-semibold text-ink">Pending Approval Required</h3>
+                    <p className="text-[13px] text-muted">You have a pending approval for this schedule</p>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -1468,17 +1425,21 @@ const ScheduleDetailPage = () => {
 
         {/* WBS Modal */}
         {showWBSModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-surface rounded-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-              <CreateScheduleWBSForm
-                onClose={() => setShowWBSModal(false)}
-                onSave={createScheduleWBS}
-                schedule={schedule}
-                creating={creatingWBS}
-                wbsData={wbsItems}
-              />
-            </div>
-          </div>
+          <Modal
+            open={showWBSModal}
+            onClose={() => setShowWBSModal(false)}
+            title="Create New WBS Item"
+            description="Add a custom work breakdown structure item to the schedule"
+            maxWidthClass="max-w-2xl"
+          >
+            <CreateScheduleWBSForm
+              onClose={() => setShowWBSModal(false)}
+              onSave={createScheduleWBS}
+              schedule={schedule}
+              creating={creatingWBS}
+              wbsData={wbsItems}
+            />
+          </Modal>
         )}
 
         {/* Task Creation Modal */}
@@ -1497,7 +1458,8 @@ const ScheduleDetailPage = () => {
         {showAddTeamMemberModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <div className="bg-surface rounded-xl shadow-xl p-8 w-full max-w-md relative">
-              <button className="absolute top-2 right-2 text-faint hover:text-ink-3" onClick={() => setShowAddTeamMemberModal(false)}>
+              <button
+                aria-label="Close dialog" className="absolute top-2 right-2 text-faint hover:text-ink-3" onClick={() => setShowAddTeamMemberModal(false)}>
                 <X size={20} />
               </button>
               <h2 className="text-lg font-bold mb-4">Add Team Member</h2>
@@ -1558,7 +1520,8 @@ const ScheduleDetailPage = () => {
         {showAssignModal && assigningTask && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <div className="bg-surface rounded-xl shadow-xl p-8 w-full max-w-sm relative">
-              <button className="absolute top-2 right-2 text-faint hover:text-ink-3" onClick={() => setShowAssignModal(false)}>
+              <button
+                aria-label="Close dialog" className="absolute top-2 right-2 text-faint hover:text-ink-3" onClick={() => setShowAssignModal(false)}>
                 <X size={20} />
               </button>
               <h2 className="text-lg font-bold mb-4">Assign Team Member</h2>
@@ -1901,10 +1864,11 @@ const CreateScheduleWBSForm = ({
           </p>
         </div>
         <button
+          aria-label="Back"
           onClick={onClose}
           className="p-2 hover:bg-surface-2 rounded-lg transition-colors"
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft size={20} aria-hidden="true" />
         </button>
       </div>
 
@@ -2078,46 +2042,18 @@ const CreateScheduleWBSForm = ({
 
       {/* Error Popup */}
       {errorPopup.show && (
-        <div
-          className="fixed inset-0 flex items-center justify-center z-[10000]"
-          style={{
-            backgroundColor: "rgba(0, 0, 0, 0.3)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-          }}
-        >
-          <div
-            className="bg-surface rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl"
-            style={{
-              animation: "fadeIn 0.3s ease-out",
-              border: "1px solid rgba(255, 255, 255, 0.1)",
-              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-            }}
-          >
-            <div className="flex items-center mb-4">
-              <div className="w-10 h-10 bg-danger-soft rounded-full flex items-center justify-center mr-4">
-                <AlertTriangle className="w-5 h-5 text-danger" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-ink">
-                  {errorPopup.title}
-                </h3>
-                <p className="text-sm text-muted">
-                  Please correct and try again
-                </p>
-              </div>
-              <button
-                onClick={() =>
-                  setErrorPopup((prev) => ({ ...prev, show: false }))
-                }
-                className="ml-auto p-2 text-faint hover:text-muted rounded-full hover:bg-surface-2"
-              >
-                <ArrowLeft className="h-4 w-4 rotate-45" />
-              </button>
-            </div>
-            <p className="text-ink-3 mb-4">
-              {errorPopup.message}
-            </p>
+        <Modal
+          open
+          onClose={() => setErrorPopup((prev) => ({ ...prev, show: false }))}
+          title={errorPopup.title}
+          description="Please correct and try again"
+          maxWidthClass="max-w-md"
+          icon={
+            <span className="grid h-9 w-9 place-items-center rounded-full bg-danger-soft">
+              <AlertTriangle className="h-5 w-5 text-danger" />
+            </span>
+          }
+          footer={
             <button
               onClick={() =>
                 setErrorPopup((prev) => ({ ...prev, show: false }))
@@ -2126,8 +2062,10 @@ const CreateScheduleWBSForm = ({
             >
               Dismiss
             </button>
-          </div>
-        </div>
+          }
+        >
+            <p className="text-ink-3">{errorPopup.message}</p>
+        </Modal>
       )}
     </div>
   );
@@ -2255,7 +2193,7 @@ const CreateScheduleTaskModal = ({
           className="absolute top-4 right-4 text-faint hover:text-muted transition-colors"
           aria-label="Close modal"
         >
-          <X className="h-5 w-5" />
+          <X className="h-5 w-5" aria-hidden="true" />
         </button>
 
         <h3 className="text-xl font-bold mb-4 text-ink pr-8">Create New Task</h3>
@@ -2467,8 +2405,9 @@ const ScheduleApprovalModal = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
       <div className="bg-surface rounded-xl shadow-xl max-w-2xl w-full p-8 relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-faint hover:text-ink-3 transition-colors">
-          <X className="w-6 h-6" />
+        <button
+          aria-label="Close dialog" onClick={onClose} className="absolute top-4 right-4 text-faint hover:text-ink-3 transition-colors">
+          <X className="w-6 h-6" aria-hidden="true" />
         </button>
         <h2 className="text-2xl font-bold mb-2 text-ink">Schedule Approvals</h2>
         <p className="text-sm text-muted mb-6">Select approvers for this schedule</p>

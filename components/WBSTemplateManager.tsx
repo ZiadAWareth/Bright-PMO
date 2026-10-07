@@ -20,8 +20,10 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
+  AlertTriangle,
   RefreshCw,
   Info,
+  ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 import axios from "axios";
@@ -30,6 +32,7 @@ import TemplateManagerBase, {
   handleSecurityAwareUploadError,
 } from "@/components/TemplateManagerBase";
 import { Spinner } from "@/components/ui/spinner";
+import { StatCard } from "@/components/ui/form-shell";
 
 interface WBSTemplateManagerProps {
   projectId: number;
@@ -75,31 +78,10 @@ const WBSUploadResultCard: React.FC<{
     </CardHeader>
     <CardContent>
       <div className="space-y-4">
-        <div className="grid grid-cols-3 gap-4 text-center">
-          <div className="p-3 bg-muted rounded-lg">
-            <div className="text-2xl font-bold">
-              {result.summary.total_processed}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Total Processed
-            </div>
-          </div>
-          <div className="p-3 bg-success-soft rounded-lg">
-            <div className="text-2xl font-bold text-success">
-              {result.summary.successful}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Successful
-            </div>
-          </div>
-          <div className="p-3 bg-danger-soft rounded-lg">
-            <div className="text-2xl font-bold text-danger">
-              {result.summary.failed}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Failed
-            </div>
-          </div>
+        <div className="grid grid-cols-3 gap-4">
+          <StatCard label="Total Processed" value={result.summary.total_processed} tone="neutral" />
+          <StatCard label="Successful" value={result.summary.successful} tone="success" />
+          <StatCard label="Failed" value={result.summary.failed} tone="danger" />
         </div>
 
         {result.summary.successful > 0 && (
@@ -136,7 +118,7 @@ const WBSUploadResultCard: React.FC<{
               {result.created_wbs_items.map((item) => (
                 <div
                   key={item.wbs_id}
-                  className="flex items-center justify-between p-2 bg-success-soft rounded border"
+                  className="flex items-center justify-between p-2 rounded border border-line border-l-[3px] border-l-success bg-surface"
                 >
                   <div className="flex items-center gap-2">
                     <Badge variant="outline">{item.wbs_code}</Badge>
@@ -172,16 +154,16 @@ const WBSUploadResultCard: React.FC<{
               {result.errors.map((error, index) => (
                 <div
                   key={index}
-                  className="flex items-start gap-2 p-2 bg-danger-soft rounded border border-danger"
+                  className="flex items-start gap-2 p-2 rounded border border-line border-l-[3px] border-l-danger bg-surface"
                 >
                   <Badge variant="destructive" className="shrink-0">
                     Row {error.row}
                   </Badge>
                   <div className="flex-1">
-                    <div className="font-medium text-danger">
+                    <div className="font-medium text-ink">
                       {error.field}
                     </div>
-                    <div className="text-sm text-danger">
+                    <div className="text-sm text-muted">
                       {error.error}
                     </div>
                   </div>
@@ -388,24 +370,15 @@ const WBSTemplateManager: React.FC<WBSTemplateManagerProps> = ({
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div className="p-3 bg-muted rounded-lg">
-                  <div className="text-2xl font-bold">{uploadResultP6.summary.total_processed}</div>
-                  <div className="text-sm text-muted-foreground">Total Processed</div>
-                </div>
-                <div className="p-3 bg-success-soft rounded-lg">
-                  <div className="text-2xl font-bold text-success">{uploadResultP6.summary.successful}</div>
-                  <div className="text-sm text-muted-foreground">Successful</div>
-                </div>
-                <div className="p-3 bg-danger-soft rounded-lg">
-                  <div className="text-2xl font-bold text-danger">{uploadResultP6.summary.failed}</div>
-                  <div className="text-sm text-muted-foreground">Failed</div>
-                </div>
+              <div className="grid grid-cols-3 gap-4">
+                <StatCard label="Total Processed" value={uploadResultP6.summary.total_processed} tone="neutral" />
+                <StatCard label="Successful" value={uploadResultP6.summary.successful} tone="success" />
+                <StatCard label="Failed" value={uploadResultP6.summary.failed} tone="danger" />
               </div>
               {uploadResultP6.created_wbs_items.length > 0 && (
                 <div className="space-y-2 max-h-40 overflow-y-auto">
                   {uploadResultP6.created_wbs_items.map((item) => (
-                    <div key={item.wbs_id} className="flex items-center gap-2 p-2 bg-success-soft rounded border">
+                    <div key={item.wbs_id} className="flex items-center gap-2 p-2 rounded border border-line border-l-[3px] border-l-success bg-surface">
                       <Badge variant="outline">{item.wbs_code}</Badge>
                       <span className="font-medium">{item.name}</span>
                       <Badge variant="secondary">Level {item.level}</Badge>
@@ -416,11 +389,11 @@ const WBSTemplateManager: React.FC<WBSTemplateManagerProps> = ({
               {uploadResultP6.errors.length > 0 && (
                 <div className="space-y-2 max-h-40 overflow-y-auto">
                   {uploadResultP6.errors.map((error, index) => (
-                    <div key={index} className="flex items-start gap-2 p-2 bg-danger-soft rounded border border-danger">
+                    <div key={index} className="flex items-start gap-2 p-2 rounded border border-line border-l-[3px] border-l-danger bg-surface">
                       <Badge variant="destructive">Row {error.row}</Badge>
                       <div className="flex-1">
-                        <div className="font-medium text-danger">{error.field}</div>
-                        <div className="text-sm text-danger">{error.error}</div>
+                        <div className="font-medium text-ink">{error.field}</div>
+                        <div className="text-sm text-muted">{error.error}</div>
                       </div>
                     </div>
                   ))}
@@ -559,15 +532,16 @@ const WBSTemplateManager: React.FC<WBSTemplateManagerProps> = ({
           <Separator />
 
           <div>
-            <h4 className="font-medium mb-3">
-              🚨 Important Restrictions:
+            <h4 className="font-medium mb-3 flex items-center gap-1.5">
+              <AlertTriangle className="h-4 w-4 text-danger" aria-hidden="true" />
+              Important Restrictions:
             </h4>
             <div className="space-y-3 text-sm">
-              <div className="p-3 bg-danger-soft rounded-lg border border-danger">
-                <strong className="text-danger">
+              <div className="p-3 rounded-lg border border-line border-l-[3px] border-l-danger bg-surface">
+                <strong className="text-ink">
                   No Root WBS Creation
                 </strong>
-                <p className="text-danger mt-1">
+                <p className="text-muted mt-1">
                   You cannot create root level (Level 0) WBS items through
                   bulk upload. Every WBS item must have a parent assigned.
                 </p>
@@ -598,9 +572,9 @@ const WBSTemplateManager: React.FC<WBSTemplateManagerProps> = ({
                   parent row must come before the child row.
                 </p>
               </div>
-              <div className="p-3 bg-info-soft rounded-lg">
-                <strong>Example:</strong>
-                <ul className="mt-1 space-y-1">
+              <div className="p-3 rounded-lg border border-line border-l-[3px] border-l-info bg-surface">
+                <strong className="text-ink">Example:</strong>
+                <ul className="mt-1 space-y-1 text-muted">
                   <li>
                     Row 2: "Requirements" (Level 2, Parent WBS ID: 1)
                   </li>
@@ -635,25 +609,26 @@ const WBSTemplateManager: React.FC<WBSTemplateManagerProps> = ({
           <Separator />
 
           <div>
-            <h4 className="font-medium mb-3">
-              🔒 Security & Data Integrity:
+            <h4 className="font-medium mb-3 flex items-center gap-1.5">
+              <ShieldAlert className="h-4 w-4 text-info" aria-hidden="true" />
+              Security & Data Integrity:
             </h4>
             <div className="space-y-3 text-sm">
-              <div className="p-3 bg-info-soft rounded-lg border border-info">
-                <strong className="text-info">
+              <div className="p-3 rounded-lg border border-line border-l-[3px] border-l-info bg-surface">
+                <strong className="text-ink">
                   Template Validation
                 </strong>
-                <p className="text-info mt-1">
+                <p className="text-muted mt-1">
                   The system validates that the "Existing WBS" sheet in
                   your Excel file matches the current database state. This
                   ensures data integrity and prevents conflicts.
                 </p>
               </div>
-              <div className="p-3 bg-warning-soft rounded-lg border border-warning">
-                <strong className="text-warning">
+              <div className="p-3 rounded-lg border border-line border-l-[3px] border-l-warning bg-surface">
+                <strong className="text-ink">
                   Always Use Fresh Templates
                 </strong>
-                <p className="text-warning mt-1">
+                <p className="text-muted mt-1">
                   Always download a fresh template before uploading. Using
                   outdated templates will fail security validation. Do not
                   modify the "Existing WBS" sheet manually.

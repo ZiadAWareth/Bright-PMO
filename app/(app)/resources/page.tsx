@@ -60,10 +60,13 @@ import {
   StatTile,
 } from "@/components/ui/entity-card";
 import {
+  CardSkeleton,
   ListCard,
   ListHead,
   ListMessage,
+  ListRegion,
   ListRow,
+  ListSkeleton,
   RowAction,
   RowActions,
   StatusBadge,
@@ -908,16 +911,6 @@ const ResourceManagementPage: React.FC = () => {
     fetchResourceCalendar();
   }, []);
 
-  if (isLoading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-64">
-          <Spinner size={64} className="text-bright-primary" />
-        </div>
-      </DashboardLayout>
-    );
-  }
-
   const rowActions = (resource: Resource) => (
     <RowActions>
       <RowAction
@@ -1097,7 +1090,19 @@ const ResourceManagementPage: React.FC = () => {
               />
             </FilterBar>
 
-            {filteredResources.length === 0 ? (
+            <ListRegion busy={isLoading}>
+            {isLoading ? (
+              view === "grid" ? (
+                <CardSkeleton />
+              ) : (
+                <ListCard>
+                  <table className="w-full border-collapse">
+                    <ListHead columns={RESOURCE_COLUMNS} />
+                    <ListSkeleton columns={RESOURCE_COLUMNS.length} />
+                  </table>
+                </ListCard>
+              )
+            ) : filteredResources.length === 0 ? (
               <EmptyState
                 icon={<Users className="h-10 w-10" />}
                 title="No resources found"
@@ -1213,7 +1218,9 @@ const ResourceManagementPage: React.FC = () => {
               </ListCard>
             )}
 
-            {filteredResources.length > 0 && (
+            </ListRegion>
+
+            {!isLoading && filteredResources.length > 0 && (
               <ListPagination
                 page={page}
                 pageCount={resourcePageCount}
@@ -1396,6 +1403,7 @@ const ResourceCalendarView: React.FC<ResourceCalendarViewProps> = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <button
+            aria-label="Previous month"
             onClick={() =>
               setCurrentMonth(
                 new Date(
@@ -1429,6 +1437,7 @@ const ResourceCalendarView: React.FC<ResourceCalendarViewProps> = ({
           />
 
           <button
+            aria-label="Next month"
             onClick={() =>
               setCurrentMonth(
                 new Date(
@@ -1532,6 +1541,7 @@ const ResourceCalendarView: React.FC<ResourceCalendarViewProps> = ({
                 })}
               </h3>
               <button
+                aria-label="Close day details"
                 onClick={() => setShowDayDetails(false)}
                 className="text-muted hover:text-ink-3"
               >

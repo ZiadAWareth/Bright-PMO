@@ -1,10 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { Modal } from "@/components/ui/modal";
 import {
     ArrowLeft,
+    Check,
     CheckCircle,
     Clock,
     FileText,
@@ -29,6 +32,62 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { Spinner } from "@/components/ui/spinner";
 import { useConfirm } from "@/components/ui/confirm-provider";
 import { Dropdown } from "@/components/ui/dropdown";
+import { TabRow } from "@/components/ui/tab-row";
+import {
+    Breadcrumb,
+    DetailPanel,
+    EmptyState,
+    StatusBadge,
+    RowAction,
+    RowActions,
+    EntityCode,
+    inputClass,
+    textareaClass,
+    actionPrimary,
+    actionSecondary,
+    type BadgeTone,
+} from "@/components/ui/form-shell";
+
+/**
+ * Project status to the pill shown beside the title.
+ *
+ * The screen previously inlined a three-arm conditional that collapsed every
+ * non-completed status into a grey "In progress", so a planning project and a
+ * cancelled one looked identical. Mapping each status to a tone keeps the
+ * colour meaning consistent with the list screens.
+ */
+const CLOSURE_STATUS: Record<string, { label: string; tone: BadgeTone }> = {
+    completed: { label: "Project Completed", tone: "success" },
+    closed: { label: "Project Closed", tone: "success" },
+    execution: { label: "In Execution", tone: "info" },
+    planning: { label: "In Planning", tone: "warning" },
+    on_hold: { label: "On Hold", tone: "warning" },
+    cancelled: { label: "Cancelled", tone: "danger" },
+};
+
+/**
+ * The seven closure steps, in the order they must be completed.
+ *
+ * This list was previously written inline inside the JSX, which meant the tab
+ * row, the "next required step" helper and the accessibility gate each carried
+ * their own copy of the ordering and could drift apart. One definition drives
+ * all three.
+ */
+const CLOSURE_TABS: {
+    id: string;
+    label: string;
+    type: string | null;
+    icon: ReactNode;
+}[] = [
+    { id: "checklist", label: "Overview", type: null, icon: <CheckCircle className="h-4 w-4" /> },
+    { id: "inspection", label: "Inspection", type: "inspection", icon: <Eye className="h-4 w-4" /> },
+    { id: "punch-create", label: "Create Punch Items", type: "create_punch_list", icon: <Plus className="h-4 w-4" /> },
+    { id: "punch-resolve", label: "Resolve Punch Items", type: "punch_list", icon: <AlertTriangle className="h-4 w-4" /> },
+    { id: "documents", label: "Documents", type: "documents", icon: <FileText className="h-4 w-4" /> },
+    { id: "handover", label: "Handover", type: "handover", icon: <User className="h-4 w-4" /> },
+    { id: "approvals", label: "Approvals", type: "approval", icon: <CheckCircle className="h-4 w-4" /> },
+    { id: "reports", label: "Reports", type: "manual", icon: <Download className="h-4 w-4" /> },
+];
 
 const ProjectClosurePage = ({
     params,
@@ -71,6 +130,8 @@ const ProjectClosurePage = ({
     const [inspectorDropdownOpen, setInspectorDropdownOpen] = useState(false);
     const inspectorDropdownRef = useRef<HTMLDivElement>(null);
     const [handoverSearchQuery, setHandoverSearchQuery] = useState("");
+    const [recipientDropdownOpen, setRecipientDropdownOpen] = useState(false);
+    const recipientDropdownRef = useRef<HTMLDivElement>(null);
     const [handoverDropdownOpen, setHandoverDropdownOpen] = useState(false);
     const [scheduleHandoverSubmitting, setScheduleHandoverSubmitting] = useState(false);
     const handoverDropdownRef = useRef<HTMLDivElement>(null);
@@ -153,6 +214,22 @@ const ProjectClosurePage = ({
         return null;
     };
 
+    /**
+     * Tabs the user may actually open right now.
+     *
+     * Overview is always available; a step tab appears only while that step is
+     * the pending one whose predecessors are all complete, which is what keeps
+     * the workflow linear.
+     */
+    const nextStep = getNextRequiredStep();
+
+    const visibleTabs = CLOSURE_TABS.filter((tab) => {
+        if (tab.id === "checklist") return true;
+        if (!tab.type || !project?.closure_checklists) return false;
+        const item = project.closure_checklists.find((c) => c.type === tab.type);
+        return Boolean(item && item.status === "pending" && isStepAccessible(tab.type));
+    });
+
     useEffect(() => {
         const getParams = async () => {
             const resolvedParams = await params;
@@ -171,6 +248,7 @@ const ProjectClosurePage = ({
         const handleClick = (e: MouseEvent) => {
             if (inspectorDropdownRef.current && !inspectorDropdownRef.current.contains(e.target as Node)) setInspectorDropdownOpen(false);
             if (handoverDropdownRef.current && !handoverDropdownRef.current.contains(e.target as Node)) setHandoverDropdownOpen(false);
+            if (recipientDropdownRef.current && !recipientDropdownRef.current.contains(e.target as Node)) setRecipientDropdownOpen(false);
         };
         document.addEventListener("click", handleClick);
         return () => document.removeEventListener("click", handleClick);
@@ -1012,12 +1090,12 @@ const ProjectClosurePage = ({
             <ProtectedRoute>
                 <DashboardLayout>
                     <div className="text-center py-12">
-                        <h1 className="text-2xl font-semibold text-ink mb-4">
+                        <h2 className="text-2xl font-semibold text-ink mb-4">
                             Project Not Found
-                        </h1>
+                        </h2>
                         <button
                             onClick={() => router.push("/projects")}
-                            className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors"
+                            className={actionPrimary}
                         >
                             Back to Projects
                         </button>
@@ -1029,162 +1107,107 @@ const ProjectClosurePage = ({
 
     return (
         <ProtectedRoute>
-            <DashboardLayout>
-                {/* Header */}
-                <div className="mb-6">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                            <button
-                                onClick={() => router.back()}
-                                className="p-2 text-faint hover:text-muted rounded-full hover:bg-surface-2"
-                            >
-                                <ArrowLeft size={20} />
-                            </button>
-                            <div>
-                                <h1 className="text-2xl font-bold text-ink">
-                                    Project Closure Management
-                                </h1>
-                                <p className="text-muted">
-                                    {project.name} • {project.project_code}
+            <DashboardLayout
+                title="Project Closure Management"
+                backHref={`/projects/${projectId}`}
+                backLabel="Back to Project"
+                subtitle={
+                    <span className="inline-flex items-center gap-1.5">
+                        {project.name}
+                        <span aria-hidden="true" className="text-faint">&middot;</span>
+                        <EntityCode code={project.project_code} />
+                    </span>
+                }
+                actions={
+                    <StatusBadge
+                        label={CLOSURE_STATUS[project.status]?.label ?? "In progress"}
+                        tone={CLOSURE_STATUS[project.status]?.tone ?? "neutral"}
+                    />
+                }
+            >
+                <Breadcrumb
+                    className="mb-5"
+                    items={[
+                        { label: "Projects", href: "/projects" },
+                        { label: project.name, href: `/projects/${projectId}` },
+                        { label: "Closure" },
+                    ]}
+                />
+
+                {/* Closure progress.
+                    The previous treatment filled a full-width block with solid
+                    success green before any step was complete, so a 0/7 project
+                    read as a finished one at a glance. Progress now stays
+                    neutral until it is actually earned, and the figure carries
+                    the colour rather than the whole panel. */}
+                {project.status === 'completed' && project.closure_checklists && project.closure_checklists.length > 0 && (() => {
+                    const total = project.closure_checklists.length;
+                    const done = project.closure_checklists.filter(i => i.status === 'complete').length;
+                    const pct = total ? Math.round((done / total) * 100) : 0;
+                    const complete = pct === 100;
+
+                    return (
+                        <section
+                            aria-labelledby="closure-progress-heading"
+                            className="mb-6 rounded-xl border border-line bg-surface p-6"
+                        >
+                            <div className="flex flex-wrap items-baseline justify-between gap-3">
+                                <h2
+                                    id="closure-progress-heading"
+                                    className="font-display text-[15px] font-semibold text-ink"
+                                >
+                                    Closure Progress
+                                </h2>
+                                <p className="text-[13px] text-muted">
+                                    <span className={`text-[15px] font-semibold tabular-nums ${complete ? 'text-success' : 'text-ink'}`}>
+                                        {done}
+                                    </span>
+                                    <span className="tabular-nums"> / {total}</span>
+                                    {" "}steps complete
                                 </p>
                             </div>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                                project.status === 'completed' 
-                                    ? 'bg-success-soft text-success  '
-                                    : 'bg-surface-2 text-ink-2  '
-                            }`}>
-                                {project.status === 'completed' ? 'Project Completed' : project.status === 'closed' ? 'Project Closed' : 'In progress' }
-                            </span>
-                        </div>
-                    </div>
-                </div>
 
-                {/* Overview Cards - Always Visible */}
-                {project.status === 'completed' && project.closure_checklists && project.closure_checklists.length > 0 && (
-                    <div className="bg-surface border border-line rounded-xl p-6 mb-6">
-                        <h3 className="text-lg font-semibold text-ink mb-6">
-                            Closure Progress Overview
-                        </h3>
-                        
-                        {/* Progress Card - Only Checklist Items */}
-                        <div className="bg-success-soft rounded-lg p-6 mb-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-success font-medium">
-                                        Checklist Progress
-                                    </p>
-                                    <p className="text-3xl font-bold text-success">
-                                        {project.closure_checklists?.filter(item => item.status === 'complete').length || 0}
-                                        <span className="text-lg text-success font-normal">
-                                            /{project.closure_checklists?.length || 0}
-                                        </span>
-                                    </p>
-                                    <p className="text-xs text-success">
-                                        Completed / Total Items
-                                    </p>
-                                </div>
-                                <CheckCircle className="w-12 h-12 text-success" />
-                            </div>
-                        </div>
-
-                        {/* Overall Progress */}
-                        <div className="bg-surface-2 rounded-lg p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <h4 className="font-semibold text-ink">
-                                    Overall Closure Progress
-                                </h4>
-                                <span className="text-2xl font-bold text-success">
-                                    {Math.round(
-                                        (project.closure_checklists?.filter(item => item.status === 'complete').length || 0) /
-                                        (project.closure_checklists?.length || 1) * 100
-                                    ) || 0}%
-                                </span>
-                            </div>
-                            <div className="w-full bg-surface-3 rounded-full h-4">
+                            <div
+                                className="mt-4 h-2 w-full overflow-hidden rounded-full bg-surface-3"
+                                role="progressbar"
+                                aria-valuenow={pct}
+                                aria-valuemin={0}
+                                aria-valuemax={100}
+                                aria-labelledby="closure-progress-heading"
+                            >
                                 <div
-                                    className="bg-gradient-to-r from-success to-success h-4 rounded-full transition-all duration-300"
-                                    style={{
-                                        width: `${Math.round(
-                                            (project.closure_checklists?.filter(item => item.status === 'complete').length || 0) /
-                                            (project.closure_checklists?.length || 1) * 100
-                                        ) || 0}%`,
-                                    }}
-                                ></div>
+                                    className={`h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none ${complete ? 'bg-success' : 'bg-bright'}`}
+                                    style={{ width: `${pct}%` }}
+                                />
                             </div>
-                        </div>
-                    </div>
-                )}
 
-                {/* Navigation Tabs */}
-                <div className="bg-surface border border-line rounded-xl mb-6">
-                    <div className="flex items-center space-x-1 p-1 overflow-x-auto whitespace-nowrap">
-                        {[
-                            { id: "checklist", label: "Overview", icon: <CheckCircle size={16} />, type: null, order: 0 },
-                            { id: "inspection", label: "Inspection", icon: <Eye size={16} />, type: 'inspection', order: 1 },
-                            { id: "punch-create", label: "Create Punch Items", icon: <Plus size={16} />, type: 'create_punch_list', order: 2 },
-                            { id: "punch-resolve", label: "Resolve Punch Items", icon: <AlertTriangle size={16} />, type: 'punch_list', order: 3 },
-                            { id: "documents", label: "Documents", icon: <FileText size={16} />, type: 'documents', order: 4 },
-                            { id: "handover", label: "Handover", icon: <User size={16} />, type: 'handover', order: 5 },
-                            { id: "approvals", label: "Approvals", icon: <CheckCircle size={16} />, type: 'approval', order: 6 },
-                            { id: "reports", label: "Reports", icon: <Download size={16} />, type: 'manual', order: 7 },
-                        ].filter((tab) => {
-                            // Always show the overview tab
-                            if (tab.id === 'checklist') return true;
-                            
-                            // For other tabs, only show the current pending step
-                            if (tab.type && project?.closure_checklists) {
-                                const checklistItem = project.closure_checklists.find(item => item.type === tab.type);
-                                if (checklistItem && checklistItem.status === 'pending') {
-                                    // Check if this is the next step in order (all previous steps are completed)
-                                    const stepOrder = [
-                                        'inspection', 'create_punch_list', 'punch_list', 
-                                        'documents', 'handover', 'approval', 'manual'
-                                    ];
-                                    
-                                    const currentStepIndex = stepOrder.indexOf(tab.type);
-                                    let canAccess = true;
-                                    
-                                    // Check if all previous steps are completed
-                                    for (let i = 0; i < currentStepIndex; i++) {
-                                        const prevStepItem = project.closure_checklists.find(
-                                            item => item.type === stepOrder[i]
-                                        );
-                                        if (!prevStepItem || prevStepItem.status !== 'complete') {
-                                            canAccess = false;
-                                            break;
-                                        }
-                                    }
-                                    
-                                    return canAccess;
-                                }
-                            }
-                            
-                            return false;
-                        }).map((tab) => {
-                            return (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveSection(tab.id)}
-                                    className={`flex items-center space-x-2 px-4 py-3 rounded-lg text-sm font-medium transition-colors relative ${
-                                        activeSection === tab.id
-                                            ? "bg-bright text-white"
-                                            : "text-bright hover:text-bright-deep  hover:bg-bright-soft "
-                                    }`}
-                                >
-                                    {/* Current step indicator */}
-                                    {tab.id !== 'checklist' && (
-                                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-bright rounded-full animate-pulse"></div>
-                                    )}
-                                    
-                                    {tab.icon}
-                                    <span>{tab.label}</span>
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
+                            <p className="mt-2 text-[12.5px] text-muted">
+                                <span className="font-medium tabular-nums text-ink">{pct}%</span>
+                                {" "}overall
+                                {!complete && nextStep && (
+                                    <> &middot; next up: <span className="text-ink">{nextStep.label}</span></>
+                                )}
+                            </p>
+                        </section>
+                    );
+                })()}
+
+                {/* Workflow steps.
+                    The row is the underline `TabRow` rather than the filled
+                    orange chips it replaced: brand orange is reserved for
+                    primary actions and the active nav item, and a row of solid
+                    orange chips competed with both. The pulsing dot each tab
+                    carried is gone too — it fired on every tab at once, so it
+                    marked nothing in particular while animating indefinitely. */}
+                <TabRow
+                    value={activeSection}
+                    onChange={setActiveSection}
+                    tabs={visibleTabs.map((tab) => ({
+                        id: tab.id,
+                        label: tab.label,
+                        icon: tab.icon,
+                    }))}
+                />
 
                 {/* Content */}
                 <div className="space-y-6">
@@ -1224,7 +1247,7 @@ const ProjectClosurePage = ({
                                         )}
                                         <button
                                             onClick={() => setActiveSection('checklist')}
-                                            className="flex items-center space-x-2 px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors mx-auto"
+                                            className={`${actionPrimary} mx-auto`}
                                         >
                                             <CheckCircle size={16} />
                                             <span>View Checklist Overview</span>
@@ -1260,15 +1283,15 @@ const ProjectClosurePage = ({
                                 </p>
                                 
                                 {/* Closure Summary */}
-                                <div className="bg-success-soft rounded-lg p-6 mb-6">
-                                    <h4 className="font-semibold text-success mb-4">
+                                <div className="mb-6 rounded-xl border border-line border-l-[3px] border-l-success bg-surface p-5">
+                                    <h4 className="mb-4 font-display text-[14.5px] font-semibold text-ink">
                                         Closure Summary
                                     </h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                         {project.closure_approved_at && (
                                             <div>
                                                 <span className="text-success font-medium">Closed Date: </span>
-                                                <span className="text-success">
+                                                <span className="text-[12.5px] font-medium text-ink">
                                                     {new Date(project.closure_approved_at).toLocaleDateString()}
                                                 </span>
                                             </div>
@@ -1276,27 +1299,27 @@ const ProjectClosurePage = ({
                                         {project.closure_approved_user && (
                                             <div>
                                                 <span className="text-success font-medium">Closed By: </span>
-                                                <span className="text-success">
+                                                <span className="text-[12.5px] font-medium text-ink">
                                                     {project.closure_approved_user.account?.first_name} {project.closure_approved_user.account?.last_name}
                                                 </span>
                                             </div>
                                         )}
                                         <div>
                                             <span className="text-success font-medium">Total Checklist Items: </span>
-                                            <span className="text-success">
+                                            <span className="text-[12.5px] font-medium text-ink">
                                                 {project.closure_checklists?.length || 0} (All Completed)
                                             </span>
                                         </div>
                                         <div>
                                             <span className="text-success font-medium">Project Duration: </span>
-                                            <span className="text-success">
+                                            <span className="text-[12.5px] font-medium text-ink">
                                                 {Math.ceil((new Date(project.actual_end_date || new Date()).getTime() - new Date(project.start_date).getTime()) / (1000 * 60 * 60 * 24))} days
                                             </span>
                                         </div>
                                     </div>
                                     
                                     {project.closure_notes && (
-                                        <div className="mt-4 pt-4 border-t border-success">
+                                        <div className="mt-4 pt-4 border-t border-line">
                                             <span className="text-success font-medium text-sm">Closure Notes: </span>
                                             <p className="text-success text-sm mt-1">
                                                 {project.closure_notes}
@@ -1309,7 +1332,7 @@ const ProjectClosurePage = ({
                                 <div className="flex justify-center space-x-4">
                                     <button
                                         onClick={() => router.push("/projects")}
-                                        className="flex items-center space-x-2 px-6 py-3 bg-muted text-white rounded-lg hover:bg-ink-solid-3 transition-colors"
+                                        className={actionSecondary}
                                     >
                                         <ArrowLeft size={16} />
                                         <span>Back to Projects</span>
@@ -1317,7 +1340,7 @@ const ProjectClosurePage = ({
                                     <button
                                         onClick={handleDownloadPDFReport}
                                         disabled={isGeneratingPDF}
-                                        className="flex items-center space-x-2 px-6 py-3 bg-success text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className={actionPrimary}
                                     >
                                         {isGeneratingPDF ? (
                                             <>
@@ -1367,286 +1390,398 @@ const ProjectClosurePage = ({
                             </div>
                         </div>
                     ) : project.status !== 'completed' ? (
-                        <div className="bg-surface border border-line rounded-xl p-8">
-                            <div className="text-center">
-                                <Clock className="w-16 h-16 text-faint mx-auto mb-4" />
-                                <h3 className="text-xl font-semibold text-ink mb-2">
-                                    Project Still in Execution Phase
-                                </h3>
-                                <p className="text-muted mb-6">
-                                    The closure process can only be initiated once the project status is set to "Completed".
-                                </p>
-                                <span className={`px-4 py-2 rounded-full text-sm font-medium ${
-                                    project.status === 'execution' 
-                                        ? 'bg-info-soft text-info  '
-                                        : project.status === 'planning'
-                                        ? 'bg-warning-soft text-warning  '
-                                        : 'bg-surface-2 text-ink-2  '
-                                }`}>
-                                    Current Status: {project.status.replace('_', ' ').toUpperCase()}
-                                </span>
+                        <EmptyState
+                            icon={Clock}
+                            tone="info"
+                            title="Closure not yet available"
+                            description={
+                                <>
+                                    The closure workflow opens once this project is marked
+                                    <span className="text-ink"> Completed</span>. Until then its
+                                    checklist, punch list and handover steps stay locked.
+                                </>
+                            }
+                            action={
+                                <Link
+                                    href={`/projects/${projectId}`}
+                                    className="inline-flex h-9 items-center gap-2 rounded-md border border-line bg-surface px-3.5 text-[13px] font-medium text-ink transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-bright-soft"
+                                >
+                                    <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                                    Back to project
+                                </Link>
+                            }
+                        >
+                            <div className="flex items-center justify-center gap-2 border-t border-line pt-5 text-[13px] text-muted">
+                                Current status
+                                <StatusBadge
+                                    label={CLOSURE_STATUS[project.status]?.label ?? project.status.replace('_', ' ')}
+                                    tone={CLOSURE_STATUS[project.status]?.tone ?? "neutral"}
+                                />
                             </div>
-                        </div>
+                        </EmptyState>
                     ) : !project.closure_checklists || project.closure_checklists.length === 0 ? (
-                        <div className="bg-surface border border-line rounded-xl p-8">
-                            <div className="text-center">
-                                <CheckCircle className="w-16 h-16 text-faint mx-auto mb-4" />
-                                <h3 className="text-xl font-semibold text-ink mb-2">
-                                    Project Closure Not Started
-                                </h3>
-                                <p className="text-muted mb-6">
-                                    Start the closure process to manage completion documents, checklists, and punch list items.
-                                </p>
+                        <EmptyState
+                            icon={CheckCircle}
+                            title="Closure not started"
+                            description="Starting closure creates the seven-step checklist covering inspection, punch list, documents, handover, approval and the final report."
+                            action={
                                 <button
                                     onClick={startClosureProcess}
                                     disabled={isStartingClosure}
-                                    className="inline-flex items-center space-x-2 px-6 py-3 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="inline-flex h-10 items-center gap-2 rounded-md bg-bright px-4 text-[13px] font-semibold text-white transition-colors hover:bg-bright-deep focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-bright-soft disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     {isStartingClosure ? (
-                                        <Spinner size={20} />
+                                        <Spinner size={16} />
                                     ) : (
-                                        <CheckCircle size={20} />
+                                        <CheckCircle className="h-4 w-4" aria-hidden="true" />
                                     )}
-                                    <span>{isStartingClosure ? "Starting..." : "Start Closure Process"}</span>
+                                    {isStartingClosure ? "Starting…" : "Start closure process"}
                                 </button>
-                            </div>
-                        </div>
+                            }
+                        />
                     ) : (
                         <>
 
-                            {/* Documents Section */}
-                            {activeSection === "documents" && (
-                                <div className="bg-surface border border-line rounded-xl p-6">
-                                    <div className="flex items-center justify-between mb-6">
-                                        <h3 className="text-lg font-semibold text-ink">
-                                            Closure Documents
-                                        </h3>
-                                        
-                                        {/* Bulk Upload Button */}
-                                        <label className={`inline-flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${bulkUploading ? 'bg-bright cursor-not-allowed opacity-90' : 'bg-bright hover:bg-bright-deep cursor-pointer'}`}>
-                                            {bulkUploading ? (
-                                                <Spinner size={16} />
-                                            ) : (
-                                                <Upload size={16} />
-                                            )}
-                                            <span>{bulkUploading ? "Uploading..." : "Bulk Upload Documents"}</span>
-                                            <input
-                                                type="file"
-                                                multiple
-                                                accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
-                                                onChange={handleBulkDocumentUpload}
-                                                className="hidden"
-                                                disabled={bulkUploading}
-                                            />
-                                        </label>
-                                    </div>
-                                    
-                                    <div className="space-y-4">
-                                        {project.closure_documents?.map((docItem) => (
-                                            <div
-                                                key={docItem.id}
-                                                className="border border-line rounded-lg p-4"
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center space-x-4">
-                                                        <FileText className="w-8 h-8 text-info" />
-                                                        <div>
-                                                            <h4 className="font-medium text-ink">
-                                                                {docItem.document?.name || `${docItem.type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())} Document`}
-                                                            </h4>
-                                                            <p className="text-sm text-muted">
-                                                                Type: {docItem.type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
-                                                                {docItem.required && ' (Required)'}
-                                                            </p>
-                                                            {docItem.notes && (
-                                                                <p className="text-xs text-muted mt-1">
-                                                                    {docItem.notes}
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center space-x-3">
-                                                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                                                            !docItem.document
-                                                                ? 'bg-danger-soft text-danger  '
-                                                                : docItem.approved
-                                                                ? 'bg-success-soft text-success  '
-                                                                : docItem.submitted
-                                                                ? 'bg-warning-soft text-warning  '
-                                                                : 'bg-surface-2 text-ink-2  '
-                                                        }`}>
-                                                            {!docItem.document ? 'Not Uploaded' :
-                                                             docItem.approved ? 'Approved' : 
-                                                             docItem.submitted ? 'Under Review' : 'Draft'}
-                                                        </span>
-                                                        {!docItem.document ? (
-                                                            <label className={`inline-flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${uploadingDocumentItemId === docItem.id ? 'bg-bright cursor-not-allowed opacity-90' : 'bg-bright hover:bg-bright-deep cursor-pointer'}`}>
-                                                                {uploadingDocumentItemId === docItem.id ? (
-                                                                    <Spinner size={16} />
-                                                                ) : (
-                                                                    <Upload size={16} />
-                                                                )}
-                                                                <span>{uploadingDocumentItemId === docItem.id ? "Uploading..." : "Upload"}</span>
-                                                                <input
-                                                                    type="file"
-                                                                    accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
-                                                                    onChange={(e) => handleFileUpload(docItem.id, e.target.files)}
-                                                                    className="hidden"
-                                                                    disabled={uploadingDocumentItemId !== null}
-                                                                />
-                                                            </label>
-                                                        ) : (
-                                                            <div className="flex items-center space-x-2">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => docItem.document?.document_id && window.open(`/api/documents/download?documentId=${docItem.document.document_id}`, "_blank")}
-                                                                    className="p-2 text-info hover:bg-info-soft rounded-lg transition-colors"
-                                                                    title="View document"
-                                                                >
-                                                                    <Eye size={16} />
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        const doc = docItem.document;
-                                                                        if (!doc?.document_id) return;
-                                                                        const a = document.createElement("a");
-                                                                        a.href = `/api/documents/download?documentId=${doc.document_id}`;
-                                                                        a.download = doc.name || "document";
-                                                                        a.rel = "noopener noreferrer";
-                                                                        document.body.appendChild(a);
-                                                                        a.click();
-                                                                        document.body.removeChild(a);
-                                                                    }}
-                                                                    className="p-2 text-success hover:bg-success-soft rounded-lg transition-colors"
-                                                                    title="Download document"
-                                                                >
-                                                                    <Download size={16} />
-                                                                </button>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                        
-                                        {/* No documents message */}
-                                        {(!project.closure_documents || project.closure_documents.length === 0) && (
-                                            <div className="text-center py-8">
-                                                <FileText className="w-16 h-16 text-faint mx-auto mb-4" />
-                                                <h4 className="text-lg font-medium text-ink mb-2">
-                                                    No Closure Documents Found
-                                                </h4>
-                                                <p className="text-muted mb-4">
-                                                    Use the bulk upload button above to upload multiple closure documents at once.
-                                                </p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
+                            {/* Closure documents.
+                                Mirrors the closure checklist: one numbered row
+                                per required document, a rail joining them, and
+                                the status carried by a badge rather than by
+                                repeated prose. The "Type: …" line under each
+                                title is gone — it restated the title, which is
+                                itself derived from the type — and so is the
+                                "Document not yet uploaded" line, which said
+                                exactly what the badge beside it said. */}
+                            {activeSection === "documents" && (() => {
+                                const docs = project.closure_documents ?? [];
+                                const uploaded = docs.filter((d) => d.document).length;
 
-                            {/* Checklist Section */}
-                            {activeSection === "checklist" && (
-                                <div className="bg-surface border border-line rounded-xl p-6">
-                                    <h3 className="text-lg font-semibold text-ink mb-6">
-                                        Closure Checklist
-                                    </h3>
-                                    
-                                    {/* Current Step Guidance */}
-                                    {(() => {
-                                        const nextStep = getNextRequiredStep();
-                                        return nextStep ? (
-                                            <div className="bg-bright-soft rounded-lg p-4 mb-6">
-                                                <div className="flex items-center space-x-3">
-                                                    <div className="w-8 h-8 bg-bright-soft rounded-full flex items-center justify-center">
-                                                        <AlertTriangle className="w-4 h-4 text-bright" />
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="font-medium text-bright">
-                                                            Current Step: {nextStep.label}
-                                                        </h4>
-                                                        <p className="text-sm text-bright-deep">
-                                                            Complete this step to proceed with the closure process.
-                                                        </p>
-                                                    </div>
-                                                </div>
+                                const label = (type: string) =>
+                                    type
+                                        .replace(/_/g, " ")
+                                        .toLowerCase()
+                                        .replace(/\b\w/g, (l) => l.toUpperCase());
+
+                                return (
+                                    <section
+                                        aria-labelledby="closure-documents-heading"
+                                        className="rounded-xl border border-line bg-surface"
+                                    >
+                                        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-6 py-4">
+                                            <div>
+                                                <h2
+                                                    id="closure-documents-heading"
+                                                    className="font-display text-[15px] font-semibold text-ink"
+                                                >
+                                                    Closure Documents
+                                                </h2>
+                                                {docs.length > 0 && (
+                                                    <p className="mt-0.5 text-[12.5px] text-muted">
+                                                        <span className="font-medium tabular-nums text-ink">
+                                                            {uploaded}
+                                                        </span>
+                                                        {" of "}
+                                                        <span className="tabular-nums">{docs.length}</span>
+                                                        {" uploaded"}
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            <label
+                                                className={`${actionSecondary} cursor-pointer focus-within:ring-[3px] focus-within:ring-bright-soft ${
+                                                    bulkUploading ? "pointer-events-none opacity-60" : ""
+                                                }`}
+                                            >
+                                                {bulkUploading ? (
+                                                    <Spinner size={16} />
+                                                ) : (
+                                                    <Upload className="h-4 w-4" aria-hidden="true" />
+                                                )}
+                                                {bulkUploading ? "Uploading\u2026" : "Bulk upload"}
+                                                <input
+                                                    type="file"
+                                                    multiple
+                                                    accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                                                    onChange={handleBulkDocumentUpload}
+                                                    className="sr-only"
+                                                    disabled={bulkUploading}
+                                                />
+                                            </label>
+                                        </header>
+
+                                        {docs.length === 0 ? (
+                                            <div className="p-6">
+                                                <EmptyState
+                                                    icon={FileText}
+                                                    title="No closure documents required"
+                                                    description="Nothing has been requested for this project yet. Use bulk upload to add documents."
+                                                />
                                             </div>
                                         ) : (
-                                            <div className="bg-success-soft rounded-lg p-4 mb-6">
-                                                <div className="flex items-center space-x-3">
-                                                    <div className="w-8 h-8 bg-success-soft rounded-full flex items-center justify-center">
-                                                        <CheckCircle className="w-4 h-4 text-success" />
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="font-medium text-success">
-                                                            All Steps Completed!
-                                                        </h4>
-                                                        <p className="text-sm text-success">
-                                                            The project closure process is ready for finalization.
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })()}
-                                    
-                                    <div className="space-y-3">
-                                        {project.closure_checklists?.map((item) => (
-                                            <div
-                                                key={item.id}
-                                                className="flex items-center justify-between p-4 border border-line rounded-lg hover:bg-surface-2 transition-colors"
-                                            >
-                                                <div className="flex items-center space-x-4">
-                                                    <button
-                                                        onClick={() => handleChecklistToggle(item.id)}
-                                                        disabled={item.auto_checked}
-                                                        className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
-                                                            item.status === 'complete' 
-                                                                ? 'bg-success text-white' 
-                                                                : 'bg-surface-3 hover:bg-surface-3 '
-                                                        } ${item.auto_checked ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'}`}
-                                                    >
-                                                        {item.status === 'complete' && <CheckCircle size={16} />}
-                                                    </button>
-                                                    <div>
-                                                        <h4 className="font-medium text-ink">
-                                                            {item.title}
-                                                        </h4>
-                                                        <p className="text-sm text-muted">
-                                                            Type: {item.type} {item.auto_checked && '(Auto-checked)'}
-                                                        </p>
-                                                        {item.completed_at && (
-                                                            <p className="text-xs text-muted mt-1">
-                                                                Completed on {new Date(item.completed_at).toLocaleDateString()}
-                                                                {item.completedBy && ` by ${item.completedBy.account.first_name} ${item.completedBy.account.last_name}`}
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center space-x-3">
-                                                    {item.type === 'inspection' && item.status === 'pending' && !project.final_inspection && (
-                                                        <button
-                                                            onClick={() => setShowScheduleInspectionModal(true)}
-                                                            className="flex items-center space-x-2 px-3 py-1 bg-bright text-white text-sm rounded hover:bg-bright-deep transition-colors"
+                                            <ol className="divide-y divide-line">
+                                                {docs.map((docItem, index) => {
+                                                    const has = Boolean(docItem.document);
+                                                    const last = index === docs.length - 1;
+                                                    const title =
+                                                        docItem.document?.name ??
+                                                        `${label(docItem.type)} Document`;
+
+                                                    return (
+                                                        <li
+                                                            key={docItem.id}
+                                                            className="relative flex items-start gap-4 px-6 py-4 transition-colors hover:bg-surface-2"
                                                         >
-                                                            <Calendar size={14} />
-                                                            <span>Schedule</span>
+                                                            {!last && (
+                                                                <span
+                                                                    aria-hidden="true"
+                                                                    className={`absolute bottom-0 left-[2.4rem] top-[3.1rem] w-px ${
+                                                                        has ? "bg-success/40" : "bg-line"
+                                                                    }`}
+                                                                />
+                                                            )}
+
+                                                            <span
+                                                                aria-hidden="true"
+                                                                className={`relative z-10 grid h-7 w-7 shrink-0 place-items-center rounded-full border text-[11.5px] font-semibold tabular-nums ${
+                                                                    has
+                                                                        ? "border-success bg-success text-white"
+                                                                        : "border-line bg-surface text-muted"
+                                                                }`}
+                                                            >
+                                                                {has ? (
+                                                                    <Check className="h-3.5 w-3.5" />
+                                                                ) : (
+                                                                    index + 1
+                                                                )}
+                                                            </span>
+
+                                                            <div className="min-w-0 flex-1">
+                                                                <h3 className="truncate text-[14px] font-medium text-ink">
+                                                                    {title}
+                                                                </h3>
+                                                                <p className="mt-0.5 text-[12.5px] text-muted">
+                                                                    {docItem.required ? "Required" : "Optional"}
+                                                                    {docItem.notes && ` \u00b7 ${docItem.notes}`}
+                                                                </p>
+                                                            </div>
+
+                                                            <div className="flex shrink-0 items-center gap-2">
+                                                                {/* Uploaded documents show only that they are
+                                                                    uploaded. The old badge also had an "Approved"
+                                                                    state, but nothing on this screen ever sets
+                                                                    `approved`, so that value could not be reached
+                                                                    and promised a review step that does not exist
+                                                                    here. */}
+                                                                <StatusBadge
+                                                                    label={has ? "Uploaded" : "Not uploaded"}
+                                                                    tone={has ? "success" : "neutral"}
+                                                                />
+
+                                                                {!has ? (
+                                                                    <label
+                                                                        className={`${actionPrimary} cursor-pointer focus-within:ring-[3px] focus-within:ring-bright-soft ${
+                                                                            uploadingDocumentItemId === docItem.id
+                                                                                ? "pointer-events-none opacity-60"
+                                                                                : ""
+                                                                        }`}
+                                                                    >
+                                                                        {uploadingDocumentItemId === docItem.id ? (
+                                                                            <Spinner size={16} />
+                                                                        ) : (
+                                                                            <Upload
+                                                                                className="h-4 w-4"
+                                                                                aria-hidden="true"
+                                                                            />
+                                                                        )}
+                                                                        {uploadingDocumentItemId === docItem.id
+                                                                            ? "Uploading\u2026"
+                                                                            : "Upload"}
+                                                                        <input
+                                                                            type="file"
+                                                                            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                                                                            onChange={(e) =>
+                                                                                handleFileUpload(docItem.id, e.target.files)
+                                                                            }
+                                                                            className="sr-only"
+                                                                            disabled={uploadingDocumentItemId !== null}
+                                                                        />
+                                                                    </label>
+                                                                ) : (
+                                                                    <RowActions>
+                                                                        <RowAction
+                                                                            icon={Eye}
+                                                                            label={`View ${title}`}
+                                                                            onClick={() =>
+                                                                                docItem.document?.document_id &&
+                                                                                window.open(
+                                                                                    `/api/documents/download?documentId=${docItem.document.document_id}`,
+                                                                                    "_blank",
+                                                                                )
+                                                                            }
+                                                                        />
+                                                                        <RowAction
+                                                                            icon={Download}
+                                                                            label={`Download ${title}`}
+                                                                            onClick={() => {
+                                                                                const doc = docItem.document;
+                                                                                if (!doc?.document_id) return;
+                                                                                const a = document.createElement("a");
+                                                                                a.href = `/api/documents/download?documentId=${doc.document_id}`;
+                                                                                a.download = doc.name || "document";
+                                                                                a.rel = "noopener noreferrer";
+                                                                                document.body.appendChild(a);
+                                                                                a.click();
+                                                                                document.body.removeChild(a);
+                                                                            }}
+                                                                        />
+                                                                    </RowActions>
+                                                                )}
+                                                            </div>
+                                                        </li>
+                                                    );
+                                                })}
+                                            </ol>
+                                        )}
+                                    </section>
+                                );
+                            })()}
+
+                            {activeSection === "checklist" && (() => {
+                                const items = project.closure_checklists ?? [];
+                                const activeType = nextStep?.type ?? null;
+
+                                return (
+                                    <section
+                                        aria-labelledby="closure-checklist-heading"
+                                        className="rounded-xl border border-line bg-surface"
+                                    >
+                                        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-6 py-4">
+                                            <h2
+                                                id="closure-checklist-heading"
+                                                className="font-display text-[15px] font-semibold text-ink"
+                                            >
+                                                Closure Checklist
+                                            </h2>
+                                            {nextStep ? (
+                                                <p className="text-[13px] text-muted">
+                                                    Current step:{" "}
+                                                    <span className="font-medium text-ink">{nextStep.label}</span>
+                                                </p>
+                                            ) : (
+                                                <StatusBadge label="All steps complete" tone="success" />
+                                            )}
+                                        </header>
+
+                                        <ol className="divide-y divide-line">
+                                            {items.map((item, index) => {
+                                                const complete = item.status === "complete";
+                                                const current = !complete && item.type === activeType;
+                                                const last = index === items.length - 1;
+
+                                                return (
+                                                    <li
+                                                        key={item.id}
+                                                        aria-current={current ? "step" : undefined}
+                                                        className={`relative flex items-start gap-4 px-6 py-4 transition-colors ${
+                                                            current ? "bg-bright-soft/40" : "hover:bg-surface-2"
+                                                        }`}
+                                                    >
+                                                        {/* Rail joining one step to the next. Decorative, so it
+                                                            is hidden from assistive technology. */}
+                                                        {!last && (
+                                                            <span
+                                                                aria-hidden="true"
+                                                                className={`absolute bottom-0 left-[2.4rem] top-[3.1rem] w-px ${
+                                                                    complete ? "bg-success/40" : "bg-line"
+                                                                }`}
+                                                            />
+                                                        )}
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleChecklistToggle(item.id)}
+                                                            disabled={item.auto_checked}
+                                                            aria-label={
+                                                                complete
+                                                                    ? `Mark step ${index + 1}, ${item.title}, as pending`
+                                                                    : `Mark step ${index + 1}, ${item.title}, as complete`
+                                                            }
+                                                            title={
+                                                                item.auto_checked
+                                                                    ? "Completed automatically when the underlying work finished"
+                                                                    : undefined
+                                                            }
+                                                            className={`relative z-10 grid h-7 w-7 shrink-0 place-items-center rounded-full border text-[11.5px] font-semibold tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-bright-soft ${
+                                                                complete
+                                                                    ? "border-success bg-success text-white"
+                                                                    : current
+                                                                    ? "border-bright bg-surface text-bright"
+                                                                    : "border-line bg-surface text-muted"
+                                                            } ${
+                                                                item.auto_checked
+                                                                    ? "cursor-not-allowed opacity-80"
+                                                                    : "cursor-pointer hover:border-bright"
+                                                            }`}
+                                                        >
+                                                            {complete ? (
+                                                                <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                                                            ) : (
+                                                                index + 1
+                                                            )}
                                                         </button>
-                                                    )}
-                                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                                                        item.status === 'complete'
-                                                            ? 'bg-success-soft text-success  '
-                                                            : 'bg-warning-soft text-warning  '
-                                                    }`}>
-                                                        {item.status === 'complete' ? 'Complete' : 'Pending'}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+
+                                                        <div className="min-w-0 flex-1">
+                                                            <h3
+                                                                className={`text-[14px] font-medium ${
+                                                                    current ? "text-bright-deep" : "text-ink"
+                                                                }`}
+                                                            >
+                                                                {item.title}
+                                                            </h3>
+                                                            <p className="mt-0.5 text-[12.5px] text-muted">
+                                                                {complete && item.completed_at ? (
+                                                                    <>
+                                                                        Completed{" "}
+                                                                        {new Date(item.completed_at).toLocaleDateString()}
+                                                                        {item.completedBy &&
+                                                                            ` by ${item.completedBy.account.first_name} ${item.completedBy.account.last_name}`}
+                                                                    </>
+                                                                ) : current ? (
+                                                                    "Complete this step to continue."
+                                                                ) : complete ? (
+                                                                    "Completed"
+                                                                ) : (
+                                                                    `Step ${index + 1} of ${items.length}`
+                                                                )}
+                                                                {item.auto_checked && " \u00b7 tracked automatically"}
+                                                            </p>
+                                                        </div>
+
+                                                        <div className="flex shrink-0 items-center gap-2">
+                                                            {item.type === "inspection" &&
+                                                                item.status === "pending" &&
+                                                                !project.final_inspection && (
+                                                                    <button
+                                                                        onClick={() => setShowScheduleInspectionModal(true)}
+                                                                        className={actionPrimary}
+                                                                    >
+                                                                        <Calendar className="h-4 w-4" aria-hidden="true" />
+                                                                        Schedule
+                                                                    </button>
+                                                                )}
+                                                            <StatusBadge
+                                                                label={
+                                                                    complete ? "Complete" : current ? "In progress" : "Pending"
+                                                                }
+                                                                tone={complete ? "success" : current ? "brand" : "neutral"}
+                                                            />
+                                                        </div>
+                                                    </li>
+                                                );
+                                            })}
+                                        </ol>
+                                    </section>
+                                );
+                            })()}
 
                             {/* Create Punch Items Section */}
                             {activeSection === "punch-create" && (
@@ -1657,7 +1792,7 @@ const ProjectClosurePage = ({
                                         </h3>
                                         <button
                                             onClick={() => setShowAddPunchItemModal(true)}
-                                            className="flex items-center space-x-2 px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors"
+                                            className={actionPrimary}
                                         >
                                             <Plus size={16} />
                                             <span>Add New Item</span>
@@ -1695,7 +1830,7 @@ const ProjectClosurePage = ({
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center space-x-2">
-                                                        <span className="px-3 py-1 rounded-full text-sm font-medium bg-danger-soft text-danger">
+                                                        <span className="inline-flex rounded-md px-2 py-0.5 text-[11.5px] font-semibold bg-danger-soft text-danger">
                                                             Open
                                                         </span>
                                                         <button
@@ -1716,8 +1851,9 @@ const ProjectClosurePage = ({
                                                             onClick={() => handleDeletePunchItem(item.id)}
                                                             className="p-1 text-danger hover:bg-danger-soft rounded transition-colors"
                                                             title="Delete item"
+                                                            aria-label="Delete punch list item"
                                                         >
-                                                            <Trash2 size={16} />
+                                                            <Trash2 size={16} aria-hidden="true" />
                                                         </button>
                                                     </div>
                                                 </div>
@@ -1731,7 +1867,7 @@ const ProjectClosurePage = ({
                                                 </p>
                                                 <button
                                                     onClick={() => setShowAddPunchItemModal(true)}
-                                                    className="flex items-center space-x-2 px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors mx-auto"
+                                                    className={`${actionPrimary} mx-auto`}
                                                 >
                                                     <Plus size={16} />
                                                     <span>Create First Item</span>
@@ -1755,7 +1891,7 @@ const ProjectClosurePage = ({
                                                 </div>
                                                 <button
                                                     onClick={handleCompletePunchListCreation}
-                                                    className="flex items-center space-x-2 px-6 py-3 bg-success text-white rounded-lg hover:opacity-90 transition-colors"
+                                                    className={actionPrimary}
                                                 >
                                                     <CheckCircle size={16} />
                                                     <span>Complete Punch List Creation</span>
@@ -1777,7 +1913,7 @@ const ProjectClosurePage = ({
                                             <span className="text-muted">
                                                 Total: {project.punch_list_items?.length || 0}
                                             </span>
-                                            <span className="text-success">
+                                            <span className="text-[12.5px] font-medium text-ink">
                                                 Resolved: {project.punch_list_items?.filter(item => item.status === 'resolved').length || 0}
                                             </span>
                                         </div>
@@ -1825,30 +1961,33 @@ const ProjectClosurePage = ({
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center space-x-2">
-                                                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                                                            item.status === 'resolved'
-                                                                ? 'bg-success-soft text-success  '
-                                                                : 'bg-info-soft text-info  '
-                                                        }`}>
-                                                            {item.status === 'resolved' ? 'Resolved' : 'In Progress'}
-                                                        </span>
+                                                        <StatusBadge
+                                                            label={item.status === 'resolved' ? 'Resolved' : 'In progress'}
+                                                            tone={item.status === 'resolved' ? 'success' : 'brand'}
+                                                        />
+                                                        {/* Resolving is the only move available from here, so it
+                                                            is a button rather than a select. The dropdown this
+                                                            replaced listed "In Progress" alongside "Mark as
+                                                            Resolved" — choosing the state the item was already
+                                                            in did nothing, and presenting a no-op beside a real
+                                                            action makes the real one harder to find. */}
                                                         {item.status !== 'resolved' && (
-                                                            <Dropdown
-                                                              value={String(item.status ?? '')}
-                                                              onChange={(__v: string) => handleUpdatePunchItem(item.id, __v)}
-                                                              options={[
-                                                              { value: String("in_progress"), label: "In Progress" },
-                                                              { value: String("resolved"), label: "Mark as Resolved" },
-                                                            ]}
-                                                            />
+                                                            <button
+                                                                onClick={() => handleUpdatePunchItem(item.id, 'resolved')}
+                                                                className={actionSecondary}
+                                                            >
+                                                                <Check className="h-4 w-4" aria-hidden="true" />
+                                                                Mark as resolved
+                                                            </button>
                                                         )}
                                                         {item.status === 'resolved' && (
                                                             <button
                                                                 onClick={() => handleDeletePunchItem(item.id)}
                                                                 className="p-1 text-danger hover:bg-danger-soft rounded transition-colors"
                                                                 title="Delete resolved item"
+                                                                aria-label="Delete resolved punch list item"
                                                             >
-                                                                <Trash2 size={16} />
+                                                                <Trash2 size={16} aria-hidden="true" />
                                                             </button>
                                                         )}
                                                     </div>
@@ -1886,12 +2025,12 @@ const ProjectClosurePage = ({
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center space-x-2">
-                                                        <span className="px-3 py-1 rounded-full text-sm font-medium bg-bright-soft text-bright">
+                                                        <span className="inline-flex rounded-md px-2 py-0.5 text-[11.5px] font-semibold bg-bright-soft text-bright">
                                                             Ready to Start
                                                         </span>
                                                         <button
                                                             onClick={() => handleUpdatePunchItem(item.id, 'in_progress')}
-                                                            className="px-3 py-1 text-sm bg-info text-white rounded hover:opacity-90 transition-colors"
+                                                            className={actionSecondary}
                                                         >
                                                             Start Working
                                                         </button>
@@ -1927,7 +2066,7 @@ const ProjectClosurePage = ({
                                             </p>
                                             <button
                                                 onClick={() => setShowScheduleInspectionModal(true)}
-                                                className="flex items-center space-x-2 px-6 py-3 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors mx-auto"
+                                                className={`${actionPrimary} mx-auto`}
                                             >
                                                 <Calendar size={16} />
                                                 <span>Schedule Inspection</span>
@@ -1936,53 +2075,62 @@ const ProjectClosurePage = ({
                                     ) : (
                                         <div className="space-y-6">
                                             {/* Inspection Details */}
-                                            <div className="bg-info-soft rounded-lg p-4">
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <h4 className="font-semibold text-info">
-                                                        Inspection Details
-                                                    </h4>
-                                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                                                        project.final_inspection.status === 'completed'
-                                                            ? 'bg-success-soft text-success  '
-                                                            : project.final_inspection.status === 'in_progress'
-                                                            ? 'bg-info-soft text-info  '
-                                                            : 'bg-warning-soft text-warning  '
-                                                    }`}>
-                                                        {project.final_inspection.status === 'completed' ? 'Completed' : 
-                                                         project.final_inspection.status === 'in_progress' ? 'In Progress' : 'Scheduled'}
-                                                    </span>
-                                                </div>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <div>
-                                                        <p className="text-sm text-info font-medium">Scheduled Date</p>
-                                                        <p className="text-info">
-                                                            {new Date(project.final_inspection.scheduled_date).toLocaleDateString()}
-                                                        </p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-sm text-info font-medium">Scheduled Time</p>
-                                                        <p className="text-info">
-                                                            {project.final_inspection.scheduled_time}
-                                                        </p>
-                                                    </div>
-                                                    {project.final_inspection.inspector && (
-                                                        <div>
-                                                            <p className="text-sm text-info font-medium">Inspector</p>
-                                                            <p className="text-info">
-                                                                {project.final_inspection.inspector.account?.first_name} {project.final_inspection.inspector.account?.last_name}
-                                                            </p>
-                                                        </div>
-                                                    )}
-                                                    {project.final_inspection.submitted_at && (
-                                                        <div>
-                                                            <p className="text-sm text-info font-medium">Submitted</p>
-                                                            <p className="text-info">
-                                                                {new Date(project.final_inspection.submitted_at).toLocaleDateString()}
-                                                            </p>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
+                                            <DetailPanel
+                                                title="Inspection Details"
+                                                tone={
+                                                    project.final_inspection.status === "completed"
+                                                        ? "success"
+                                                        : "brand"
+                                                }
+                                                status={
+                                                    <StatusBadge
+                                                        label={
+                                                            project.final_inspection.status === "completed"
+                                                                ? "Completed"
+                                                                : project.final_inspection.status === "in_progress"
+                                                                ? "In progress"
+                                                                : "Scheduled"
+                                                        }
+                                                        tone={
+                                                            project.final_inspection.status === "completed"
+                                                                ? "success"
+                                                                : project.final_inspection.status === "in_progress"
+                                                                ? "brand"
+                                                                : "warning"
+                                                        }
+                                                    />
+                                                }
+                                                rows={[
+                                                    {
+                                                        label: "Scheduled date",
+                                                        value: new Date(
+                                                            project.final_inspection.scheduled_date,
+                                                        ).toLocaleDateString(),
+                                                    },
+                                                    {
+                                                        label: "Scheduled time",
+                                                        value: project.final_inspection.scheduled_time,
+                                                    },
+                                                    ...(project.final_inspection.inspector
+                                                        ? [
+                                                              {
+                                                                  label: "Inspector",
+                                                                  value: `${project.final_inspection.inspector.account?.first_name ?? ""} ${project.final_inspection.inspector.account?.last_name ?? ""}`.trim(),
+                                                              },
+                                                          ]
+                                                        : []),
+                                                    ...(project.final_inspection.submitted_at
+                                                        ? [
+                                                              {
+                                                                  label: "Submitted",
+                                                                  value: new Date(
+                                                                      project.final_inspection.submitted_at,
+                                                                  ).toLocaleDateString(),
+                                                              },
+                                                          ]
+                                                        : []),
+                                                ]}
+                                            />
 
                                             {/* Inspection Notes */}
                                             {project.final_inspection.notes && (
@@ -2007,8 +2155,9 @@ const ProjectClosurePage = ({
                                                             <div key={index} className="flex items-center space-x-2 p-2 bg-surface rounded border">
                                                                 <FileText size={16} className="text-info" />
                                                                 <span className="text-sm text-ink-3">{doc.name}</span>
-                                                                <button className="ml-auto p-1 text-info hover:bg-info-soft rounded">
-                                                                    <Download size={14} />
+                                                                <button
+                                                                  aria-label="Download document" className="ml-auto p-1 text-info hover:bg-info-soft rounded">
+                                                                    <Download size={14} aria-hidden="true" />
                                                                 </button>
                                                             </div>
                                                         ))}
@@ -2021,7 +2170,7 @@ const ProjectClosurePage = ({
                                                 <div className="flex justify-end space-x-3">
                                                     <button
                                                         onClick={() => setShowInspectionDetailsModal(true)}
-                                                        className="flex items-center space-x-2 px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors"
+                                                        className={actionPrimary}
                                                     >
                                                         <Edit size={16} />
                                                         <span>Add Notes & Documents</span>
@@ -2048,7 +2197,7 @@ const ProjectClosurePage = ({
                                             </p>
                                             <button
                                                 onClick={() => setShowScheduleHandoverModal(true)}
-                                                className="flex items-center space-x-2 px-6 py-3 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors mx-auto"
+                                                className={`${actionPrimary} mx-auto`}
                                             >
                                                 <Calendar size={16} />
                                                 <span>Schedule Handover</span>
@@ -2056,55 +2205,58 @@ const ProjectClosurePage = ({
                                         </div>
                                     ) : (
                                         <div className="space-y-6">
-                                            {/* Handover Details */}
-                                            <div className="bg-accent-violet-soft rounded-lg p-4">
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <h4 className="font-semibold text-accent-violet">
-                                                        Handover Details
-                                                    </h4>
-                                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                                                        project.handover.status === 'completed'
-                                                            ? 'bg-success-soft text-success  '
-                                                            : 'bg-warning-soft text-warning  '
-                                                    }`}>
-                                                        {project.handover.status === 'completed' ? 'Completed' : 'Scheduled'}
-                                                    </span>
-                                                </div>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <div>
-                                                        <p className="text-sm text-accent-violet font-medium">Handover Date</p>
-                                                        <p className="text-accent-violet">
-                                                            {new Date(project.handover.handover_date).toLocaleDateString()}
-                                                        </p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-sm text-accent-violet font-medium">Handover Time</p>
-                                                        <p className="text-accent-violet">
-                                                            {project.handover.handover_time}
-                                                        </p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-sm text-accent-violet font-medium">Handed Over By</p>
-                                                        <p className="text-accent-violet">
-                                                            {project.handover.handover_user?.account?.first_name} {project.handover.handover_user?.account?.last_name}
-                                                        </p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-sm text-accent-violet font-medium">Handed Over To</p>
-                                                        <p className="text-accent-violet">
-                                                            {project.handover.handed_over_to}
-                                                        </p>
-                                                    </div>
-                                                    {project.handover.submitted_at && (
-                                                        <div>
-                                                            <p className="text-sm text-accent-violet font-medium">Completed At</p>
-                                                            <p className="text-accent-violet">
-                                                                {new Date(project.handover.submitted_at).toLocaleDateString()}
-                                                            </p>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
+                                            <DetailPanel
+                                                title="Handover Details"
+                                                tone={
+                                                    project.handover.status === "completed"
+                                                        ? "success"
+                                                        : "brand"
+                                                }
+                                                status={
+                                                    <StatusBadge
+                                                        label={
+                                                            project.handover.status === "completed"
+                                                                ? "Completed"
+                                                                : "Scheduled"
+                                                        }
+                                                        tone={
+                                                            project.handover.status === "completed"
+                                                                ? "success"
+                                                                : "warning"
+                                                        }
+                                                    />
+                                                }
+                                                rows={[
+                                                    {
+                                                        label: "Handover date",
+                                                        value: new Date(
+                                                            project.handover.handover_date,
+                                                        ).toLocaleDateString(),
+                                                    },
+                                                    {
+                                                        label: "Handover time",
+                                                        value: project.handover.handover_time,
+                                                    },
+                                                    {
+                                                        label: "Handed over by",
+                                                        value: `${project.handover.handover_user?.account?.first_name ?? ""} ${project.handover.handover_user?.account?.last_name ?? ""}`.trim() || "\u2014",
+                                                    },
+                                                    {
+                                                        label: "Handed over to",
+                                                        value: project.handover.handed_over_to || "\u2014",
+                                                    },
+                                                    ...(project.handover.submitted_at
+                                                        ? [
+                                                              {
+                                                                  label: "Completed at",
+                                                                  value: new Date(
+                                                                      project.handover.submitted_at,
+                                                                  ).toLocaleDateString(),
+                                                              },
+                                                          ]
+                                                        : []),
+                                                ]}
+                                            />
 
                                             {/* Handover Notes */}
                                             {project.handover.notes && (
@@ -2129,8 +2281,9 @@ const ProjectClosurePage = ({
                                                         <span className="text-sm text-ink-3">
                                                             {project.handover.handover_receipt.name}
                                                         </span>
-                                                        <button className="ml-auto p-1 text-accent-violet hover:bg-accent-violet-soft rounded">
-                                                            <Download size={14} />
+                                                        <button
+                                                          aria-label="Download document" className="ml-auto p-1 text-accent-violet hover:bg-accent-violet-soft rounded">
+                                                            <Download size={14} aria-hidden="true" />
                                                         </button>
                                                     </div>
                                                 </div>
@@ -2142,7 +2295,7 @@ const ProjectClosurePage = ({
                                                     {project.handover.status !== 'completed' && (
                                                         <button
                                                             onClick={() => setShowHandoverDetailsModal(true)}
-                                                            className="flex items-center space-x-2 px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors"
+                                                            className={actionPrimary}
                                                         >
                                                             <Edit size={16} />
                                                             <span>Complete Handover</span>
@@ -2161,7 +2314,7 @@ const ProjectClosurePage = ({
                                                         />
                                                         <label
                                                             htmlFor="handover-receipt-upload"
-                                                            className="flex items-center space-x-2 px-4 py-2 bg-accent-violet text-white rounded-lg hover:opacity-90 transition-colors cursor-pointer"
+                                                            className={`${actionPrimary} cursor-pointer`}
                                                         >
                                                             <Upload size={16} />
                                                             <span>Upload Receipt</span>
@@ -2169,7 +2322,7 @@ const ProjectClosurePage = ({
                                                         {handoverReceiptFile && (
                                                             <button
                                                                 onClick={handleUploadHandoverReceipt}
-                                                                className="flex items-center space-x-2 px-4 py-2 bg-success text-white rounded-lg hover:opacity-90 transition-colors"
+                                                                className={actionPrimary}
                                                             >
                                                                 <CheckCircle size={16} />
                                                                 <span>Submit Receipt</span>
@@ -2181,10 +2334,10 @@ const ProjectClosurePage = ({
 
                                             {handoverReceiptFile && (
                                                 <div className="bg-info-soft rounded-lg p-3">
-                                                    <p className="text-sm text-info mb-1">Selected file:</p>
+                                                    <p className="mb-1 text-[12.5px] text-muted">Selected file</p>
                                                     <div className="flex items-center justify-between">
-                                                        <span className="text-sm text-info">{handoverReceiptFile.name}</span>
-                                                        <span className="text-xs text-info">
+                                                        <span className="text-[12.5px] text-muted">{handoverReceiptFile.name}</span>
+                                                        <span className="text-[12px] text-muted">
                                                             {(handoverReceiptFile.size / 1024).toFixed(1)}KB
                                                         </span>
                                                     </div>
@@ -2204,15 +2357,15 @@ const ProjectClosurePage = ({
                                     
                                     <div className="space-y-6">
                                         {/* Final Inspection Approval */}
-                                        <div className="bg-info-soft rounded-lg p-6">
+                                        <div className="rounded-xl border border-line border-l-[3px] border-l-info bg-surface p-5">
                                             <div className="flex items-center justify-between mb-4">
                                                 <div className="flex items-center space-x-3">
                                                     <Eye className="w-6 h-6 text-info" />
                                                     <div>
-                                                        <h4 className="font-semibold text-info">
+                                                        <h4 className="font-display text-[14.5px] font-semibold text-ink">
                                                             Final Inspection Approval
                                                         </h4>
-                                                        <p className="text-sm text-info">
+                                                        <p className="text-[12.5px] text-muted">
                                                             Review and approve the final inspection results
                                                         </p>
                                                     </div>
@@ -2220,7 +2373,7 @@ const ProjectClosurePage = ({
                                                 <div className="flex items-center space-x-3">
                                                     {project.final_inspection ? (
                                                         <>
-                                                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                                                            <span className={`inline-flex rounded-md px-2 py-0.5 text-[11.5px] font-semibold ${
                                                                 project.final_inspection.approved
                                                                     ? 'bg-success-soft text-success  '
                                                                     : project.final_inspection.submitted_at
@@ -2236,7 +2389,7 @@ const ProjectClosurePage = ({
                                                             {project.final_inspection.submitted_at && !project.final_inspection.approved && (
                                                                 <button
                                                                     onClick={() => openApprovalModal('inspection')}
-                                                                    className="flex items-center space-x-2 px-4 py-2 bg-info text-white rounded-lg hover:opacity-90 transition-colors"
+                                                                    className={actionPrimary}
                                                                 >
                                                                     <CheckCircle size={16} />
                                                                     <span>Review & Approve</span>
@@ -2244,7 +2397,7 @@ const ProjectClosurePage = ({
                                                             )}
                                                         </>
                                                     ) : (
-                                                        <span className="px-3 py-1 rounded-full text-sm font-medium bg-surface-2 text-ink-2">
+                                                        <span className="inline-flex rounded-md px-2 py-0.5 text-[11.5px] font-semibold bg-surface-2 text-ink-2">
                                                             No Inspection Scheduled
                                                         </span>
                                                     )}
@@ -2252,25 +2405,25 @@ const ProjectClosurePage = ({
                                             </div>
                                             
                                             {project.final_inspection?.approved && project.final_inspection.approver && (
-                                                <div className="mt-4 pt-4 border-t border-info">
+                                                <div className="mt-4 pt-4 border-t border-line">
                                                     <div className="flex items-center justify-between text-sm">
                                                         <div>
-                                                            <span className="text-info">Approved by: </span>
-                                                            <span className="text-info">
+                                                            <span className="text-[12.5px] text-muted">Approved by </span>
+                                                            <span className="text-[12.5px] font-medium text-ink">
                                                                 {project.final_inspection.approver.account?.first_name} {project.final_inspection.approver.account?.last_name}
                                                             </span>
                                                         </div>
                                                         <div>
-                                                            <span className="text-info">Approved on: </span>
-                                                            <span className="text-info">
+                                                            <span className="text-[12.5px] text-muted">Approved on </span>
+                                                            <span className="text-[12.5px] font-medium text-ink">
                                                                 {new Date(project.final_inspection.approved_at!).toLocaleDateString()}
                                                             </span>
                                                         </div>
                                                     </div>
                                                     {project.final_inspection.approval_notes && (
                                                         <div className="mt-2">
-                                                            <span className="text-info text-sm">Notes: </span>
-                                                            <span className="text-info text-sm">
+                                                            <span className="text-[12.5px] text-muted">Notes </span>
+                                                            <span className="text-[12.5px] text-ink">
                                                                 {project.final_inspection.approval_notes}
                                                             </span>
                                                         </div>
@@ -2280,15 +2433,15 @@ const ProjectClosurePage = ({
                                         </div>
 
                                         {/* Handover Approval */}
-                                        <div className="bg-accent-violet-soft rounded-lg p-6">
+                                        <div className="rounded-xl border border-line border-l-[3px] border-l-accent-violet bg-surface p-5">
                                             <div className="flex items-center justify-between mb-4">
                                                 <div className="flex items-center space-x-3">
                                                     <User className="w-6 h-6 text-accent-violet" />
                                                     <div>
-                                                        <h4 className="font-semibold text-accent-violet">
+                                                        <h4 className="font-display text-[14.5px] font-semibold text-ink">
                                                             Handover Approval
                                                         </h4>
-                                                        <p className="text-sm text-accent-violet">
+                                                        <p className="text-[12.5px] text-muted">
                                                             Review and approve the project handover
                                                         </p>
                                                     </div>
@@ -2296,7 +2449,7 @@ const ProjectClosurePage = ({
                                                 <div className="flex items-center space-x-3">
                                                     {project.handover ? (
                                                         <>
-                                                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                                                            <span className={`inline-flex rounded-md px-2 py-0.5 text-[11.5px] font-semibold ${
                                                                 project.handover.approved_at
                                                                     ? 'bg-success-soft text-success  '
                                                                     : project.handover.submitted_at
@@ -2312,7 +2465,7 @@ const ProjectClosurePage = ({
                                                             {project.handover.submitted_at && !project.handover.approved_at && (
                                                                 <button
                                                                     onClick={() => openApprovalModal('handover')}
-                                                                    className="flex items-center space-x-2 px-4 py-2 bg-accent-violet text-white rounded-lg hover:opacity-90 transition-colors"
+                                                                    className={actionPrimary}
                                                                 >
                                                                     <CheckCircle size={16} />
                                                                     <span>Review & Approve</span>
@@ -2320,7 +2473,7 @@ const ProjectClosurePage = ({
                                                             )}
                                                         </>
                                                     ) : (
-                                                        <span className="px-3 py-1 rounded-full text-sm font-medium bg-surface-2 text-ink-2">
+                                                        <span className="inline-flex rounded-md px-2 py-0.5 text-[11.5px] font-semibold bg-surface-2 text-ink-2">
                                                             No Handover Scheduled
                                                         </span>
                                                     )}
@@ -2328,17 +2481,17 @@ const ProjectClosurePage = ({
                                             </div>
                                             
                                             {project.handover?.approved_at && project.handover.approver && (
-                                                <div className="mt-4 pt-4 border-t border-accent-violet">
+                                                <div className="mt-4 pt-4 border-t border-line">
                                                     <div className="flex items-center justify-between text-sm">
                                                         <div>
-                                                            <span className="text-accent-violet">Approved by: </span>
-                                                            <span className="text-accent-violet">
+                                                            <span className="text-[12.5px] text-muted">Approved by </span>
+                                                            <span className="text-[12.5px] font-medium text-ink">
                                                                 {project.handover.approver.account?.first_name} {project.handover.approver.account?.last_name}
                                                             </span>
                                                         </div>
                                                         <div>
-                                                            <span className="text-accent-violet">Approved on: </span>
-                                                            <span className="text-accent-violet">
+                                                            <span className="text-[12.5px] text-muted">Approved on </span>
+                                                            <span className="text-[12.5px] font-medium text-ink">
                                                                 {new Date(project.handover.approved_at).toLocaleDateString()}
                                                             </span>
                                                         </div>
@@ -2348,15 +2501,15 @@ const ProjectClosurePage = ({
                                         </div>
 
                                         {/* Project Closure Approval */}
-                                        <div className="bg-success-soft rounded-lg p-6">
+                                        <div className="rounded-xl border border-line border-l-[3px] border-l-success bg-surface p-5">
                                             <div className="flex items-center justify-between mb-4">
                                                 <div className="flex items-center space-x-3">
                                                     <CheckCircle className="w-6 h-6 text-success" />
                                                     <div>
-                                                        <h4 className="font-semibold text-success">
+                                                        <h4 className="font-display text-[14.5px] font-semibold text-ink">
                                                             Project Closure Approval
                                                         </h4>
-                                                        <p className="text-sm text-success">
+                                                        <p className="text-[12.5px] text-muted">
                                                             Final approval to officially close the project
                                                         </p>
                                                     </div>
@@ -2365,7 +2518,7 @@ const ProjectClosurePage = ({
                                                     {/* Check if all prerequisites are met */}
                                                     {project.final_inspection?.approved && project.handover?.approved_at ? (
                                                         <>
-                                                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                                                            <span className={`inline-flex rounded-md px-2 py-0.5 text-[11.5px] font-semibold ${
                                                                 project.closure_approved_at
                                                                     ? 'bg-success-soft text-success  '
                                                                     : 'bg-warning-soft text-warning  '
@@ -2375,7 +2528,7 @@ const ProjectClosurePage = ({
                                                             {!project.closure_approved_at && (
                                                                 <button
                                                                     onClick={() => openApprovalModal('closeout')}
-                                                                    className="flex items-center space-x-2 px-4 py-2 bg-success text-white rounded-lg hover:opacity-90 transition-colors"
+                                                                    className={actionPrimary}
                                                                 >
                                                                     <CheckCircle size={16} />
                                                                     <span>Close Project</span>
@@ -2384,7 +2537,7 @@ const ProjectClosurePage = ({
                                                         </>
                                                     ) : (
                                                         <div className="text-center">
-                                                            <span className="px-3 py-1 rounded-full text-sm font-medium bg-surface-2 text-ink-2">
+                                                            <span className="inline-flex rounded-md px-2 py-0.5 text-[11.5px] font-semibold bg-surface-2 text-ink-2">
                                                                 Prerequisites Not Met
                                                             </span>
                                                             <p className="text-xs text-muted mt-1">
@@ -2396,24 +2549,24 @@ const ProjectClosurePage = ({
                                             </div>
                                             
                                             {project.closure_approved_at && project.closure_approved_by && (
-                                                <div className="mt-4 pt-4 border-t border-success">
+                                                <div className="mt-4 pt-4 border-t border-line">
                                                     <div className="flex items-center justify-between text-sm">
                                                         <div>                                            <span className="text-success">Closed by: </span>
-                                            <span className="text-success">
+                                            <span className="text-[12.5px] font-medium text-ink">
                                                 {project.closure_approved_user?.account?.first_name} {project.closure_approved_user?.account?.last_name}
                                             </span>
                                                         </div>
                                                         <div>
                                                             <span className="text-success">Closed on: </span>
-                                                            <span className="text-success">
+                                                            <span className="text-[12.5px] font-medium text-ink">
                                                                 {new Date(project.closure_approved_at).toLocaleDateString()}
                                                             </span>
                                                         </div>
                                                     </div>
                                                     {project.closure_notes && (
                                                         <div className="mt-2">
-                                                            <span className="text-success text-sm">Notes: </span>
-                                                            <span className="text-success text-sm">
+                                                            <span className="text-[12.5px] text-muted">Notes </span>
+                                                            <span className="text-[12.5px] text-ink">
                                                                 {project.closure_notes}
                                                             </span>
                                                         </div>
@@ -2482,15 +2635,15 @@ const ProjectClosurePage = ({
                                     
                                     <div className="space-y-6">
                                         {/* PDF Closure Report */}
-                                        <div className="bg-info-soft rounded-lg p-6">
+                                        <div className="rounded-xl border border-line border-l-[3px] border-l-info bg-surface p-5">
                                             <div className="flex items-center justify-between mb-4">
                                                 <div className="flex items-center space-x-3">
                                                     <FileText className="w-6 h-6 text-info" />
                                                     <div>
-                                                        <h4 className="font-semibold text-info">
+                                                        <h4 className="font-display text-[14.5px] font-semibold text-ink">
                                                             Comprehensive Closure Report
                                                         </h4>
-                                                        <p className="text-sm text-info">
+                                                        <p className="text-[12.5px] text-muted">
                                                             Generate and download a complete project closure report
                                                         </p>
                                                     </div>
@@ -2502,7 +2655,7 @@ const ProjectClosurePage = ({
                                                             item => item.type === 'manual' && item.title.includes('Final Report')
                                                         );
                                                         return reportChecklistItem?.status === 'complete' ? (
-                                                            <span className="px-3 py-1 rounded-full text-sm font-medium bg-success-soft text-success">
+                                                            <span className="inline-flex rounded-md px-2 py-0.5 text-[11.5px] font-semibold bg-success-soft text-success">
                                                                 Downloaded
                                                             </span>
                                                         ) : null;
@@ -2510,7 +2663,7 @@ const ProjectClosurePage = ({
                                                     <button
                                                         onClick={handleDownloadPDFReport}
                                                         disabled={isGeneratingPDF}
-                                                        className="flex items-center space-x-2 px-4 py-2 bg-info text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        className={actionPrimary}
                                                     >
                                                         {isGeneratingPDF ? (
                                                             <>
@@ -2527,11 +2680,11 @@ const ProjectClosurePage = ({
                                                 </div>
                                             </div>
                                             
-                                            <div className="bg-info-soft rounded-lg p-4">
-                                                <h5 className="font-medium text-info mb-2">
+                                            <div className="rounded-lg border border-line bg-surface-2 p-4">
+                                                <h5 className="mb-2 text-[13px] font-semibold text-ink">
                                                     Report Contents:
                                                 </h5>
-                                                <ul className="text-sm text-info space-y-1">
+                                                <ul className="space-y-1 text-[12.5px] text-muted">
                                                     <li>• Project overview and basic information</li>
                                                     <li>• Team composition and roles</li>
                                                     <li>• Work Breakdown Structure (WBS) and tasks</li>
@@ -2555,7 +2708,7 @@ const ProjectClosurePage = ({
                                                     item => item.type === 'manual' && item.title.includes('Final Report')
                                                 );
                                                 return reportChecklistItem?.status === 'complete' && reportChecklistItem.completed_at ? (
-                                                    <div className="mt-4 pt-4 border-t border-info">
+                                                    <div className="mt-4 pt-4 border-t border-line">
                                                         <div className="flex items-center space-x-2 text-sm text-info">
                                                             <CheckCircle size={16} />
                                                             <span>Report downloaded on {new Date(reportChecklistItem.completed_at).toLocaleDateString()}</span>
@@ -2565,7 +2718,7 @@ const ProjectClosurePage = ({
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    <div className="mt-4 pt-4 border-t border-info">
+                                                    <div className="mt-4 pt-4 border-t border-line">
                                                         <div className="flex items-center space-x-2 text-sm text-info">
                                                             <Clock size={16} />
                                                             <span>Click "Download PDF" to generate and download the report. This will mark the checklist item as complete.</span>
@@ -2575,7 +2728,7 @@ const ProjectClosurePage = ({
                                             })()}
 
                                             {project.closure_approved_at && (
-                                                <div className="mt-4 pt-4 border-t border-info">
+                                                <div className="mt-4 pt-4 border-t border-line">
                                                     <div className="flex items-center space-x-2 text-sm text-info">
                                                         <CheckCircle size={16} />
                                                         <span>Project officially closed on {new Date(project.closure_approved_at).toLocaleDateString()}</span>
@@ -2634,32 +2787,26 @@ const ProjectClosurePage = ({
 
                 {/* Add Punch Item Modal */}
                 {showAddPunchItemModal && (
-                    <div
-                        className="fixed inset-0 z-50 flex items-center justify-center"
-                        style={{
-                            backgroundColor: "rgba(0, 0, 0, 0.4)",
-                            backdropFilter: "blur(8px)",
-                            WebkitBackdropFilter: "blur(8px)",
-                        }}
-                        onClick={() => setShowAddPunchItemModal(false)}
+                                        <Modal
+                      open
+                      onClose={() => setShowAddPunchItemModal(false)}
+                      title="Add Punch List Item"
+                      footer={<><button
+                                        type="button"
+                                        onClick={() => setShowAddPunchItemModal(false)}
+                                        className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        form="add-punch-item-form"
+                                        type="submit"
+                                        className={actionPrimary}
+                                    >
+                                        Add Item
+                                    </button></>}
                     >
-                        <div
-                            className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-xl font-semibold text-ink">
-                                    Add Punch List Item
-                                </h3>
-                                <button
-                                    onClick={() => setShowAddPunchItemModal(false)}
-                                    className="p-2 text-faint hover:text-muted rounded-full hover:bg-surface-2"
-                                >
-                                    <X size={20} />
-                                </button>
-                            </div>
-
-                            <form
+                      <form id="add-punch-item-form"
                                 onSubmit={(e) => {
                                     e.preventDefault();
                                     handleAddPunchItem();
@@ -2675,7 +2822,7 @@ const ProjectClosurePage = ({
                                         required
                                         value={punchItemForm.title}
                                         onChange={(e) => setPunchItemForm(prev => ({ ...prev, title: e.target.value }))}
-                                        className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
+                                        className={inputClass}
                                         placeholder="Enter punch item title"
                                     />
                                 </div>
@@ -2693,55 +2840,32 @@ const ProjectClosurePage = ({
                                     ]}
                                     />
                                 </div>
+</form>
+                    </Modal>
+                )}
 
-                                <div className="flex justify-end space-x-3 pt-4 border-t border-line">
-                                    <button
+                {/* Edit Punch Item Modal */}
+                {showEditPunchItemModal && (
+                                        <Modal
+                      open
+                      onClose={() => setShowEditPunchItemModal(false)}
+                      title="Edit Punch List Item"
+                      footer={<><button
                                         type="button"
-                                        onClick={() => setShowAddPunchItemModal(false)}
+                                        onClick={() => setShowEditPunchItemModal(false)}
                                         className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors"
                                     >
                                         Cancel
                                     </button>
                                     <button
+                                        form="edit-punch-item-form"
                                         type="submit"
-                                        className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors"
+                                        className={actionPrimary}
                                     >
-                                        Add Item
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                )}
-
-                {/* Edit Punch Item Modal */}
-                {showEditPunchItemModal && (
-                    <div
-                        className="fixed inset-0 z-50 flex items-center justify-center"
-                        style={{
-                            backgroundColor: "rgba(0, 0, 0, 0.4)",
-                            backdropFilter: "blur(8px)",
-                            WebkitBackdropFilter: "blur(8px)",
-                        }}
-                        onClick={() => setShowEditPunchItemModal(false)}
+                                        Update Item
+                                    </button></>}
                     >
-                        <div
-                            className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-xl font-semibold text-ink">
-                                    Edit Punch List Item
-                                </h3>
-                                <button
-                                    onClick={() => setShowEditPunchItemModal(false)}
-                                    className="p-2 text-faint hover:text-muted rounded-full hover:bg-surface-2"
-                                >
-                                    <X size={20} />
-                                </button>
-                            </div>
-
-                            <form
+                      <form id="edit-punch-item-form"
                                 onSubmit={(e) => {
                                     e.preventDefault();
                                     handleEditPunchItem();
@@ -2757,7 +2881,7 @@ const ProjectClosurePage = ({
                                         required
                                         value={punchItemForm.title}
                                         onChange={(e) => setPunchItemForm(prev => ({ ...prev, title: e.target.value }))}
-                                        className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
+                                        className={inputClass}
                                         placeholder="Enter punch item title"
                                     />
                                 </div>
@@ -2775,55 +2899,41 @@ const ProjectClosurePage = ({
                                     ]}
                                     />
                                 </div>
-
-                                <div className="flex justify-end space-x-3 pt-4 border-t border-line">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowEditPunchItemModal(false)}
-                                        className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors"
-                                    >
-                                        Update Item
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
+</form>
+                    </Modal>
                 )}
 
                 {/* Schedule Inspection Modal */}
                 {showScheduleInspectionModal && (
-                    <div
-                        className="fixed inset-0 z-50 flex items-center justify-center"
-                        style={{
-                            backgroundColor: "rgba(0, 0, 0, 0.4)",
-                            backdropFilter: "blur(8px)",
-                            WebkitBackdropFilter: "blur(8px)",
-                        }}
-                        onClick={() => setShowScheduleInspectionModal(false)}
+                                        <Modal
+                      open
+                      onClose={() => setShowScheduleInspectionModal(false)}
+                      title="Schedule Final Inspection"
+                      footer={<><button
+                                        type="button"
+                                        onClick={() => setShowScheduleInspectionModal(false)}
+                                        disabled={scheduleInspectionSubmitting}
+                                        className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        form="schedule-inspection-form"
+                                        type="submit"
+                                        disabled={scheduleInspectionSubmitting}
+                                        className={`${actionPrimary} min-w-[160px]`}
+                                    >
+                                        {scheduleInspectionSubmitting ? (
+                                            <>
+                                                <Spinner size={16} />
+                                                Scheduling...
+                                            </>
+                                        ) : (
+                                            "Schedule Inspection"
+                                        )}
+                                    </button></>}
                     >
-                        <div
-                            className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-xl font-semibold text-ink">
-                                    Schedule Final Inspection
-                                </h3>
-                                <button
-                                    onClick={() => setShowScheduleInspectionModal(false)}
-                                    className="p-2 text-faint hover:text-muted rounded-full hover:bg-surface-2"
-                                >
-                                    <X size={20} />
-                                </button>
-                            </div>
-
-                            <form
+                      <form id="schedule-inspection-form"
                                 onSubmit={(e) => {
                                     e.preventDefault();
                                     handleScheduleInspection();
@@ -2839,7 +2949,7 @@ const ProjectClosurePage = ({
                                         required
                                         value={inspectionForm.scheduled_date}
                                         onChange={(e) => setInspectionForm(prev => ({ ...prev, scheduled_date: e.target.value }))}
-                                        className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
+                                        className={inputClass}
                                     />
                                 </div>
 
@@ -2852,7 +2962,7 @@ const ProjectClosurePage = ({
                                         required
                                         value={inspectionForm.scheduled_time}
                                         onChange={(e) => setInspectionForm(prev => ({ ...prev, scheduled_time: e.target.value }))}
-                                        className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
+                                        className={inputClass}
                                     />
                                 </div>
 
@@ -2918,64 +3028,41 @@ const ProjectClosurePage = ({
                                         </ul>
                                     )}
                                 </div>
+</form>
+                    </Modal>
+                )}
 
-                                <div className="flex justify-end space-x-3 pt-4 border-t border-line">
-                                    <button
+                {/* Inspection Details Modal */}
+                {showInspectionDetailsModal && (
+                                        <Modal
+                      open
+                      onClose={() => setShowInspectionDetailsModal(false)}
+                      title="Complete Inspection"
+                      footer={<><button
                                         type="button"
-                                        onClick={() => setShowScheduleInspectionModal(false)}
-                                        disabled={scheduleInspectionSubmitting}
+                                        onClick={() => setShowInspectionDetailsModal(false)}
+                                        disabled={inspectionSubmitting}
                                         className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50"
                                     >
                                         Cancel
                                     </button>
                                     <button
+                                        form="update-inspection-form"
                                         type="submit"
-                                        disabled={scheduleInspectionSubmitting}
-                                        className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2 min-w-[160px]"
+                                        disabled={inspectionSubmitting}
+                                        className={`${actionPrimary} min-w-[180px]`}
                                     >
-                                        {scheduleInspectionSubmitting ? (
+                                        {inspectionSubmitting ? (
                                             <>
                                                 <Spinner size={16} />
-                                                Scheduling...
+                                                Submitting...
                                             </>
                                         ) : (
-                                            "Schedule Inspection"
+                                            "Complete Inspection"
                                         )}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                )}
-
-                {/* Inspection Details Modal */}
-                {showInspectionDetailsModal && (
-                    <div
-                        className="fixed inset-0 z-50 flex items-center justify-center"
-                        style={{
-                            backgroundColor: "rgba(0, 0, 0, 0.4)",
-                            backdropFilter: "blur(8px)",
-                            WebkitBackdropFilter: "blur(8px)",
-                        }}
-                        onClick={() => setShowInspectionDetailsModal(false)}
+                                    </button></>}
                     >
-                        <div
-                            className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-xl font-semibold text-ink">
-                                    Complete Inspection
-                                </h3>
-                                <button
-                                    onClick={() => setShowInspectionDetailsModal(false)}
-                                    className="p-2 text-faint hover:text-muted rounded-full hover:bg-surface-2"
-                                >
-                                    <X size={20} />
-                                </button>
-                            </div>
-
-                            <form
+                      <form id="update-inspection-form"
                                 onSubmit={(e) => {
                                     e.preventDefault();
                                     handleUpdateInspection();
@@ -2990,7 +3077,7 @@ const ProjectClosurePage = ({
                                         value={inspectionNotes}
                                         onChange={(e) => setInspectionNotes(e.target.value)}
                                         rows={4}
-                                        className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
+                                        className={textareaClass}
                                         placeholder="Enter inspection notes and observations..."
                                     />
                                 </div>
@@ -3004,7 +3091,7 @@ const ProjectClosurePage = ({
                                         multiple
                                         accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                                         onChange={(e) => setInspectionDocuments(Array.from(e.target.files || []))}
-                                        className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
+                                        className={inputClass}
                                     />
                                     <p className="text-xs text-muted mt-1">
                                         Upload photos, documents, or reports from the inspection
@@ -3026,64 +3113,41 @@ const ProjectClosurePage = ({
                                         </div>
                                     </div>
                                 )}
+</form>
+                    </Modal>
+                )}
 
-                                <div className="flex justify-end space-x-3 pt-4 border-t border-line">
-                                    <button
+                {/* Schedule Handover Modal */}
+                {showScheduleHandoverModal && (
+                                        <Modal
+                      open
+                      onClose={() => setShowScheduleHandoverModal(false)}
+                      title="Schedule Project Handover"
+                      footer={<><button
                                         type="button"
-                                        onClick={() => setShowInspectionDetailsModal(false)}
-                                        disabled={inspectionSubmitting}
+                                        onClick={() => setShowScheduleHandoverModal(false)}
+                                        disabled={scheduleHandoverSubmitting}
                                         className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50"
                                     >
                                         Cancel
                                     </button>
                                     <button
+                                        form="schedule-handover-form"
                                         type="submit"
-                                        disabled={inspectionSubmitting}
-                                        className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2 min-w-[180px]"
+                                        disabled={scheduleHandoverSubmitting}
+                                        className={`${actionPrimary} min-w-[180px]`}
                                     >
-                                        {inspectionSubmitting ? (
+                                        {scheduleHandoverSubmitting ? (
                                             <>
                                                 <Spinner size={16} />
-                                                Submitting...
+                                                Scheduling...
                                             </>
                                         ) : (
-                                            "Complete Inspection"
+                                            "Schedule Handover"
                                         )}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                )}
-
-                {/* Schedule Handover Modal */}
-                {showScheduleHandoverModal && (
-                    <div
-                        className="fixed inset-0 z-50 flex items-center justify-center"
-                        style={{
-                            backgroundColor: "rgba(0, 0, 0, 0.4)",
-                            backdropFilter: "blur(8px)",
-                            WebkitBackdropFilter: "blur(8px)",
-                        }}
-                        onClick={() => setShowScheduleHandoverModal(false)}
+                                    </button></>}
                     >
-                        <div
-                            className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-xl font-semibold text-ink">
-                                    Schedule Project Handover
-                                </h3>
-                                <button
-                                    onClick={() => setShowScheduleHandoverModal(false)}
-                                    className="p-2 text-faint hover:text-muted rounded-full hover:bg-surface-2"
-                                >
-                                    <X size={20} />
-                                </button>
-                            </div>
-
-                            <form
+                      <form id="schedule-handover-form"
                                 onSubmit={(e) => {
                                     e.preventDefault();
                                     handleScheduleHandover();
@@ -3099,7 +3163,7 @@ const ProjectClosurePage = ({
                                         required
                                         value={handoverForm.handover_date}
                                         onChange={(e) => setHandoverForm(prev => ({ ...prev, handover_date: e.target.value }))}
-                                        className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
+                                        className={inputClass}
                                     />
                                 </div>
 
@@ -3112,7 +3176,7 @@ const ProjectClosurePage = ({
                                         required
                                         value={handoverForm.handover_time}
                                         onChange={(e) => setHandoverForm(prev => ({ ...prev, handover_time: e.target.value }))}
-                                        className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
+                                        className={inputClass}
                                     />
                                 </div>
 
@@ -3179,18 +3243,84 @@ const ProjectClosurePage = ({
                                     )}
                                 </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-ink-3 mb-1">
+                                {/* Handed Over To.
+                                    Matches the picker above, but stays a free-text
+                                    field underneath: `handed_over_to` is a nullable
+                                    String holding client or recipient information,
+                                    and the recipient is frequently outside the
+                                    system. Picking a team member fills the name in;
+                                    typing a name that is not on the team is still
+                                    accepted. */}
+                                <div ref={recipientDropdownRef} className="relative">
+                                    <label
+                                        htmlFor="handed-over-to"
+                                        className="block text-sm font-medium text-ink-3 mb-1"
+                                    >
                                         Handed Over To *
                                     </label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={handoverForm.handed_over_to}
-                                        onChange={(e) => setHandoverForm(prev => ({ ...prev, handed_over_to: e.target.value }))}
-                                        className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
-                                        placeholder="Enter name of person receiving the project"
-                                    />
+                                    <div className="relative">
+                                        <Search
+                                            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint"
+                                            aria-hidden="true"
+                                        />
+                                        <input
+                                            id="handed-over-to"
+                                            type="text"
+                                            required
+                                            role="combobox"
+                                            aria-expanded={recipientDropdownOpen}
+                                            aria-autocomplete="list"
+                                            value={handoverForm.handed_over_to}
+                                            onChange={(e) => {
+                                                setHandoverForm((prev) => ({
+                                                    ...prev,
+                                                    handed_over_to: e.target.value,
+                                                }));
+                                                setRecipientDropdownOpen(true);
+                                            }}
+                                            onFocus={() => setRecipientDropdownOpen(true)}
+                                            placeholder="Search the team, or type a client name"
+                                            className={`${inputClass} pl-9`}
+                                        />
+                                    </div>
+                                    {recipientDropdownOpen && project?.team_members && (() => {
+                                        const q = handoverForm.handed_over_to.trim().toLowerCase();
+                                        const matches = project.team_members.filter(
+                                            (m) =>
+                                                !q ||
+                                                `${m.user.account.first_name} ${m.user.account.last_name}`
+                                                    .toLowerCase()
+                                                    .includes(q),
+                                        );
+                                        if (matches.length === 0) return null;
+                                        return (
+                                            <ul
+                                                role="listbox"
+                                                className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-line bg-surface py-1 shadow-lg"
+                                            >
+                                                {matches.map((member) => {
+                                                    const name = `${member.user.account.first_name} ${member.user.account.last_name}`;
+                                                    return (
+                                                        <li key={member.user.user_id} role="option" aria-selected={false}>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setHandoverForm((prev) => ({
+                                                                        ...prev,
+                                                                        handed_over_to: name,
+                                                                    }));
+                                                                    setRecipientDropdownOpen(false);
+                                                                }}
+                                                                className="w-full cursor-pointer px-3 py-2 text-left text-sm text-ink hover:bg-bright-soft"
+                                                            >
+                                                                {name}
+                                                            </button>
+                                                        </li>
+                                                    );
+                                                })}
+                                            </ul>
+                                        );
+                                    })()}
                                 </div>
 
                                 <div>
@@ -3201,68 +3331,36 @@ const ProjectClosurePage = ({
                                         value={handoverForm.notes}
                                         onChange={(e) => setHandoverForm(prev => ({ ...prev, notes: e.target.value }))}
                                         rows={3}
-                                        className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
+                                        className={textareaClass}
                                         placeholder="Enter any initial notes for the handover..."
                                     />
                                 </div>
-
-                                <div className="flex justify-end space-x-3 pt-4 border-t border-line">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowScheduleHandoverModal(false)}
-                                        disabled={scheduleHandoverSubmitting}
-                                        className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={scheduleHandoverSubmitting}
-                                        className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2 min-w-[180px]"
-                                    >
-                                        {scheduleHandoverSubmitting ? (
-                                            <>
-                                                <Spinner size={16} />
-                                                Scheduling...
-                                            </>
-                                        ) : (
-                                            "Schedule Handover"
-                                        )}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
+</form>
+                    </Modal>
                 )}
 
                 {/* Handover Details Modal */}
                 {showHandoverDetailsModal && (
-                    <div
-                        className="fixed inset-0 z-50 flex items-center justify-center"
-                        style={{
-                            backgroundColor: "rgba(0, 0, 0, 0.4)",
-                            backdropFilter: "blur(8px)",
-                            WebkitBackdropFilter: "blur(8px)",
-                        }}
-                        onClick={() => setShowHandoverDetailsModal(false)}
+                                        <Modal
+                      open
+                      onClose={() => setShowHandoverDetailsModal(false)}
+                      title="Complete Handover"
+                      footer={<><button
+                                        type="button"
+                                        onClick={() => setShowHandoverDetailsModal(false)}
+                                        className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        form="complete-handover-form"
+                                        type="submit"
+                                        className={actionPrimary}
+                                    >
+                                        Complete Handover
+                                    </button></>}
                     >
-                        <div
-                            className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-xl font-semibold text-ink">
-                                    Complete Handover
-                                </h3>
-                                <button
-                                    onClick={() => setShowHandoverDetailsModal(false)}
-                                    className="p-2 text-faint hover:text-muted rounded-full hover:bg-surface-2"
-                                >
-                                    <X size={20} />
-                                </button>
-                            </div>
-
-                            <form
+                      <form id="complete-handover-form"
                                 onSubmit={(e) => {
                                     e.preventDefault();
                                     handleCompleteHandover();
@@ -3277,7 +3375,7 @@ const ProjectClosurePage = ({
                                         value={handoverNotes}
                                         onChange={(e) => setHandoverNotes(e.target.value)}
                                         rows={4}
-                                        className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
+                                        className={textareaClass}
                                         placeholder="Enter notes about the handover completion, any issues, or additional information..."
                                     />
                                 </div>
@@ -3295,57 +3393,36 @@ const ProjectClosurePage = ({
                                         </div>
                                     </div>
                                 </div>
+</form>
+                    </Modal>
+                )}
 
-                                <div className="flex justify-end space-x-3 pt-4 border-t border-line">
-                                    <button
+                {/* Approval Modal */}
+                {showApprovalModal && (
+                                        <Modal
+                      open
+                      onClose={() => setShowApprovalModal(false)}
+                      title={<>{approvalType === 'inspection' && 'Approve Inspection'} {approvalType === 'handover' && 'Approve Handover'} {approvalType === 'closeout' && 'Close Project'}</>}
+                      footer={<><button
                                         type="button"
-                                        onClick={() => setShowHandoverDetailsModal(false)}
+                                        onClick={() => setShowApprovalModal(false)}
                                         className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors"
                                     >
                                         Cancel
                                     </button>
                                     <button
+                                        form="approval-form"
                                         type="submit"
-                                        className="px-4 py-2 bg-success text-white rounded-lg hover:opacity-90 transition-colors"
+                                        className={`px-4 py-2 text-white rounded-lg transition-colors ${
+                                            approvalDecision === 'approve'
+                                                ? 'bg-success hover:opacity-90'
+                                                : 'bg-danger hover:opacity-90'
+                                        }`}
                                     >
-                                        Complete Handover
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                )}
-
-                {/* Approval Modal */}
-                {showApprovalModal && (
-                    <div
-                        className="fixed inset-0 z-50 flex items-center justify-center"
-                        style={{
-                            backgroundColor: "rgba(0, 0, 0, 0.4)",
-                            backdropFilter: "blur(8px)",
-                            WebkitBackdropFilter: "blur(8px)",
-                        }}
-                        onClick={() => setShowApprovalModal(false)}
+                                        {approvalDecision === 'approve' ? 'Approve' : 'Reject'}
+                                    </button></>}
                     >
-                        <div
-                            className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-xl font-semibold text-ink">
-                                    {approvalType === 'inspection' && 'Approve Inspection'}
-                                    {approvalType === 'handover' && 'Approve Handover'}
-                                    {approvalType === 'closeout' && 'Close Project'}
-                                </h3>
-                                <button
-                                    onClick={() => setShowApprovalModal(false)}
-                                    className="p-2 text-faint hover:text-muted rounded-full hover:bg-surface-2"
-                                >
-                                    <X size={20} />
-                                </button>
-                            </div>
-
-                            <form
+                      <form id="approval-form"
                                 onSubmit={(e) => {
                                     e.preventDefault();
                                     handleApproval();
@@ -3391,7 +3468,7 @@ const ProjectClosurePage = ({
                                         onChange={(e) => setApprovalNotes(e.target.value)}
                                         rows={4}
                                         required={approvalDecision === 'reject'}
-                                        className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent"
+                                        className={textareaClass}
                                         placeholder={
                                             approvalType === 'inspection' 
                                                 ? "Enter notes about the inspection approval..."
@@ -3418,29 +3495,8 @@ const ProjectClosurePage = ({
                                         </div>
                                     </div>
                                 )}
-
-                                <div className="flex justify-end space-x-3 pt-4 border-t border-line">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowApprovalModal(false)}
-                                        className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className={`px-4 py-2 text-white rounded-lg transition-colors ${
-                                            approvalDecision === 'approve'
-                                                ? 'bg-success hover:opacity-90'
-                                                : 'bg-danger hover:opacity-90'
-                                        }`}
-                                    >
-                                        {approvalDecision === 'approve' ? 'Approve' : 'Reject'}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
+</form>
+                    </Modal>
                 )}
             </DashboardLayout>
         </ProtectedRoute>

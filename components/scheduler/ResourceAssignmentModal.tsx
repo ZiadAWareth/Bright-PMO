@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Calendar, Plus, Users, Search, AlertTriangle } from "lucide-react";
+import { Calendar, Plus, Users, Search, AlertTriangle, Info, CheckCircle2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Dropdown } from "@/components/ui/dropdown";
+import { Modal } from "@/components/ui/modal";
 
 interface Task {
   task_id: number;
@@ -473,53 +474,31 @@ const ResourceAssignmentModal = ({
     (r) => r.resource_id === parseInt(formData.resource_id)
   );
 
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
   return (
-    <div
-      className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 p-4"
-      onClick={handleBackdropClick}
+    <Modal
+      open
+      onClose={onClose}
+      title="Assign Resource"
+      description={`Task: ${task.name}`}
+      maxWidthClass="max-w-2xl"
     >
-      <div className="bg-surface rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-xl font-bold text-ink">
-                Assign Resource
-              </h2>
-              <p className="text-sm text-muted">
-                Task: {task.name}
-              </p>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-surface-2 rounded-lg"
-              disabled={isSubmitting}
-            >
-              <Plus size={20} className="rotate-45" />
-            </button>
-          </div>
 
           {/* Existing Assignments */}
           {existingAssignments.length > 0 && (
-            <div className="mb-6 p-4 bg-info-soft border border-info rounded-lg">
-              <h3 className="text-sm font-semibold text-info mb-2">
+            <div className="mb-6 rounded-xl border border-line border-l-[3px] border-l-info bg-surface p-4">
+              <h3 className="font-display text-[14.5px] font-semibold text-ink mb-2">
                 Current Assignments
               </h3>
               <div className="space-y-2 mb-3">
                 {existingAssignments.map((assignment) => (
                   <div
                     key={assignment.assignment_id}
-                    className="flex items-center justify-between text-sm"
+                    className="flex items-center justify-between text-[13px]"
                   >
-                    <span className="text-info">
+                    <span className="text-ink">
                       {assignment.resource?.name || 'Unknown Resource'} ({assignment.resource?.role || 'N/A'})
                     </span>
-                    <span className="text-info">
+                    <span className="text-muted">
                       {assignment.allocation_percentage || 0}% •{" "}
                       {assignment.planned_hours || 0}h
                     </span>
@@ -535,17 +514,17 @@ const ResourceAssignmentModal = ({
                 );
                 const remainingAllocation = 100 - totalAllocated;
                 return (
-                  <div className="border-t border-info pt-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-info font-medium">
+                  <div className="border-t border-line pt-3">
+                    <div className="flex items-center justify-between text-[13px]">
+                      <span className="text-muted font-medium">
                         Total Allocated:
                       </span>
-                      <span className="text-info">
+                      <span className="text-ink">
                         {totalAllocated}%
                       </span>
                     </div>
-                    <div className="flex items-center justify-between text-sm mt-1">
-                      <span className="text-info font-medium">
+                    <div className="flex items-center justify-between text-[13px] mt-1">
+                      <span className="text-muted font-medium">
                         Remaining:
                       </span>
                       <span
@@ -662,103 +641,38 @@ const ResourceAssignmentModal = ({
             </div>
 
             {/* Information Panel About Assignment Rules */}
-            <div className="p-4 bg-info-soft border border-info rounded-lg">
-              <h4 className="text-sm font-semibold text-info flex items-center mb-2">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4 mr-1"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
+            <div className="rounded-xl border border-line border-l-[3px] border-l-info bg-surface p-4">
+              <h4 className="font-display text-[14.5px] font-semibold text-ink flex items-center gap-1.5 mb-2">
+                <Info className="h-4 w-4 text-info" aria-hidden="true" />
                 Resource Assignment Guidelines
               </h4>
-              <ul className="text-xs text-info space-y-2">
-                <li className="flex items-start">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-3 w-3 mr-1 mt-0.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
+              <ul className="text-[12.5px] text-muted space-y-2">
+                <li className="flex items-start gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-info" aria-hidden="true" />
                   <span>
-                    <strong>Working Hours:</strong> The system uses a standard
+                    <strong className="text-ink">Working Hours:</strong> The system uses a standard
                     8-hour workday for planning purposes.
                   </span>
                 </li>
-                <li className="flex items-start">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-3 w-3 mr-1 mt-0.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
+                <li className="flex items-start gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-info" aria-hidden="true" />
                   <span>
-                    <strong>Date Range:</strong> If assigning more than 8 hours,
+                    <strong className="text-ink">Date Range:</strong> If assigning more than 8 hours,
                     increase the date range (e.g., 2+ days for 9+ hours).
                   </span>
                 </li>
-                <li className="flex items-start">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-3 w-3 mr-1 mt-0.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
+                <li className="flex items-start gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-info" aria-hidden="true" />
                   <span>
-                    <strong>Allocation Limit:</strong> Total allocation
+                    <strong className="text-ink">Allocation Limit:</strong> Total allocation
                     percentage across all resources for this task cannot exceed
                     100%.
                   </span>
                 </li>
-                <li className="flex items-start">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-3 w-3 mr-1 mt-0.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
+                <li className="flex items-start gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-info" aria-hidden="true" />
                   <span>
-                    <strong>Resource Capacity:</strong> Even if a resource has
+                    <strong className="text-ink">Resource Capacity:</strong> Even if a resource has
                     higher capacity (e.g., 12h/day), the 8-hour workday
                     validation still applies.
                   </span>
@@ -841,9 +755,9 @@ const ResourceAssignmentModal = ({
                 {selectedResource.type !== "material" &&
                   formData.start_date &&
                   formData.end_date && (
-                  <div className="mt-3 p-2 bg-info-soft border border-info rounded-lg">
-                    <div className="text-xs text-info">
-                      <div className="font-medium mb-1">
+                  <div className="mt-3 p-2 rounded-lg border border-line bg-surface">
+                    <div className="text-xs text-muted">
+                      <div className="font-medium text-ink mb-1">
                         Capacity for Assignment Period:
                       </div>
                       {(() => {
@@ -1077,17 +991,18 @@ const ResourceAssignmentModal = ({
                 </div>
 
                 {/* Show Task date constraints */}
-                <div className="p-3 bg-bright-soft border border-bright rounded-lg">
-                  <div className="flex items-center space-x-2 mb-1">
+                <div className="rounded-lg border border-line border-l-[3px] border-l-bright bg-surface p-3">
+                  <div className="flex items-center gap-2 mb-1">
                     <Calendar
                       size={14}
                       className="text-bright"
+                      aria-hidden="true"
                     />
-                    <span className="text-sm font-medium text-bright">
+                    <span className="text-sm font-medium text-ink">
                       Task Date Constraints
                     </span>
                   </div>
-                  <div className="text-xs text-bright-deep">
+                  <div className="text-xs text-muted">
                     <div>
                       • Assignment must start on or after:{" "}
                       {formatDateForDisplay(task.start_date)}
@@ -1142,17 +1057,17 @@ const ResourceAssignmentModal = ({
             {selectedResource && formData.planned_hours > 0 && (
               <div className="space-y-3">
                 {/* Cost Estimation */}
-                <div className="p-3 bg-success-soft border border-success rounded-lg">
-                  <h4 className="text-sm font-medium text-success mb-1">
+                <div className="rounded-lg border border-line border-l-[3px] border-l-success bg-surface p-3">
+                  <h4 className="text-sm font-medium text-ink mb-1">
                     Cost Estimation
                   </h4>
-                  <p className="text-sm text-success">
+                  <p className="text-sm font-semibold text-ink">
                     Estimated Cost: OMR{" "}
                     {((selectedResource?.rate || 0) * (formData.planned_hours || 0)).toFixed(
                       2
                     )}
                   </p>
-                  <p className="text-xs text-success">
+                  <p className="text-xs text-muted">
                     {selectedResource?.type === "material"
                       ? `(${formData.planned_hours || 0} ${selectedResource?.unit || "kg"} × OMR ${(selectedResource?.rate || 0).toFixed(2)}/${selectedResource?.unit || "kg"})`
                       : `(${formData.planned_hours || 0}h × OMR ${(selectedResource?.rate || 0).toFixed(2)}/hr)`}
@@ -1178,51 +1093,19 @@ const ResourceAssignmentModal = ({
 
                   return (
                     <div
-                      className={`p-3 rounded-lg border ${
+                      className={`p-3 rounded-lg border border-line border-l-[3px] bg-surface ${
                         budgetInfo.wouldExceedBudget
-                          ? "bg-danger-soft border-danger "
-                          : "bg-info-soft border-info "
+                          ? "border-l-danger"
+                          : "border-l-info"
                       }`}
                     >
-                      <div className="flex items-center mb-2">
+                      <div className="flex items-center gap-1.5 mb-2">
                         {budgetInfo.wouldExceedBudget ? (
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4 mr-1 text-danger"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                            />
-                          </svg>
+                          <AlertTriangle className="h-4 w-4 text-danger" aria-hidden="true" />
                         ) : (
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4 mr-1 text-info"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                            />
-                          </svg>
+                          <Info className="h-4 w-4 text-info" aria-hidden="true" />
                         )}
-                        <h4
-                          className={`text-sm font-medium ${
-                            budgetInfo.wouldExceedBudget
-                              ? "text-danger "
-                              : "text-info "
-                          }`}
-                        >
+                        <h4 className="text-sm font-medium text-ink">
                           Budget Analysis
                         </h4>
                       </div>
@@ -1240,7 +1123,7 @@ const ResourceAssignmentModal = ({
                       </div>
 
                       {/* Current State Section */}
-                      <div className="border-t border-current/20 pt-2 mb-2">
+                      <div className="border-t border-line pt-2 mb-2">
                         <div className="text-xs font-medium text-muted mb-1.5">
                           Current Allocations:
                         </div>
@@ -1265,7 +1148,7 @@ const ResourceAssignmentModal = ({
                       </div>
 
                       {/* Calculation Section */}
-                      <div className="border-t border-current/20 pt-2">
+                      <div className="border-t border-line pt-2">
                         <div className="space-y-1 text-xs">
                           <div className="flex justify-between items-center">
                             <div className="flex items-center space-x-1">
@@ -1424,9 +1307,7 @@ const ResourceAssignmentModal = ({
               </button>
             </div>
           </form>
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 };
 

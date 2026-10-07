@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { X, Link, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Modal } from "@/components/ui/modal";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dropdown } from '@/components/ui/dropdown';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import axios from '@/lib/axios';
@@ -169,26 +170,13 @@ const ScheduleTaskDependencyModal: React.FC<ScheduleTaskDependencyModalProps> = 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-surface rounded-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-xl font-bold text-ink">
-                Task Dependencies
-              </h3>
-              <p className="text-muted">
-                Manage dependencies for "{task.name}"
-              </p>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-surface-2 rounded-lg transition-colors"
-            >
-              <X size={20} />
-            </button>
-          </div>
+    <Modal
+      open
+      onClose={onClose}
+      title="Task Dependencies"
+      description={`Manage dependencies for "${task.name}"`}
+      maxWidthClass="max-w-4xl"
+    >
 
           {loading ? (
             <div className="flex items-center justify-center py-8">
@@ -238,9 +226,10 @@ const ScheduleTaskDependencyModal: React.FC<ScheduleTaskDependencyModalProps> = 
                             variant="outline"
                             size="sm"
                             onClick={() => removeDependency(dependency.dependency_id)}
+                            aria-label="Remove dependency"
                             className="text-danger hover:text-danger hover:bg-danger-soft"
                           >
-                            <X size={14} />
+                            <X size={14} aria-hidden="true" />
                           </Button>
                         </div>
                       </div>
@@ -255,9 +244,10 @@ const ScheduleTaskDependencyModal: React.FC<ScheduleTaskDependencyModalProps> = 
                   Add New Dependency
                 </h4>
                 {availableTasks.length === 0 && (
-                  <div className="mb-4 p-3 bg-warning-soft border border-warning rounded-lg">
-                    <p className="text-sm text-warning">
-                      {allTasks.length === 0 
+                  <div className="mb-4 p-3 bg-surface border border-line border-l-[3px] border-l-warning rounded-lg">
+                    <p className="flex items-start gap-1.5 text-sm text-ink-2">
+                      <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-warning" aria-hidden="true" />
+                      {allTasks.length === 0
                         ? "No tasks found in this schedule. Please create some tasks first before adding dependencies."
                         : "No available tasks to create dependencies with. All tasks may already have dependencies or this is the only task."
                       }
@@ -267,38 +257,26 @@ const ScheduleTaskDependencyModal: React.FC<ScheduleTaskDependencyModalProps> = 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
                     <Label htmlFor="predecessor">Predecessor Task</Label>
-                    <Select value={selectedPredecessor} onValueChange={setSelectedPredecessor}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a task..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableTasks.length === 0 ? (
-                          <SelectItem value="no-tasks" disabled>
-                            No tasks available
-                          </SelectItem>
-                        ) : (
-                          availableTasks.map((t) => (
-                            <SelectItem key={t.task_id} value={t.task_id.toString()}>
-                              {t.name}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <Dropdown
+                      value={selectedPredecessor}
+                      onChange={setSelectedPredecessor}
+                      placeholder="Select a task..."
+                      searchable
+                      options={availableTasks.map((t) => ({ value: t.task_id.toString(), label: t.name }))}
+                    />
                   </div>
                   <div>
                     <Label htmlFor="dependencyType">Dependency Type</Label>
-                    <Select value={dependencyType} onValueChange={(value: any) => setDependencyType(value)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="finish_to_start">Finish to Start</SelectItem>
-                        <SelectItem value="start_to_start">Start to Start</SelectItem>
-                        <SelectItem value="finish_to_finish">Finish to Finish</SelectItem>
-                        <SelectItem value="start_to_finish">Start to Finish</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Dropdown
+                      value={dependencyType}
+                      onChange={(value) => setDependencyType(value as typeof dependencyType)}
+                      options={[
+                        { value: "finish_to_start", label: "Finish to Start" },
+                        { value: "start_to_start", label: "Start to Start" },
+                        { value: "finish_to_finish", label: "Finish to Finish" },
+                        { value: "start_to_finish", label: "Start to Finish" },
+                      ]}
+                    />
                   </div>
                   <div>
                     <Label htmlFor="lagTime">Lag Time (days)</Label>
@@ -324,34 +302,32 @@ const ScheduleTaskDependencyModal: React.FC<ScheduleTaskDependencyModalProps> = 
               </div>
 
               {/* Dependency Type Help */}
-              <div className="bg-info-soft border border-info rounded-lg p-4">
-                <h5 className="font-semibold text-info mb-2">
+              <div className="bg-surface border border-line border-l-[3px] border-l-info rounded-lg p-4">
+                <h5 className="font-semibold text-ink mb-2">
                   Dependency Types
                 </h5>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                   <div>
                     <Badge className="bg-info-soft text-info mr-2">Finish to Start</Badge>
-                    <span className="text-info">Most common. Successor starts after predecessor finishes.</span>
+                    <span className="text-ink-2">Most common. Successor starts after predecessor finishes.</span>
                   </div>
                   <div>
                     <Badge className="bg-success-soft text-success mr-2">Start to Start</Badge>
-                    <span className="text-success">Both tasks start at the same time.</span>
+                    <span className="text-ink-2">Both tasks start at the same time.</span>
                   </div>
                   <div>
                     <Badge className="bg-accent-violet-soft text-accent-violet mr-2">Finish to Finish</Badge>
-                    <span className="text-accent-violet">Both tasks finish at the same time.</span>
+                    <span className="text-ink-2">Both tasks finish at the same time.</span>
                   </div>
                   <div>
                     <Badge className="bg-bright-soft text-bright mr-2">Start to Finish</Badge>
-                    <span className="text-bright">Successor finishes when predecessor starts.</span>
+                    <span className="text-ink-2">Successor finishes when predecessor starts.</span>
                   </div>
                 </div>
               </div>
             </div>
           )}
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 };
 

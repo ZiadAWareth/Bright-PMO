@@ -317,13 +317,13 @@ export default function CriticalPathPage({ params }: { params: Promise<{ id: str
                                 {criticalPathData?.critical_tasks && criticalPathData.critical_tasks.length > 0 ? (
                                     <div className="space-y-4">
                                         {criticalPathData.critical_tasks.map((task, index) => (
-                                            <div 
-                                                key={task.task_id} 
-                                                className="flex items-center justify-between p-4 bg-danger-soft border border-danger rounded-lg cursor-pointer hover:bg-danger-soft transition-colors"
+                                            <div
+                                                key={task.task_id}
+                                                className="flex items-center justify-between p-4 rounded-lg border border-line border-l-[3px] border-l-danger bg-surface cursor-pointer hover:bg-surface-2 transition-colors"
                                                 onClick={() => router.push(`/projects/${projectId}/tasks/${task.task_id}`)}
                                             >
                                                 <div className="flex items-center space-x-4">
-                                                    <div className="w-10 h-10 bg-danger text-white rounded-full flex items-center justify-center text-sm font-bold">
+                                                    <div className="w-10 h-10 bg-danger-soft text-danger rounded-full flex items-center justify-center text-sm font-bold">
                                                         {index + 1}
                                                     </div>
                                                     <div>
@@ -381,20 +381,20 @@ export default function CriticalPathPage({ params }: { params: Promise<{ id: str
                                 {criticalPathData?.all_tasks && criticalPathData.all_tasks.length > 0 ? (
                                     <div className="space-y-3">
                                         {criticalPathData.all_tasks.map((task) => (
-                                            <div 
-                                                key={task.task_id} 
-                                                className={`flex items-center justify-between p-4 rounded-lg border cursor-pointer transition-colors ${
-                                                    task.is_critical_path 
-                                                        ? 'bg-danger-soft border-danger  hover:bg-danger-soft ' 
-                                                        : 'bg-surface-2  border-line  hover:bg-surface-2 '
+                                            <div
+                                                key={task.task_id}
+                                                className={`flex items-center justify-between p-4 rounded-lg border bg-surface cursor-pointer transition-colors hover:bg-surface-2 ${
+                                                    task.is_critical_path
+                                                        ? 'border-line border-l-[3px] border-l-danger'
+                                                        : 'border-line'
                                                 }`}
                                                 onClick={() => router.push(`/projects/${projectId}/tasks/${task.task_id}`)}
                                             >
                                                 <div className="flex items-center space-x-4">
                                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                                                        task.is_critical_path 
-                                                            ? 'bg-danger text-white' 
-                                                            : 'bg-muted text-white'
+                                                        task.is_critical_path
+                                                            ? 'bg-danger-soft text-danger'
+                                                            : 'bg-surface-2 text-muted'
                                                     }`}>
                                                         {task.is_critical_path ? 'C' : 'N'}
                                                     </div>
@@ -599,10 +599,10 @@ function CriticalPathGanttChart({ tasks, project }: { tasks: any[]; project: any
                 <div className="overflow-x-auto">
                     <div className="min-w-max">
                         {/* Timeline Header */}
-                        <div className="flex border-b bg-surface-2">
-                            <div className="w-64 px-4 py-2 border-r font-semibold">Task</div>
+                        <div className="flex border-b border-line bg-surface-2">
+                            <div className="w-64 px-4 py-2 border-r border-line font-semibold">Task</div>
                             {timeline.map((date, idx) => (
-                                <div key={idx} className={`${columnWidth} px-1 py-2 text-xs text-center border-r`}>
+                                <div key={idx} className={`${columnWidth} px-1 py-2 text-xs text-center border-r border-line`}>
                                     {formatTimelineHeader(date)}
                                 </div>
                             ))}
@@ -611,14 +611,14 @@ function CriticalPathGanttChart({ tasks, project }: { tasks: any[]; project: any
                         {ganttTasks.map((task) => {
                             const { startIdx, endIdx, width } = getTaskPosition(task);
                             return (
-                                <div key={task.id} className="flex border-b items-center hover:bg-surface-2">
-                                    <div className="w-64 px-4 py-2 border-r text-sm font-medium">
+                                <div key={task.id} className="flex border-b border-line items-center hover:bg-surface-2">
+                                    <div className="w-64 px-4 py-2 border-r border-line text-sm font-medium">
                                         <div className="truncate" title={task.name}>{task.name}</div>
                                         <div className="text-xs text-muted">{task.duration} days</div>
                                     </div>
                                     {timeline.map((_, i) => {
                                         if (i < startIdx || i > endIdx) {
-                                            return <div key={i} className={`${columnWidth} h-12 border-r`} />;
+                                            return <div key={i} className={`${columnWidth} h-12 border-r border-line`} />;
                                         }
                                         if (i === startIdx) {
                                             const barWidth = timelineView === 'days' ? `${width * 4}rem` : 
@@ -627,11 +627,11 @@ function CriticalPathGanttChart({ tasks, project }: { tasks: any[]; project: any
                                             return (
                                                 <div
                                                     key={i}
-                                                    className="h-12 border-r flex items-center justify-center relative"
+                                                    className="h-12 border-r border-line flex items-center justify-center relative"
                                                     style={{ width: barWidth }}
                                                 >
                                                     <div
-                                                        className="h-6 rounded-md bg-gradient-to-r from-danger to-bright-deep text-white text-xs font-semibold flex items-center justify-center shadow-sm"
+                                                        className="h-6 rounded-md bg-danger text-white text-xs font-semibold flex items-center justify-center shadow-sm"
                                                         style={{ width: 'calc(100% - 8px)' }}
                                                         title={`${task.name} (${task.duration} days)`}
                                                     >

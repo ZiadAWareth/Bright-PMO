@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { X, CheckCircle } from "lucide-react";
+import { Modal } from "@/components/ui/modal";
 import { Spinner } from "@/components/ui/spinner";
 import { Dropdown } from "@/components/ui/dropdown";
 
@@ -53,26 +54,13 @@ const ResourceDetailModal = ({
   const task = assignment.task || {};
 
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 p-4">
-      <div className="bg-surface rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-xl font-bold text-ink">
-                Resource Assignment Details
-              </h2>
-              <p className="text-sm text-muted">
-                {resource.name} - {task.name}
-              </p>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-surface-2 rounded-lg"
-              disabled={isEditing || isDeleting}
-            >
-              <X size={20} />
-            </button>
-          </div>
+    <Modal
+      open
+      onClose={onClose}
+      title="Resource Assignment Details"
+      description={`${resource.name} - ${task.name}`}
+      maxWidthClass="max-w-2xl"
+    >
 
           {/* Resource Information */}
           <div
@@ -430,9 +418,7 @@ const ResourceDetailModal = ({
               </div>
             </form>
           </div>
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 };
 

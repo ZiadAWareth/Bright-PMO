@@ -19,6 +19,8 @@ import {
     AlertCircle,
     Info,
 } from "lucide-react";
+import { Modal } from "@/components/ui/modal";
+import { StatCard } from "@/components/ui/form-shell";
 
 const CriticalPathManagementModal = ({
     risks,
@@ -77,73 +79,34 @@ const CriticalPathManagementModal = ({
     };
 
     return (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 p-4">
-            <div className="bg-surface rounded-xl shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-                <div className="p-6">
-                    {/* Header */}
-                    <div className="flex items-center justify-between mb-6">
-                        <div>
-                            <h2 className="text-xl font-bold text-ink">
-                                Critical Path Risk Management
-                            </h2>
-                            <p className="text-sm text-muted">
-                                {risks.length} risks identified •{" "}
-                                {actions.length} recommended actions
-                            </p>
-                        </div>
-                        <button
-                            onClick={onClose}
-                            className="p-2 hover:bg-surface-2 rounded-lg transition-colors"
-                        >
-                            <X className="w-6 h-6 text-muted" />
-                        </button>
-                    </div>
+        <Modal
+            open
+            onClose={onClose}
+            title="Critical Path Risk Management"
+            description={`${risks.length} risks identified • ${actions.length} recommended actions`}
+            maxWidthClass="max-w-6xl"
+        >
 
                     {/* Summary Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        <div className="bg-danger-soft border border-danger rounded-lg p-4">
-                            <div className="flex items-center gap-2">
-                                <AlertTriangle className="w-5 h-5 text-danger" />
-                                <span className="font-semibold text-danger">
-                                    Critical Risks
-                                </span>
-                            </div>
-                            <p className="text-2xl font-bold text-danger">
-                                {
-                                    risks.filter(
-                                        (r) => r.severity === "critical"
-                                    ).length
-                                }
-                            </p>
-                        </div>
-                        <div className="bg-bright-soft border border-bright rounded-lg p-4">
-                            <div className="flex items-center gap-2">
-                                <AlertTriangle className="w-5 h-5 text-bright" />
-                                <span className="font-semibold text-bright-deep">
-                                    High Risks
-                                </span>
-                            </div>
-                            <p className="text-2xl font-bold text-bright">
-                                {
-                                    risks.filter((r) => r.severity === "high")
-                                        .length
-                                }
-                            </p>
-                        </div>
-                        <div className="bg-warning-soft border border-warning rounded-lg p-4">
-                            <div className="flex items-center gap-2">
-                                <AlertCircle className="w-5 h-5 text-warning" />
-                                <span className="font-semibold text-warning">
-                                    Medium Risks
-                                </span>
-                            </div>
-                            <p className="text-2xl font-bold text-warning">
-                                {
-                                    risks.filter((r) => r.severity === "medium")
-                                        .length
-                                }
-                            </p>
-                        </div>
+                        <StatCard
+                            label="Critical Risks"
+                            value={risks.filter((r) => r.severity === "critical").length}
+                            icon={AlertTriangle}
+                            tone="danger"
+                        />
+                        <StatCard
+                            label="High Risks"
+                            value={risks.filter((r) => r.severity === "high").length}
+                            icon={AlertTriangle}
+                            tone="brand"
+                        />
+                        <StatCard
+                            label="Medium Risks"
+                            value={risks.filter((r) => r.severity === "medium").length}
+                            icon={AlertCircle}
+                            tone="warning"
+                        />
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -188,8 +151,8 @@ const CriticalPathManagementModal = ({
                                             <p className="text-sm text-muted mb-3">
                                                 {risk.description}
                                             </p>
-                                            <div className="bg-danger-soft border border-danger rounded p-3 mb-3">
-                                                <p className="text-xs text-danger font-medium">
+                                            <div className="rounded border border-line border-l-[3px] border-l-danger bg-surface p-3 mb-3">
+                                                <p className="text-xs text-ink-2 font-medium">
                                                     Impact: {risk.impact}
                                                 </p>
                                             </div>
@@ -318,9 +281,7 @@ const CriticalPathManagementModal = ({
                             Close
                         </button>
                     </div>
-                </div>
-            </div>
-        </div>
+        </Modal>
     );
 };
 

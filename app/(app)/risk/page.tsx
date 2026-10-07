@@ -37,14 +37,17 @@ import {
     StatTile,
 } from "@/components/ui/entity-card";
 import {
-    ListCard,
-    ListHead,
-    ListMessage,
-    ListRow,
-    NewButton,
-    RowAction,
-    RowActions,
-    StatusBadge,
+  CardSkeleton,
+  ListCard,
+  ListHead,
+  ListMessage,
+  ListRegion,
+  ListRow,
+  ListSkeleton,
+  NewButton,
+  RowAction,
+  RowActions,
+  StatusBadge,
 } from "@/components/ui/form-shell";
 import { humanize, riskLevelTone, riskStatusTone } from "@/lib/status-tone";
 
@@ -490,8 +493,18 @@ const RiskPage = () => {
                             />
                         </FilterBar>
 
+                        <ListRegion busy={loading}>
                         {loading ? (
-                            <LoadingState />
+                            view === "grid" ? (
+                                <CardSkeleton />
+                            ) : (
+                                <ListCard>
+                                    <table className="w-full border-collapse">
+                                        <ListHead columns={RISK_COLUMNS} />
+                                        <ListSkeleton columns={RISK_COLUMNS.length} />
+                                    </table>
+                                </ListCard>
+                            )
                         ) : filteredRisks.length === 0 ? (
                             <EmptyState
                                 icon={<AlertTriangle className="h-10 w-10" />}
@@ -623,6 +636,8 @@ const RiskPage = () => {
                             </ListCard>
                         )}
 
+                        </ListRegion>
+
                         {!loading && filteredRisks.length > 0 && (
                             <ListPagination
                                 page={page}
@@ -676,6 +691,7 @@ const RiskPage = () => {
                                     </h3>
                                 </div>
                                 <button
+                                  aria-label="Close dialog"
                                     onClick={() => setShowDeleteModal(false)}
                                     className="text-faint hover:text-bright"
                                 >

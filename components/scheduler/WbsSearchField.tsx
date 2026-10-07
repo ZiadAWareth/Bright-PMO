@@ -58,6 +58,7 @@ export function WbsSearchField({
         />
         {value && (
           <button
+            aria-label="Clear WBS selection"
             type="button"
             onClick={() => {
               onChange("wbs_id", "");

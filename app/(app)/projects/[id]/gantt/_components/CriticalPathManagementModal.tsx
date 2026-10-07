@@ -9,6 +9,7 @@ import {
   AlertCircle,
   X,
 } from "lucide-react";
+import { Modal } from "@/components/ui/modal";
 
 interface CriticalPathManagementModalProps {
   risks: any[];
@@ -69,27 +70,13 @@ const CriticalPathManagementModal = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 p-4">
-      <div className="bg-surface rounded-xl shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-xl font-bold text-ink">
-                Critical Path Risk Management
-              </h2>
-              <p className="text-sm text-muted">
-                {risks.length} risks identified • {actions.length} recommended
-                actions
-              </p>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-surface-2 rounded-lg transition-colors"
-            >
-              <X className="w-6 h-6 text-muted" />
-            </button>
-          </div>
+    <Modal
+      open
+      onClose={onClose}
+      title="Critical Path Risk Management"
+      description={`${risks.length} risks identified • ${actions.length} recommended actions`}
+      maxWidthClass="max-w-6xl"
+    >
 
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -273,9 +260,7 @@ const CriticalPathManagementModal = ({
               Close
             </button>
           </div>
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 };
 

@@ -134,10 +134,11 @@ const DeleteModal = ({
             Delete EPS
           </h2>
           <button
+            aria-label="Close dialog"
             onClick={onClose}
             className="text-faint hover:text-muted"
           >
-            <X size={20} />
+            <X size={20} aria-hidden="true" />
           </button>
         </div>
         <p className="text-muted mb-4">

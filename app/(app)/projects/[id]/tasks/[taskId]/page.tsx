@@ -2,6 +2,7 @@
 
 import React from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { Modal } from "@/components/ui/modal";
 import {
   ArrowLeft,
   Clock,
@@ -21,8 +22,10 @@ import {
   Edit,
   Save,
   X,
+  Info,
 } from "lucide-react";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import { StatCard } from "@/components/ui/form-shell";
 import MentionTextarea from "@/components/MentionTextarea";
 import ResourceAssignmentModal from "@/components/scheduler/ResourceAssignmentModal";
 import type { Task } from "./_components/types";
@@ -239,7 +242,10 @@ const TaskDetailsPage = ({
   return (
     <ProtectedRoute>
       <DashboardLayout
-        title="Task Details"
+        title={task.name}
+        subtitle="Task Details"
+        backHref={`/projects/${projectId}/tasks`}
+        backLabel="Back to Tasks"
         onViewChange={setActiveView}
         activeView={activeView}
       >
@@ -312,15 +318,6 @@ const TaskDetailsPage = ({
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-2">
-                <button
-                  onClick={() => router.push(`/projects/${projectId}/tasks`)}
-                  className="p-2 rounded-lg text-faint hover:text-muted hover:bg-surface-2 transition-colors"
-                >
-                  <ArrowLeft size={20} />
-                </button>
-                <h1 className="text-2xl font-bold text-ink">
-                  {task.name}
-                </h1>
                 {task.is_milestone && (
                   <span className="px-2 py-1 bg-accent-violet-soft text-accent-violet text-xs rounded-full">
                     Milestone
@@ -357,16 +354,16 @@ const TaskDetailsPage = ({
 
           {/* Task Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-info-soft rounded-lg p-4">
+            <div className="rounded-xl border border-line border-l-[3px] border-l-info bg-surface p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-info">
+                <span className="text-sm font-medium text-ink">
                   Task Progress
                 </span>
-                <span className="text-lg font-bold text-info">
+                <span className="text-lg font-bold text-ink">
                   {task.progress_percentage}%
                 </span>
               </div>
-              <div className="w-full bg-info-soft rounded-full h-2">
+              <div className="w-full bg-surface-3 rounded-full h-2">
                 <div
                   className="bg-info h-2 rounded-full transition-all duration-300"
                   style={{
@@ -374,7 +371,7 @@ const TaskDetailsPage = ({
                   }}
                 ></div>
               </div>
-              <div className="text-xs text-info mt-1">
+              <div className="text-xs text-muted mt-1">
                 {fieldDataEntries.length > 0
                   ? "Updated based on resource assignments progress"
                   : "Based on planned progress"}
@@ -398,26 +395,19 @@ const TaskDetailsPage = ({
 
               return (
                 <div
-                  className={`rounded-lg p-4 ${
-                    isOverBudget
-                      ? "bg-danger-soft"
-                      : "bg-success-soft"
+                  className={`rounded-xl border border-line border-l-[3px] bg-surface p-4 ${
+                    isOverBudget ? "border-l-danger" : "border-l-success"
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span
-                      className={`text-sm font-medium ${
-                        isOverBudget
-                          ? "text-danger"
-                          : "text-success"
-                      }`}
-                    >
+                    <span className="text-sm font-medium text-ink">
                       Cost Status
                     </span>
                     <Target
                       className={`w-5 h-5 ${
                         isOverBudget ? "text-danger" : "text-success"
                       }`}
+                      aria-hidden="true"
                     />
                   </div>
                   <div className="space-y-1">
@@ -425,7 +415,7 @@ const TaskDetailsPage = ({
                       <span className="text-muted">
                         Planned:
                       </span>
-                      <span className="font-medium">
+                      <span className="font-medium text-ink">
                         OMR {plannedCost.toFixed(2)}
                       </span>
                     </div>
@@ -435,13 +425,13 @@ const TaskDetailsPage = ({
                       </span>
                       <span
                         className={`font-medium ${
-                          isOverBudget ? "text-danger" : "text-success"
+                          isOverBudget ? "text-danger" : "text-ink"
                         }`}
                       >
                         OMR {actualCost.toFixed(2)}
                       </span>
                     </div>
-                    <div className="flex justify-between text-xs pt-1 border-t">
+                    <div className="flex justify-between text-xs pt-1 border-t border-line">
                       <span className="text-muted">
                         Variance:
                       </span>
@@ -454,13 +444,7 @@ const TaskDetailsPage = ({
                       </span>
                     </div>
                   </div>
-                  <div
-                    className={`text-xs mt-2 ${
-                      isOverBudget
-                        ? "text-danger"
-                        : "text-success"
-                    }`}
-                  >
+                  <div className="text-xs text-muted mt-2">
                     {isOverBudget
                       ? "Over budget - costs cascade up WBS hierarchy"
                       : "Within budget - costs tracked through WBS hierarchy"}
@@ -470,35 +454,22 @@ const TaskDetailsPage = ({
             })()}
 
             <div
-              className={`rounded-lg p-4 ${
-                overdue
-                  ? "bg-danger-soft"
-                  : "bg-success-soft"
+              className={`rounded-xl border border-line border-l-[3px] bg-surface p-4 ${
+                overdue ? "border-l-danger" : "border-l-success"
               }`}
             >
               <div className="flex items-center justify-between mb-2">
-                <span
-                  className={`text-sm font-medium ${
-                    overdue
-                      ? "text-danger"
-                      : "text-success"
-                  }`}
-                >
+                <span className="text-sm font-medium text-ink">
                   Due Date
                 </span>
                 <Calendar
                   className={`w-5 h-5 ${
                     overdue ? "text-danger" : "text-success"
                   }`}
+                  aria-hidden="true"
                 />
               </div>
-              <p
-                className={`text-sm font-medium ${
-                  overdue
-                    ? "text-danger "
-                    : "text-success "
-                }`}
-              >
+              <p className="text-sm font-medium text-ink">
                 {new Date(task.end_date).toLocaleDateString()}
               </p>
               <p
@@ -596,29 +567,16 @@ const TaskDetailsPage = ({
               {/* Info box explaining field data behavior */}
               {task.resource_assignments &&
                 task.resource_assignments.length > 0 && (
-                  <div className="mb-4 p-3 bg-info-soft border border-info rounded-lg">
+                  <div className="mb-4 rounded-lg border border-line border-l-[3px] border-l-info bg-surface p-3">
                     <div className="flex items-start space-x-2">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4 text-info mt-0.5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      <div className="text-xs text-info">
-                        <div className="font-medium mb-1">
+                      <Info className="h-4 w-4 text-info mt-0.5 shrink-0" aria-hidden="true" />
+                      <div className="text-xs text-muted">
+                        <div className="font-medium text-ink mb-1">
                           Field Data Collection & Cost Tracking
                         </div>
                         <div>
                           Each field data entry represents{" "}
-                          <strong>incremental progress</strong> that gets added
+                          <strong className="text-ink">incremental progress</strong> that gets added
                           to the resource assignment totals. For example: if you
                           enter 10% progress and 5 hours, these values will be
                           added to the existing totals. The system automatically
@@ -724,8 +682,9 @@ const TaskDetailsPage = ({
                               ? "Task is locked due to incomplete dependencies"
                               : "Delete field data entry"
                           }
+                          aria-label="Delete field data entry"
                         >
-                          <Trash2 size={14} />
+                          <Trash2 size={14} aria-hidden="true" />
                         </button>
                       </div>
                     </div>
@@ -742,38 +701,28 @@ const TaskDetailsPage = ({
                     </h4>
                   </div>
                   <div className="grid grid-cols-3 gap-4">
-                    <div className="p-3 bg-info-soft rounded-lg">
-                      <p className="text-sm font-medium text-info">
-                        Total Field Entries
-                      </p>
-                      <p className="text-lg font-bold text-info">
-                        {fieldDataEntries.length}
-                      </p>
-                    </div>
-                    <div className="p-3 bg-success-soft rounded-lg">
-                      <p className="text-sm font-medium text-success">
-                        Current Task Progress
-                      </p>
-                      <p className="text-lg font-bold text-success">
-                        {task.progress_percentage}%
-                      </p>
-                    </div>
-                    <div className="p-3 bg-bright-soft rounded-lg">
-                      <p className="text-sm font-medium text-bright">
-                        Total Cost Added
-                      </p>
-                      <p className="text-lg font-bold text-bright">
-                        $
-                        {fieldDataEntries
-                          .reduce((total, entry) => {
-                            const actualHours = entry.actual_hours || 0;
-                            const rate =
-                              entry.resource_assignment?.resource?.rate || 0;
-                            return total + actualHours * rate;
-                          }, 0)
-                          .toFixed(2)}
-                      </p>
-                    </div>
+                    <StatCard
+                      label="Total Field Entries"
+                      value={fieldDataEntries.length}
+                      tone="info"
+                    />
+                    <StatCard
+                      label="Current Task Progress"
+                      value={`${task.progress_percentage}%`}
+                      tone="success"
+                    />
+                    <StatCard
+                      label="Total Cost Added"
+                      value={`$${fieldDataEntries
+                        .reduce((total, entry) => {
+                          const actualHours = entry.actual_hours || 0;
+                          const rate =
+                            entry.resource_assignment?.resource?.rate || 0;
+                          return total + actualHours * rate;
+                        }, 0)
+                        .toFixed(2)}`}
+                      tone="brand"
+                    />
                   </div>
                   <div className="mt-3 text-xs text-muted">
                     Task progress is automatically calculated based on resource
@@ -876,9 +825,9 @@ const TaskDetailsPage = ({
                     return (
                       <div
                         key={index}
-                        className={`flex items-center justify-between border rounded-lg p-2 transition-colors ${
+                        className={`flex items-center justify-between border rounded-lg p-2 bg-surface transition-colors ${
                           isResourceCompleted
-                            ? "border-success bg-success-soft  "
+                            ? "border-line border-l-[3px] border-l-success"
                             : "border-line"
                         }`}
                       >
@@ -920,13 +869,7 @@ const TaskDetailsPage = ({
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center space-x-2">
-                              <span
-                                className={`text-sm font-medium ${
-                                  isResourceCompleted
-                                    ? "text-success "
-                                    : "text-ink"
-                                }`}
-                              >
+                              <span className="text-sm font-medium text-ink">
                                 {`${
                                   assignment.resource?.name ||
                                   "Unknown Resource"
@@ -939,13 +882,7 @@ const TaskDetailsPage = ({
                               )}
                               <Edit size={12} className="text-faint" />
                             </div>
-                            <div
-                              className={`text-xs space-y-1 ${
-                                isResourceCompleted
-                                  ? "text-success"
-                                  : "text-muted"
-                              }`}
-                            >
+                            <div className="text-xs space-y-1 text-muted">
                               <div>
                                 {assignment.resource?.role || "Unknown Role"} •{" "}
                                 {assignment.allocation_percentage || 0}%
@@ -1084,8 +1021,9 @@ const TaskDetailsPage = ({
                               ? "Task is locked due to incomplete dependencies"
                               : "Delete document"
                           }
+                          aria-label="Delete document"
                         >
-                          <Trash2 size={14} />
+                          <Trash2 size={14} aria-hidden="true" />
                         </button>
                       </div>
                     </div>
@@ -1098,34 +1036,36 @@ const TaskDetailsPage = ({
 
         {/* Progress Update Modal */}
         {showProgressModal && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center"
-            style={{
-              backgroundColor: "rgba(0, 0, 0, 0.4)",
-              backdropFilter: "blur(8px)",
-              WebkitBackdropFilter: "blur(8px)",
-            }}
-            onClick={() => setShowProgressModal(false)}
+                    <Modal
+            open
+            onClose={() => setShowProgressModal(false)}
+            title="Update Task"
+            description={<>{task.name}</>}
+            icon={<span className="grid h-9 w-9 place-items-center rounded-full bg-info-soft"><RefreshCw className="h-5 w-5 text-info" /></span>}
+            footer={<><button
+                    type="button"
+                    onClick={() => setShowProgressModal(false)}
+                    disabled={isUpdatingProgress}
+                    className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    form="task-progress-update-form"
+                                        type="submit"
+                    disabled={isUpdatingProgress}
+                    className="px-4 py-2 bg-info text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 flex items-center space-x-2"
+                  >
+                    {isUpdatingProgress && (
+                      <Spinner size={16} />
+                    )}
+                    <Save size={16} />
+                    <span>
+                      {isUpdatingProgress ? "Updating..." : "Update Task"}
+                    </span>
+                  </button></>}
           >
-            <div
-              className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-info-soft rounded-full flex items-center justify-center mr-4">
-                  <RefreshCw className="w-6 h-6 text-info" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-ink">
-                    Update Task
-                  </h3>
-                  <p className="text-sm text-muted">
-                    {task.name}
-                  </p>
-                </div>
-              </div>
-
-              <form
+            <form id="task-progress-update-form"
                 onSubmit={(e) => {
                   e.preventDefault();
                   const formData = new FormData(e.currentTarget);
@@ -1134,14 +1074,14 @@ const TaskDetailsPage = ({
                 }}
                 className="space-y-4"
               >
-                <div className="p-4 bg-info-soft border border-info rounded-lg">
+                <div className="rounded-lg border border-line border-l-[3px] border-l-info bg-surface p-4">
                   <div className="flex items-center space-x-2 mb-2">
-                    <RefreshCw className="w-5 h-5 text-info" />
-                    <span className="font-medium text-info">
+                    <RefreshCw className="w-5 h-5 text-info" aria-hidden="true" />
+                    <span className="font-medium text-ink">
                       Update Task Status
                     </span>
                   </div>
-                  <p className="text-sm text-info">
+                  <p className="text-sm text-muted">
                     You can update the task status and priority. Progress
                     tracking is handled automatically through resource
                     assignments and field data.
@@ -1186,65 +1126,40 @@ const TaskDetailsPage = ({
                     ]}
                   />
                 </div>
+</form>
+          </Modal>
+        )}
 
-                <div className="flex justify-end space-x-3 pt-4 border-t border-line">
-                  <button
+        {/* Time Log Modal */}
+        {showTimeLogModal && (
+                    <Modal
+            open
+            onClose={() => setShowTimeLogModal(false)}
+            title="Log Time"
+            description="Track time spent on this task"
+            icon={<span className="grid h-9 w-9 place-items-center rounded-full bg-success-soft"><Clock className="h-5 w-5 text-success" /></span>}
+            footer={<><button
                     type="button"
-                    onClick={() => setShowProgressModal(false)}
-                    disabled={isUpdatingProgress}
+                    onClick={() => setShowTimeLogModal(false)}
+                    disabled={isLoggingTime}
                     className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
-                    type="submit"
-                    disabled={isUpdatingProgress}
-                    className="px-4 py-2 bg-info text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 flex items-center space-x-2"
+                    form="task-assignment-form"
+                                        type="submit"
+                    disabled={isLoggingTime}
+                    className="px-4 py-2 bg-success text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 flex items-center space-x-2"
                   >
-                    {isUpdatingProgress && (
+                    {isLoggingTime && (
                       <Spinner size={16} />
                     )}
-                    <Save size={16} />
-                    <span>
-                      {isUpdatingProgress ? "Updating..." : "Update Task"}
-                    </span>
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* Time Log Modal */}
-        {showTimeLogModal && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center"
-            style={{
-              backgroundColor: "rgba(0, 0, 0, 0.4)",
-              backdropFilter: "blur(8px)",
-              WebkitBackdropFilter: "blur(8px)",
-            }}
-            onClick={() => setShowTimeLogModal(false)}
+                    <Clock size={16} />
+                    <span>{isLoggingTime ? "Logging..." : "Log Time"}</span>
+                  </button></>}
           >
-            <div
-              className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-success-soft rounded-full flex items-center justify-center mr-4">
-                  <Clock className="w-6 h-6 text-success" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-ink">
-                    Log Time
-                  </h3>
-                  <p className="text-sm text-muted">
-                    Track time spent on this task
-                  </p>
-                </div>
-              </div>
-
-              <form
+            <form id="task-assignment-form"
                 onSubmit={(e) => {
                   e.preventDefault();
                   const formData = new FormData(e.currentTarget);
@@ -1293,31 +1208,8 @@ const TaskDetailsPage = ({
                     className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-success focus:border-transparent resize-none"
                   />
                 </div>
-
-                <div className="flex justify-end space-x-3 pt-4 border-t border-line">
-                  <button
-                    type="button"
-                    onClick={() => setShowTimeLogModal(false)}
-                    disabled={isLoggingTime}
-                    className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isLoggingTime}
-                    className="px-4 py-2 bg-success text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 flex items-center space-x-2"
-                  >
-                    {isLoggingTime && (
-                      <Spinner size={16} />
-                    )}
-                    <Clock size={16} />
-                    <span>{isLoggingTime ? "Logging..." : "Log Time"}</span>
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
+</form>
+          </Modal>
         )}
 
         {/* Resource Assignment Modal */}
@@ -1365,34 +1257,42 @@ const TaskDetailsPage = ({
 
         {/* Upload Document Modal */}
         {showUploadModal && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center"
-            style={{
-              backgroundColor: "rgba(0, 0, 0, 0.4)",
-              backdropFilter: "blur(8px)",
-              WebkitBackdropFilter: "blur(8px)",
-            }}
-            onClick={() => setShowUploadModal(false)}
+                    <Modal
+            open
+            onClose={() => setShowUploadModal(false)}
+            title="Upload Document"
+            description="Upload files to this task"
+            icon={<span className="grid h-9 w-9 place-items-center rounded-full bg-bright-soft"><Upload className="h-5 w-5 text-bright" /></span>}
+            footer={<><button
+                  onClick={() => {
+                    setShowUploadModal(false);
+                    setUploadFiles([]);
+                    setUploadDescription("");
+                  }}
+                  disabled={isUploading}
+                  className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUploadDocument}
+                  disabled={isUploading || uploadFiles.length === 0}
+                  className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors disabled:opacity-50 flex items-center space-x-2"
+                >
+                  {isUploading && (
+                    <Spinner size={16} />
+                  )}
+                  <Upload size={16} />
+                  <span>
+                    {isUploading
+                      ? "Uploading..."
+                      : `Upload ${uploadFiles.length} File${
+                          uploadFiles.length !== 1 ? "s" : ""
+                        }`}
+                  </span>
+                </button></>}
           >
-            <div
-              className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-bright-soft rounded-full flex items-center justify-center mr-4">
-                  <Upload className="w-6 h-6 text-bright" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-ink">
-                    Upload Document
-                  </h3>
-                  <p className="text-sm text-muted">
-                    Upload files to this task
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
+            <div className="space-y-4">
                 {/* Selected Files */}
                 <div>
                   <label className="block text-sm font-medium text-ink-3 mb-2">
@@ -1434,100 +1334,18 @@ const TaskDetailsPage = ({
                   />
                 </div>
               </div>
-
-              <div className="flex justify-end space-x-3 pt-4 border-t border-line mt-4">
-                <button
-                  onClick={() => {
-                    setShowUploadModal(false);
-                    setUploadFiles([]);
-                    setUploadDescription("");
-                  }}
-                  disabled={isUploading}
-                  className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleUploadDocument}
-                  disabled={isUploading || uploadFiles.length === 0}
-                  className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors disabled:opacity-50 flex items-center space-x-2"
-                >
-                  {isUploading && (
-                    <Spinner size={16} />
-                  )}
-                  <Upload size={16} />
-                  <span>
-                    {isUploading
-                      ? "Uploading..."
-                      : `Upload ${uploadFiles.length} File${
-                          uploadFiles.length !== 1 ? "s" : ""
-                        }`}
-                  </span>
-                </button>
-              </div>
-            </div>
-          </div>
+          </Modal>
         )}
 
         {/* Delete Document Confirmation Modal */}
         {showDeleteDocumentModal && documentToDelete && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center"
-            style={{
-              backgroundColor: "rgba(0, 0, 0, 0.4)",
-              backdropFilter: "blur(8px)",
-              WebkitBackdropFilter: "blur(8px)",
-            }}
-            onClick={() => setShowDeleteDocumentModal(false)}
-          >
-            <div
-              className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-danger-soft rounded-full flex items-center justify-center mr-4">
-                  <Trash2 className="w-6 h-6 text-danger" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-ink">
-                    Delete Document
-                  </h3>
-                  <p className="text-sm text-muted">
-                    This action cannot be undone
-                  </p>
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <p className="text-ink-3 mb-3">
-                  Are you sure you want to delete the following document?
-                </p>
-                <div className="p-3 bg-danger-soft border border-danger rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-danger-soft rounded flex items-center justify-center">
-                      {getFileIcon(documentToDelete.name)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-danger truncate">
-                        {documentToDelete.name}
-                      </p>
-                      <p className="text-xs text-danger">
-                        {formatFileSize(documentToDelete.size)} • Uploaded{" "}
-                        {new Date(
-                          documentToDelete.created_at
-                        ).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <p className="text-sm text-danger mt-3 font-medium">
-                  ⚠️ This document will be permanently deleted and cannot be
-                  recovered.
-                </p>
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-4 border-t border-line">
-                <button
+                    <Modal
+            open
+            onClose={() => setShowDeleteDocumentModal(false)}
+            title="Delete Document"
+            description="This action cannot be undone"
+            icon={<span className="grid h-9 w-9 place-items-center rounded-full bg-danger-soft"><Trash2 className="h-5 w-5 text-danger" /></span>}
+            footer={<><button
                   onClick={() => {
                     setShowDeleteDocumentModal(false);
                   }}
@@ -1541,10 +1359,37 @@ const TaskDetailsPage = ({
                 >
                   <Trash2 size={16} />
                   <span>Delete Document</span>
-                </button>
+                </button></>}
+          >
+            <div className="mb-6">
+                <p className="text-ink-3 mb-3">
+                  Are you sure you want to delete the following document?
+                </p>
+                <div className="p-3 rounded-lg border border-line bg-surface-2">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-surface-3 rounded flex items-center justify-center">
+                      {getFileIcon(documentToDelete.name)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-ink truncate">
+                        {documentToDelete.name}
+                      </p>
+                      <p className="text-xs text-muted">
+                        {formatFileSize(documentToDelete.size)} • Uploaded{" "}
+                        {new Date(
+                          documentToDelete.created_at
+                        ).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <p className="flex items-start gap-1.5 text-sm text-danger mt-3 font-medium">
+                  <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" aria-hidden="true" />
+                  This document will be permanently deleted and cannot be
+                  recovered.
+                </p>
               </div>
-            </div>
-          </div>
+          </Modal>
         )}
 
         {/* Field Data Modal */}

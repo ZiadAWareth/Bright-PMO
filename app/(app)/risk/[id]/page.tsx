@@ -62,8 +62,8 @@ interface RiskMitigation {
   start_date: string;
   due_date: string;
   status: string;
-  responsible_id: number;
   assigned_to: number;
+  assignee?: User;
 }
 
 interface TaskOption {
@@ -149,7 +149,7 @@ const MitigationsTab = ({
               <p className="text-sm text-muted mb-2">
                 {mit.action_plan}
               </p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs text-muted">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs text-muted">
                 <div>
                   Start:{" "}
                   {mit.start_date
@@ -162,13 +162,18 @@ const MitigationsTab = ({
                     ? new Date(mit.due_date).toISOString().split("T")[0]
                     : "-"}
                 </div>
-                <div>Assigned: {mit.assigned_to}</div>
-                <div>Responsible: {mit.responsible_id}</div>
+                <div>
+                  Assigned:{" "}
+                  {mit.assignee
+                    ? `${mit.assignee.account.first_name} ${mit.assignee.account.last_name}`
+                    : "Unassigned"}
+                </div>
               </div>
             </div>
-            <div className="flex flex-col items-end gap-2 ml-4">
+            <div className="flex items-center gap-2 ml-4">
               <button
                 onClick={() => onEdit(mit)}
+                aria-label="Edit mitigation"
                 className="p-2 text-faint hover:text-muted hover:bg-surface-2 rounded-lg transition-colors"
                 title="Edit Mitigation"
               >
@@ -176,6 +181,7 @@ const MitigationsTab = ({
               </button>
               <button
                 onClick={() => onDelete(mit)}
+                aria-label="Delete mitigation"
                 className="p-2 text-faint hover:text-danger hover:bg-danger-soft rounded-lg transition-colors"
                 title="Delete Mitigation"
               >

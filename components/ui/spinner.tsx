@@ -27,12 +27,12 @@ export function Spinner({ className, size = 16 }: { className?: string; size?: n
       <span className="absolute inset-0 rounded-full opacity-20" style={{ border: `${bw}px solid currentColor` }} />
       {/* fast outer arc */}
       <span
-        className="absolute inset-0 animate-spin rounded-full [animation-duration:0.9s]"
+        className="motion-safe-loop absolute inset-0 animate-spin rounded-full [animation-duration:0.9s] motion-reduce:[animation-duration:2.4s]"
         style={{ border: `${bw}px solid transparent`, borderTopColor: 'currentColor' }}
       />
       {/* slower counter-rotating inner arc */}
       <span
-        className="absolute animate-spin rounded-full opacity-50 [animation-direction:reverse] [animation-duration:1.5s]"
+        className="motion-safe-loop absolute animate-spin rounded-full opacity-50 [animation-direction:reverse] [animation-duration:1.5s] motion-reduce:hidden"
         style={{ inset, border: `${bw}px solid transparent`, borderBottomColor: 'currentColor' }}
       />
     </span>

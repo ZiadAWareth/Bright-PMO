@@ -9,10 +9,10 @@ import {
     Clock,
     MessageSquare,
     Lock,
-    X,
     RefreshCw,
     DollarSign,
 } from "lucide-react";
+import { Modal } from "@/components/ui/modal";
 import { Spinner } from "@/components/ui/spinner";
 
 interface ApprovalWorkflowModalProps {
@@ -226,39 +226,22 @@ export function ApprovalWorkflowModal({
             !existingApprovals.some((a: any) => a.user_id === currentUserId)
         );
 
-    if (!isOpen) return null;
-
     return (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-surface rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
-                {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-line shrink-0">
-                    <div className="flex items-center gap-2">
-                        {isBudgetChange
-                            ? <DollarSign className="w-6 h-6 text-info" />
-                            : <CheckCircle className="w-6 h-6 text-info" />
-                        }
-                        <div>
-                            <h2 className="text-lg font-bold text-ink">
-                                {isBudgetChange ? "Budget Change Approval" : "Approval Workflow"}
-                            </h2>
-                            <p className="text-sm text-muted">
-                                {projectName}
-                                {projectCode ? ` (${projectCode})` : ""}
-                            </p>
-                        </div>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="p-2 rounded-lg text-muted hover:text-ink-3 hover:bg-surface-2 transition-colors"
-                        aria-label="Close"
-                    >
-                        <X className="w-5 h-5" />
-                    </button>
-                </div>
-
-                {/* Body — scrollable */}
-                <div className="overflow-y-auto p-4 space-y-4 flex-1 min-h-0">
+        <Modal
+            open={isOpen}
+            onClose={onClose}
+            title={isBudgetChange ? "Budget Change Approval" : "Approval Workflow"}
+            description={`${projectName}${projectCode ? ` (${projectCode})` : ""}`}
+            maxWidthClass="max-w-2xl"
+            icon={
+                isBudgetChange ? (
+                    <DollarSign className="w-6 h-6 text-info" />
+                ) : (
+                    <CheckCircle className="w-6 h-6 text-info" />
+                )
+            }
+        >
+                <div className="space-y-4">
                     {/* Budget change context banner */}
                     {isBudgetChange && (currentBudgetAmount != null || pendingBudgetAmount != null) && (
                         <div className="bg-info-soft border border-info rounded-lg p-3 flex items-center gap-3 text-sm">
@@ -529,7 +512,6 @@ export function ApprovalWorkflowModal({
                         </>
                     )}
                 </div>
-            </div>
-        </div>
+        </Modal>
     );
 }

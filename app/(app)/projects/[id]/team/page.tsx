@@ -25,12 +25,13 @@ import { TeamUserSelect } from "@/components/TeamUserSelect";
 import ResourceAssignmentModal from "@/components/scheduler/ResourceAssignmentModal";
 import { useDepartments } from "@/hooks/useDepartments";
 import { useEmployees } from "@/hooks/useEmployees";
-import { SearchableDropdown } from "@/components/form/SearchableDropdown";
 import { Spinner } from "@/components/ui/spinner";
 import { useConfirm } from "@/components/ui/confirm-provider";
 import { Dropdown } from "@/components/ui/dropdown";
 import { UserAvatar } from "@/components/ui/person-cell";
-import { StatusBadge } from "@/components/ui/form-shell";
+import { StatusBadge, inputClass } from "@/components/ui/form-shell";
+import { Modal } from "@/components/ui/modal";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     EntityCard,
     EntityCardFooter,
@@ -111,23 +112,13 @@ const TeamResourcesPage = () => {
     const [departmentSearchTerm, setDepartmentSearchTerm] = useState("");
     const [memberSearchTerm, setMemberSearchTerm] = useState("");
     const [workloadAvailable, setWorkloadAvailable] = useState<number | null>(null);
-    const [departmentDropdownOpen, setDepartmentDropdownOpen] = useState(false);
     const [memberListOpen, setMemberListOpen] = useState(false);
-    const departmentDropdownRef = useRef<HTMLDivElement>(null);
     const memberListRef = useRef<HTMLDivElement>(null);
 
     const { departments, loading: departmentsLoading } = useDepartments();
     const { employees, loading: employeesLoading } = useEmployees({ limit: 200 });
 
     const availableRoles = TEAM_MEMBER_ROLES;
-    const filteredDepartments = useMemo(() => {
-        if (!departmentSearchTerm.trim()) return departments;
-        const term = departmentSearchTerm.toLowerCase();
-        return departments.filter(
-            (d: any) =>
-                (d?.name ?? d?.label ?? "").toString().toLowerCase().includes(term)
-        );
-    }, [departments, departmentSearchTerm]);
     const getEmployeeFullName = (emp: any) =>
         [emp?.first_name, emp?.last_name].filter(Boolean).join(" ") ||
         [emp?.firstName, emp?.lastName].filter(Boolean).join(" ") ||
@@ -458,12 +449,6 @@ const TeamResourcesPage = () => {
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             const target = event.target as Node;
-            if (
-                departmentDropdownRef.current &&
-                !departmentDropdownRef.current.contains(target)
-            ) {
-                setDepartmentDropdownOpen(false);
-            }
             if (
                 memberListRef.current &&
                 !memberListRef.current.contains(target)
@@ -1034,8 +1019,9 @@ const TeamResourcesPage = () => {
                                                                         }
                                                                         className="rounded-md p-1.5 text-muted transition-colors hover:bg-danger-soft hover:text-danger"
                                                                         title="Remove"
+                                                                        aria-label="Remove team member from task"
                                                                     >
-                                                                        <Trash2 size={14} />
+                                                                        <Trash2 size={14} aria-hidden="true" />
                                                                     </button>
                                                                 )}
                                                             </div>
@@ -1101,8 +1087,9 @@ const TeamResourcesPage = () => {
                                                                         }}
                                                                         className="rounded-md p-1.5 text-muted transition-colors hover:bg-danger-soft hover:text-danger"
                                                                         title="Remove"
+                                                                        aria-label="Unassign resource from task"
                                                                     >
-                                                                        <Trash2 size={14} />
+                                                                        <Trash2 size={14} aria-hidden="true" />
                                                                     </button>
                                                                 )}
                                                             </div>
@@ -1164,22 +1151,22 @@ const TeamResourcesPage = () => {
                 )}
             </div>
             {/* Add Team Member Modal */}
-            {showAddMemberModal && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-xl"
-                    onClick={(e) => {
-                        if (e.target === e.currentTarget) {
-                            setShowAddMemberModal(false);
-                            setMemberSource("pmo");
-                            setSelectedHrEmployee(null);
-                            setWorkloadAvailable(null);
-                            setMemberSearchTerm("");
-                            setDepartmentSearchTerm("");
-                        }
-                    }}
-                >
-                    <div className="bg-surface rounded-2xl shadow-2xl max-w-2xl w-full mx-4 p-8 border border-white/20 relative">
+            <Modal
+                open={showAddMemberModal}
+                onClose={() => {
+                    setShowAddMemberModal(false);
+                    setMemberSource("pmo");
+                    setSelectedHrEmployee(null);
+                    setWorkloadAvailable(null);
+                    setMemberSearchTerm("");
+                    setDepartmentSearchTerm("");
+                }}
+                title="Add New Team Member"
+                maxWidthClass="max-w-2xl"
+                footer={
+                    <>
                         <button
+                            type="button"
                             onClick={() => {
                                 setShowAddMemberModal(false);
                                 setMemberSource("pmo");
@@ -1188,446 +1175,341 @@ const TeamResourcesPage = () => {
                                 setMemberSearchTerm("");
                                 setDepartmentSearchTerm("");
                             }}
-                            className="absolute top-4 right-4 p-2 hover:bg-surface-2 rounded-lg"
+                            className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors"
                         >
-                            <X size={22} />
+                            Cancel
                         </button>
-                        <div className="flex items-center mb-8">
-                            <div className="w-10 h-10 bg-gradient-to-r from-bright to-danger rounded-xl flex items-center justify-center mr-3">
-                                <Plus className="w-5 h-5 text-white" />
-                            </div>
-                            <h2 className="text-2xl font-bold text-ink">
-                                Add New Team Member
-                            </h2>
-                        </div>
-                        <form
-                            onSubmit={handleAddMemberFormSubmit}
-                            className="space-y-6"
+                        <button
+                            type="submit"
+                            form="add-team-member-form"
+                            disabled={isAddingMember || (memberSource === "hr" && !selectedHrEmployee)}
+                            className="flex items-center gap-2 px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <div className="grid grid-cols-2 gap-6">
-                                <div className="group col-span-2">
-                                    <label className="block text-sm font-semibold text-ink-3 mb-2">
-                                        User
-                                        <span className="text-danger">*</span>
-                                    </label>
-                                    <div className="flex gap-1 mb-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setMemberSource("pmo");
-                                                setSelectedHrEmployee(null);
-                                                handleAddMemberFormChange("user_id", "");
-                                                setWorkloadAvailable(null);
-                                            }}
-                                            className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium ${
-                                                memberSource === "pmo"
-                                                    ? "bg-bright text-white"
-                                                    : "bg-surface-2 text-ink-3"
-                                            }`}
-                                        >
-                                            From PMO
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setMemberSource("hr");
-                                                handleAddMemberFormChange("user_id", "");
-                                                setWorkloadAvailable(null);
-                                            }}
-                                            className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium ${
-                                                memberSource === "hr"
-                                                    ? "bg-bright text-white"
-                                                    : "bg-surface-2 text-ink-3"
-                                            }`}
-                                        >
-                                            From HR
-                                        </button>
-                                    </div>
-                                    {memberSource === "pmo" ? (
-                                        <TeamUserSelect
-                                            users={availableUsers}
-                                            value={addMemberForm.user_id}
-                                            onChange={(val) => {
-                                                handleAddMemberFormChange("user_id", val);
-                                                const u = availableUsers.find(
-                                                    (x) => x.user_id.toString() === val
-                                                );
-                                                if (u?.account?.department)
-                                                    handleAddMemberFormChange(
-                                                        "department",
-                                                        u.account.department
-                                                    );
-                                            }}
-                                            placeholder="Select a user..."
-                                        />
-                                    ) : (
-                                        <div className="relative" ref={memberListRef}>
-                                            <input
-                                                type="text"
-                                                placeholder="Search by name, email, or position..."
-                                                value={memberSearchTerm}
-                                                onChange={(e) => {
-                                                    setMemberSearchTerm(e.target.value);
-                                                    setMemberListOpen(true);
-                                                }}
-                                                onFocus={() => setMemberListOpen(true)}
-                                                className="w-full px-4 py-3 border border-line rounded-xl bg-white/80 text-ink"
-                                            />
-                                            {selectedHrEmployee && (
-                                                <div className="mt-2 p-2 bg-bright-soft rounded-lg text-sm text-ink-3">
-                                                    Selected: {getEmployeeFullName(selectedHrEmployee)} (
-                                                    {selectedHrEmployee.email})
-                                                </div>
-                                            )}
-                                            {memberListOpen && !employeesLoading && filteredEmployees.length > 0 && (
-                                                <div className="absolute z-10 mt-1 w-full max-h-48 overflow-y-auto bg-surface border rounded-lg shadow-lg">
-                                                    {filteredEmployees.slice(0, 20).map((emp: any) => (
-                                                        <button
-                                                            key={emp?._id ?? emp?.id}
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setSelectedHrEmployee(emp);
-                                                                const dept =
-                                                                    emp?.department_title ?? "";
-                                                                handleAddMemberFormChange(
-                                                                    "department",
-                                                                    dept
-                                                                );
-                                                                setMemberListOpen(false);
-                                                            }}
-                                                            className="w-full flex items-center p-2 hover:bg-surface-2 text-left"
-                                                        >
-                                                            {getEmployeeFullName(emp)} •{" "}
-                                                            {emp?.email ?? ""}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="group">
-                                    <label className="block text-sm font-semibold text-ink-3 mb-2">
-                                        Workload (%)
-                                        <span className="text-danger">*</span>
-                                    </label>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        max="100"
-                                        step="1"
-                                        value={addMemberForm.workload}
-                                        onChange={(e) =>
-                                            handleAddMemberFormChange(
-                                                "workload",
-                                                e.target.value
-                                            )
-                                        }
-                                        required
-                                        className="w-full px-4 py-3 border border-line rounded-xl bg-white/80 text-ink focus:ring-2 focus:ring-bright focus:border-transparent transition-all duration-300 group-hover:border-bright"
-                                        placeholder="100"
-                                    />
-                                    {workloadAvailable != null && memberSource === "pmo" && (
-                                        <p className="text-xs text-muted mt-1">
-                                            Available: {workloadAvailable}%
-                                        </p>
-                                    )}
-                                </div>
-                                <div className="group">
-                                    <label className="block text-sm font-semibold text-ink-3 mb-2">
-                                        Role
-                                        <span className="text-danger">*</span>
-                                    </label>
-                                    <Dropdown
-                                      value={String(addMemberForm.role ?? '')}
-                                      onChange={(__v: string) =>
-                                            handleAddMemberFormChange(
-                                                "role",
-                                                __v
-                                            )}
-                                      options={[
-                                      { value: String(""), label: "Select role..." },
-                                      ...availableRoles.map((name) => ({ value: String(name), label: name })),
-                                    ]}
-                                      required={true}
-                                    />
-                                </div>
-                                <div className="group" ref={departmentDropdownRef}>
-                                    <label className="block text-sm font-semibold text-ink-3 mb-2">
-                                        Department
-                                        <span className="text-danger">*</span>
-                                    </label>
-                                    {memberSource === "hr" ? (
-                                        <div className="w-full px-4 py-3 border border-line rounded-xl bg-surface-2 text-ink-3">
-                                            {addMemberForm.department || "—"}
-                                        </div>
-                                    ) : (
-                                        <SearchableDropdown
-                                            value={addMemberForm.department}
-                                            searchTerm={departmentSearchTerm}
-                                            showDropdown={departmentDropdownOpen}
-                                            filteredItems={filteredDepartments}
-                                            displayValue={
-                                                departmentSearchTerm !== ""
-                                                    ? departmentSearchTerm
-                                                    : addMemberForm.department
-                                            }
-                                            onSearchChange={(v) => {
-                                                setDepartmentSearchTerm(v);
-                                                setDepartmentDropdownOpen(true);
-                                            }}
-                                            onFocus={() =>
-                                                setDepartmentDropdownOpen(true)
-                                            }
-                                            onSelect={(d: any) => {
-                                                const name =
-                                                    d?.name ?? d?.label ?? "";
-                                                handleAddMemberFormChange(
-                                                    "department",
-                                                    name
-                                                );
-                                                setDepartmentSearchTerm("");
-                                                setDepartmentDropdownOpen(false);
-                                            }}
-                                            onClear={() => {
-                                                handleAddMemberFormChange(
-                                                    "department",
-                                                    ""
-                                                );
-                                                setDepartmentSearchTerm("");
-                                                setDepartmentDropdownOpen(true);
-                                            }}
-                                            renderItem={(d: any) =>
-                                                d?.name ?? d?.label ?? ""
-                                            }
-                                            getItemKey={(d: any) =>
-                                                d?.id ?? d?.unit_id ?? d?.name ?? ""
-                                            }
-                                            placeholder={
-                                                departmentsLoading
-                                                    ? "Loading..."
-                                                    : "Search or select department"
-                                            }
-                                            disabled={departmentsLoading}
-                                            className="w-full px-4 py-3 border-line rounded-xl bg-white/80 focus:ring-bright"
-                                        />
-                                    )}
-                                </div>
-                                <div className="flex items-center gap-2 mt-8">
-                                    <input
-                                        type="checkbox"
-                                        checked={addMemberForm.is_lead}
-                                        onChange={(e) =>
-                                            handleAddMemberFormChange(
-                                                "is_lead",
-                                                e.target.checked
-                                            )
-                                        }
-                                        className="accent-bright w-5 h-5 cursor-pointer"
-                                        id="is_lead"
-                                    />
-                                    <label
-                                        htmlFor="is_lead"
-                                        className="text-sm text-ink-3 font-semibold cursor-pointer"
-                                    >
-                                        Set as Team Lead
-                                    </label>
-                                </div>
-                            </div>
-                            <div className="flex justify-end space-x-4 pt-6 border-t border-line">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setShowAddMemberModal(false);
+                            {isAddingMember && <Spinner size={16} />}
+                            <span>{isAddingMember ? "Adding..." : "Add"}</span>
+                        </button>
+                    </>
+                }
+            >
+                <form
+                    id="add-team-member-form"
+                    onSubmit={handleAddMemberFormSubmit}
+                    className="space-y-6"
+                >
+                    <div className="grid grid-cols-2 gap-6">
+                        <div className="col-span-2">
+                            <label className="block text-sm font-medium text-ink-3 mb-2">
+                                User
+                                <span className="text-danger">*</span>
+                            </label>
+                            <Tabs
+                                value={memberSource}
+                                onValueChange={(v) => {
+                                    if (v === "pmo") {
                                         setMemberSource("pmo");
                                         setSelectedHrEmployee(null);
-                                        setWorkloadAvailable(null);
-                                        setMemberSearchTerm("");
-                                        setDepartmentSearchTerm("");
-                                    }}
-                                    className="px-6 py-3 text-muted hover:text-ink-2 font-medium rounded-xl hover:bg-surface-2 transition-all duration-300 border border-line"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={isAddingMember || (memberSource === "hr" && !selectedHrEmployee)}
-                                    className="group relative overflow-hidden bg-gradient-to-r from-bright to-danger text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 hover:from-bright-deep hover:to-danger disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                                >
-                                    <div className="absolute inset-0 bg-surface opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
-                                    <span className="relative flex items-center justify-center space-x-2">
-                                        {isAddingMember && (
-                                            <Spinner size={16} />
-                                        )}
-                                        <span>{isAddingMember ? "Adding..." : "Add"}</span>
-                                    </span>
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-            {/* Edit Team Member Modal */}
-            {showEditMemberModal && editingMember && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-xl"
-                    onClick={(e) => {
-                        if (e.target === e.currentTarget) {
-                            setShowEditMemberModal(false);
-                            setEditingMember(null);
-                        }
-                    }}
-                >
-                    <div className="bg-surface rounded-2xl shadow-2xl max-w-2xl w-full mx-4 p-8 border border-white/20 relative">
-                        <button
-                            onClick={() => {
-                                setShowEditMemberModal(false);
-                                setEditingMember(null);
-                                setAddMemberForm({
-                                    user_id: "",
-                                    role: "",
-                                    department: "",
-                                    workload: "100",
-                                    is_lead: false,
-                                });
-                            }}
-                            className="absolute top-4 right-4 p-2 hover:bg-surface-2 rounded-lg"
-                        >
-                            <X size={22} />
-                        </button>
-                        <div className="flex items-center mb-8">
-                            <div className="w-10 h-10 bg-gradient-to-r from-info to-info rounded-xl flex items-center justify-center mr-3">
-                                <Edit className="w-5 h-5 text-white" />
-                            </div>
-                            <h2 className="text-2xl font-bold text-ink">
-                                Edit Team Member
-                            </h2>
-                        </div>
-                        <div className="mb-4 p-4 bg-info-soft rounded-lg">
-                            <p className="text-sm text-muted">
-                                Editing: <span className="font-semibold text-ink">
-                                    {editingMember.user.account.first_name} {editingMember.user.account.last_name}
-                                </span>
-                            </p>
-                        </div>
-                        <form
-                            onSubmit={handleEditMemberFormSubmit}
-                            className="space-y-6"
-                        >
-                            <div className="grid grid-cols-2 gap-6">
-                                <div className="group">
-                                    <label className="block text-sm font-semibold text-ink-3 mb-2">
-                                        Workload (%)
-                                        <span className="text-danger">*</span>
-                                    </label>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        max="100"
-                                        step="1"
-                                        value={addMemberForm.workload}
-                                        onChange={(e) =>
-                                            handleAddMemberFormChange(
-                                                "workload",
-                                                e.target.value
-                                            )
-                                        }
-                                        required
-                                        className="w-full px-4 py-3 border border-line rounded-xl bg-white/80 text-ink focus:ring-2 focus:ring-info focus:border-transparent transition-all duration-300 group-hover:border-info"
-                                        placeholder="100"
-                                    />
-                                </div>
-                                <div className="group">
-                                    <label className="block text-sm font-semibold text-ink-3 mb-2">
-                                        Role
-                                        <span className="text-danger">*</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={addMemberForm.role}
-                                        onChange={(e) =>
-                                            handleAddMemberFormChange(
-                                                "role",
-                                                e.target.value
-                                            )
-                                        }
-                                        required
-                                        className="w-full px-4 py-3 border border-line rounded-xl bg-white/80 text-ink focus:ring-2 focus:ring-info focus:border-transparent transition-all duration-300 group-hover:border-info"
-                                        placeholder="e.g. Developer"
-                                    />
-                                </div>
-                                <div className="group">
-                                    <label className="block text-sm font-semibold text-ink-3 mb-2">
-                                        Department
-                                        <span className="text-danger">*</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={addMemberForm.department}
-                                        onChange={(e) =>
+                                    } else {
+                                        setMemberSource("hr");
+                                    }
+                                    handleAddMemberFormChange("user_id", "");
+                                    setWorkloadAvailable(null);
+                                }}
+                            >
+                                <TabsList variant="line" className="mb-3">
+                                    <TabsTrigger value="pmo">From PMO</TabsTrigger>
+                                    <TabsTrigger value="hr">From HR</TabsTrigger>
+                                </TabsList>
+                            </Tabs>
+                            {memberSource === "pmo" ? (
+                                <TeamUserSelect
+                                    users={availableUsers}
+                                    value={addMemberForm.user_id}
+                                    onChange={(val) => {
+                                        handleAddMemberFormChange("user_id", val);
+                                        const u = availableUsers.find(
+                                            (x) => x.user_id.toString() === val
+                                        );
+                                        if (u?.account?.department)
                                             handleAddMemberFormChange(
                                                 "department",
-                                                e.target.value
-                                            )
-                                        }
-                                        required
-                                        className="w-full px-4 py-3 border border-line rounded-xl bg-white/80 text-ink focus:ring-2 focus:ring-info focus:border-transparent transition-all duration-300 group-hover:border-info"
-                                        placeholder="e.g. Engineering"
-                                    />
-                                </div>
-                                <div className="flex items-center gap-2 mt-8">
-                                    <input
-                                        type="checkbox"
-                                        checked={addMemberForm.is_lead}
-                                        onChange={(e) =>
-                                            handleAddMemberFormChange("is_lead", e.target.checked)
-                                        }
-                                        className="accent-info w-5 h-5 cursor-pointer"
-                                        id="is_lead_edit"
-                                    />
-                                    <label
-                                        htmlFor="is_lead_edit"
-                                        className="text-sm text-ink-3 font-semibold cursor-pointer"
-                                    >
-                                        Set as Team Lead
-                                    </label>
-                                </div>
-                            </div>
-                            <div className="flex justify-end space-x-4 pt-6 border-t border-line">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setShowEditMemberModal(false);
-                                        setEditingMember(null);
-                                        setAddMemberForm({
-                                            user_id: "",
-                                            role: "",
-                                            department: "",
-                                            workload: "100",
-                                            is_lead: false,
-                                        });
+                                                u.account.department
+                                            );
                                     }}
-                                    className="px-6 py-3 text-muted hover:text-ink-2 font-medium rounded-xl hover:bg-surface-2 transition-all duration-300 border border-line"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={isUpdatingMember}
-                                    className="group relative overflow-hidden bg-gradient-to-r from-info to-info text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 hover:from-info hover:to-info disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                                >
-                                    <div className="absolute inset-0 bg-surface opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
-                                    <span className="relative flex items-center justify-center space-x-2">
-                                        {isUpdatingMember && (
-                                            <Spinner size={16} />
-                                        )}
-                                        <span>{isUpdatingMember ? "Updating..." : "Update"}</span>
-                                    </span>
-                                </button>
-                            </div>
-                        </form>
+                                    placeholder="Select a user..."
+                                />
+                            ) : (
+                                <div className="relative" ref={memberListRef}>
+                                    <input
+                                        type="text"
+                                        placeholder="Search by name, email, or position..."
+                                        value={memberSearchTerm}
+                                        onChange={(e) => {
+                                            setMemberSearchTerm(e.target.value);
+                                            setMemberListOpen(true);
+                                        }}
+                                        onFocus={() => setMemberListOpen(true)}
+                                        className={inputClass}
+                                    />
+                                    {selectedHrEmployee && (
+                                        <div className="mt-2 p-2 bg-bright-soft rounded-lg text-sm text-ink-3">
+                                            Selected: {getEmployeeFullName(selectedHrEmployee)} (
+                                            {selectedHrEmployee.email})
+                                        </div>
+                                    )}
+                                    {memberListOpen && !employeesLoading && filteredEmployees.length > 0 && (
+                                        <div className="absolute z-10 mt-1 w-full max-h-48 overflow-y-auto bg-surface border border-line rounded-lg shadow-lg">
+                                            {filteredEmployees.slice(0, 20).map((emp: any) => (
+                                                <button
+                                                    key={emp?._id ?? emp?.id}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSelectedHrEmployee(emp);
+                                                        const dept =
+                                                            emp?.department_title ?? "";
+                                                        handleAddMemberFormChange(
+                                                            "department",
+                                                            dept
+                                                        );
+                                                        setMemberListOpen(false);
+                                                    }}
+                                                    className="w-full flex items-center p-2 hover:bg-surface-2 text-left text-ink"
+                                                >
+                                                    {getEmployeeFullName(emp)} •{" "}
+                                                    {emp?.email ?? ""}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-ink-3 mb-2">
+                                Workload (%)
+                                <span className="text-danger">*</span>
+                            </label>
+                            <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                step="1"
+                                value={addMemberForm.workload}
+                                onChange={(e) =>
+                                    handleAddMemberFormChange(
+                                        "workload",
+                                        e.target.value
+                                    )
+                                }
+                                required
+                                className={inputClass}
+                                placeholder="100"
+                            />
+                            {workloadAvailable != null && memberSource === "pmo" && (
+                                <p className="text-xs text-muted mt-1">
+                                    Available: {workloadAvailable}%
+                                </p>
+                            )}
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-ink-3 mb-2">
+                                Role
+                                <span className="text-danger">*</span>
+                            </label>
+                            <Dropdown
+                              value={String(addMemberForm.role ?? '')}
+                              onChange={(__v: string) =>
+                                    handleAddMemberFormChange(
+                                        "role",
+                                        __v
+                                    )}
+                              options={[
+                              { value: String(""), label: "Select role..." },
+                              ...availableRoles.map((name) => ({ value: String(name), label: name })),
+                            ]}
+                              required={true}
+                              modal
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-ink-3 mb-2">
+                                Department
+                                <span className="text-danger">*</span>
+                            </label>
+                            {memberSource === "hr" ? (
+                                <div className={`${inputClass} flex items-center bg-surface-2 text-ink-3`}>
+                                    {addMemberForm.department || "—"}
+                                </div>
+                            ) : (
+                                <Dropdown
+                                  value={addMemberForm.department}
+                                  onChange={(v) => handleAddMemberFormChange("department", v)}
+                                  options={departments.map((d: any) => ({
+                                      value: String(d?.name ?? d?.label ?? ""),
+                                      label: String(d?.name ?? d?.label ?? ""),
+                                  }))}
+                                  placeholder={departmentsLoading ? "Loading..." : "Search or select department"}
+                                  searchable
+                                  disabled={departmentsLoading}
+                                  required={true}
+                                  modal
+                                />
+                            )}
+                        </div>
+                        <div className="flex items-center gap-2 mt-8">
+                            <input
+                                type="checkbox"
+                                checked={addMemberForm.is_lead}
+                                onChange={(e) =>
+                                    handleAddMemberFormChange(
+                                        "is_lead",
+                                        e.target.checked
+                                    )
+                                }
+                                className="accent-bright w-5 h-5 cursor-pointer"
+                                id="is_lead"
+                            />
+                            <label
+                                htmlFor="is_lead"
+                                className="text-sm text-ink-3 font-medium cursor-pointer"
+                            >
+                                Set as Team Lead
+                            </label>
+                        </div>
                     </div>
-                </div>
+                </form>
+            </Modal>
+            {/* Edit Team Member Modal */}
+            {editingMember && (
+                <Modal
+                    open={showEditMemberModal}
+                    onClose={() => {
+                        setShowEditMemberModal(false);
+                        setEditingMember(null);
+                        setAddMemberForm({
+                            user_id: "",
+                            role: "",
+                            department: "",
+                            workload: "100",
+                            is_lead: false,
+                        });
+                    }}
+                    title="Edit Team Member"
+                    description={`Editing: ${editingMember.user.account.first_name} ${editingMember.user.account.last_name}`}
+                    maxWidthClass="max-w-2xl"
+                    footer={
+                        <>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowEditMemberModal(false);
+                                    setEditingMember(null);
+                                    setAddMemberForm({
+                                        user_id: "",
+                                        role: "",
+                                        department: "",
+                                        workload: "100",
+                                        is_lead: false,
+                                    });
+                                }}
+                                className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                form="edit-team-member-form"
+                                disabled={isUpdatingMember}
+                                className="flex items-center gap-2 px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isUpdatingMember && <Spinner size={16} />}
+                                <span>{isUpdatingMember ? "Updating..." : "Update"}</span>
+                            </button>
+                        </>
+                    }
+                >
+                    <form
+                        id="edit-team-member-form"
+                        onSubmit={handleEditMemberFormSubmit}
+                        className="space-y-6"
+                    >
+                        <div className="grid grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm font-medium text-ink-3 mb-2">
+                                    Workload (%)
+                                    <span className="text-danger">*</span>
+                                </label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="100"
+                                    step="1"
+                                    value={addMemberForm.workload}
+                                    onChange={(e) =>
+                                        handleAddMemberFormChange(
+                                            "workload",
+                                            e.target.value
+                                        )
+                                    }
+                                    required
+                                    className={inputClass}
+                                    placeholder="100"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-ink-3 mb-2">
+                                    Role
+                                    <span className="text-danger">*</span>
+                                </label>
+                                <Dropdown
+                                  value={String(addMemberForm.role ?? '')}
+                                  onChange={(v) => handleAddMemberFormChange("role", v)}
+                                  options={[
+                                      { value: String(""), label: "Select role..." },
+                                      ...availableRoles.map((name) => ({ value: String(name), label: name })),
+                                  ]}
+                                  required={true}
+                                  modal
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-ink-3 mb-2">
+                                    Department
+                                    <span className="text-danger">*</span>
+                                </label>
+                                <Dropdown
+                                  value={addMemberForm.department}
+                                  onChange={(v) => handleAddMemberFormChange("department", v)}
+                                  options={departments.map((d: any) => ({
+                                      value: String(d?.name ?? d?.label ?? ""),
+                                      label: String(d?.name ?? d?.label ?? ""),
+                                  }))}
+                                  placeholder={departmentsLoading ? "Loading..." : "Search or select department"}
+                                  searchable
+                                  disabled={departmentsLoading}
+                                  required={true}
+                                  modal
+                                />
+                            </div>
+                            <div className="flex items-center gap-2 mt-8">
+                                <input
+                                    type="checkbox"
+                                    checked={addMemberForm.is_lead}
+                                    onChange={(e) =>
+                                        handleAddMemberFormChange("is_lead", e.target.checked)
+                                    }
+                                    className="accent-bright w-5 h-5 cursor-pointer"
+                                    id="is_lead_edit"
+                                />
+                                <label
+                                    htmlFor="is_lead_edit"
+                                    className="text-sm text-ink-3 font-medium cursor-pointer"
+                                >
+                                    Set as Team Lead
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </Modal>
             )}
             {/* Resource Assignment Modal (reuse from schedule page) */}
             {resourceAssignmentModalOpen && selectedTask && (

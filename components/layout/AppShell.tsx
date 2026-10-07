@@ -23,7 +23,6 @@ import {
     ShoppingCart,
 } from "lucide-react";
 import NotificationModal from "../NotificationModal";
-import { ROUTE_ROLES } from "@/lib/route-access";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -32,18 +31,11 @@ import { BrightLogo } from "@/components/brand/bright-logo";
 import { clearCachedUser } from "@/lib/current-user-cache";
 import { BRAND } from "@/lib/brand";
 
-interface NavItem {
-    label: string;
-    href: string;
-    icon: React.ReactNode;
-    allowedRoles?: string[];
-}
-
-interface NavSection {
-    key: string;
-    title: string;
-    items: NavItem[];
-}
+import {
+    NAV_SECTIONS,
+    type NavItem,
+    type NavSection,
+} from "@/components/layout/nav-sections";
 
 /** Persisted set of collapsed sidebar group keys. */
 const COLLAPSED_SECTIONS_KEY = "bright-sidebar-collapsed-sections";
@@ -158,96 +150,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         });
     };
 
-    // Analytics leads the sidebar: the dashboard and reports both live under
-    // /analytics, so the group mirrors the route tree rather than inventing a
-    // grouping that only exists in the nav.
-    const navSections: NavSection[] = [
-        {
-            key: "analytics",
-            title: "Analytics",
-            items: [
-                {
-                    label: "Dashboard",
-                    href: "/analytics/dashboard",
-                    icon: <Home size={20} />,
-                    allowedRoles: ROUTE_ROLES["/analytics/dashboard"],
-                },
-                {
-                    label: "Reporting Engine",
-                    href: "/analytics/reporting-engine",
-                    icon: <Database size={20} />,
-                    allowedRoles: ROUTE_ROLES["/analytics/reporting-engine"],
-                },
-                {
-                    label: "Reports",
-                    href: "/analytics/reports",
-                    icon: <FileText size={20} />,
-                    allowedRoles: ROUTE_ROLES["/analytics/reports"],
-                },
-            ],
-        },
-        {
-            key: "main",
-            title: "Main",
-            items: [
-                {
-                    label: "EPS Management",
-                    href: "/eps",
-                    icon: <BarChart3 size={20} />,
-                    allowedRoles: ROUTE_ROLES["/eps"],
-                },
-                {
-                    label: "Portfolios",
-                    href: "/portfolios",
-                    icon: <FolderOpen size={20} />,
-                    allowedRoles: ROUTE_ROLES["/portfolios"],
-                },
-                {
-                    label: "Projects",
-                    href: "/projects",
-                    icon: <Briefcase size={20} />,
-                    allowedRoles: ROUTE_ROLES["/projects"],
-                },
-                {
-                    label: "Resources",
-                    href: "/resources",
-                    icon: <Users size={20} />,
-                    allowedRoles: ROUTE_ROLES["/resources"],
-                },
-                {
-                    label: "User Management",
-                    href: "/users",
-                    icon: <Users size={20} />,
-                    allowedRoles: ROUTE_ROLES["/users"],
-                },
-                {
-                    label: "Risk Management",
-                    href: "/risk",
-                    icon: <AlertTriangle size={20} />,
-                    allowedRoles: ROUTE_ROLES["/risk"],
-                },
-                {
-                    label: "Scheduler",
-                    href: "/scheduler",
-                    icon: <CalendarClock size={20} />,
-                    allowedRoles: ROUTE_ROLES["/scheduler"],
-                },
-                {
-                    label: "RFQ Management",
-                    href: "/rfq-management",
-                    icon: <ShoppingCart size={20} />,
-                    allowedRoles: ROUTE_ROLES["/rfq-management"],
-                },
-                {
-                    // Everyone logs their own hours, so this carries no role
-                    // restriction; the page hides the all-team tab by itself.
-                    label: "Timesheet",
-                    href: "/timesheet",
-                    icon: <Clock size={20} />,
-                },
-            ],
-        },
-    ];
+    const navSections = NAV_SECTIONS;
 
     // Matches child routes too, so "Projects" stays lit on /projects/12/gantt.
     const isActiveRoute = (href: string) =>
@@ -457,6 +360,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 >
                     <div className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-border/70 px-4">
                         <button
+                          aria-label="Bright PMO home"
                             onClick={() => router.push("/")}
                             className="flex min-w-0 items-center gap-2.5 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-bright-primary/60"
                         >
@@ -464,7 +368,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                                 className="h-9 shrink-0 px-2"
                                 imgClassName="h-6"
                                 alt={BRAND.productTitle}
-                            />
+                             aria-hidden="true" />
                         </button>
                         <button
                             onClick={() => setSidebarOpen(false)}
@@ -667,8 +571,9 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                                                             }
                                                             className="rounded-lg p-1 text-text-secondary transition-colors hover:bg-bright-danger/10 hover:text-bright-danger"
                                                             title="Delete notification"
+                                                            aria-label="Delete notification"
                                                         >
-                                                            <Trash2 size={14} />
+                                                            <Trash2 size={14} aria-hidden="true" />
                                                         </button>
                                                     </div>
                                                 ))

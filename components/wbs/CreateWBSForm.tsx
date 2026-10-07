@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { ArrowLeft, Plus, CheckCircle, AlertTriangle, X } from "lucide-react";
+import { ArrowLeft, Plus, CheckCircle, AlertTriangle, Lock, X } from "lucide-react";
 
 // Types
 import { WBSItem } from "@/types/project";
 import { Spinner } from "@/components/ui/spinner";
+import { Modal } from "@/components/ui/modal";
 import { Dropdown } from "@/components/ui/dropdown";
 
 interface Project {
@@ -302,10 +303,11 @@ const CreateWBSForm = ({
           </p>
         </div>
         <button
+          aria-label="Back"
           onClick={onClose}
           className="p-2 hover:bg-surface-2 rounded-lg transition-colors"
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft size={20} aria-hidden="true" />
         </button>
       </div>
 
@@ -360,8 +362,9 @@ const CreateWBSForm = ({
               Parent WBS *
             </label>
             {availableParents.length === 0 ? (
-              <div className="p-3 bg-warning-soft border border-warning rounded-lg">
-                <p className="text-sm text-warning">
+              <div className="rounded-lg border border-line border-l-[3px] border-l-warning bg-surface p-3">
+                <p className="flex items-start gap-1.5 text-sm text-muted">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-warning" aria-hidden="true" />
                   No Level {formData.level - 1} WBS items found. Please create a
                   Level {formData.level - 1} parent first.
                 </p>
@@ -477,48 +480,27 @@ const CreateWBSForm = ({
           {/* Budget Information Display */}
           {budgetInfo && (
             <div className="mt-3">
-              <div className="p-3 bg-info-soft border border-info rounded-lg">
-                <h4 className="text-sm font-medium text-info mb-2">
+              <div className="rounded-lg border border-line border-l-[3px] border-l-info bg-surface p-3">
+                <h4 className="text-sm font-medium text-ink mb-2">
                   Budget Information
                 </h4>
                 <div className="text-sm">
                   <div className="flex items-center space-x-2">
-                    <CheckCircle className="w-4 h-4 text-success flex-shrink-0" />
-                    <span className="text-info">
+                    <CheckCircle className="w-4 h-4 text-success flex-shrink-0" aria-hidden="true" />
+                    <span className="text-muted">
                       {budgetInfo.budgetType}
                     </span>
                   </div>
 
                   {formData.level === 0 && (
                     <div className="mt-2">
-                      <div className="flex items-center text-info">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="text-info mr-1"
-                        >
-                          <rect
-                            x="3"
-                            y="11"
-                            width="18"
-                            height="11"
-                            rx="2"
-                            ry="2"
-                          ></rect>
-                          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                        </svg>
+                      <div className="flex items-center gap-1.5 text-muted">
+                        <Lock className="w-4 h-4 text-info shrink-0" aria-hidden="true" />
                         <span>Budget is locked to project budget</span>
                       </div>
-                      <div className="mt-1 text-info">
+                      <div className="mt-1 text-muted">
                         Amount:{" "}
-                        <span className="font-bold text-success">
+                        <span className="font-bold text-ink">
                           OMR {project?.budget_amount.toLocaleString()}
                         </span>
                       </div>
@@ -527,26 +509,27 @@ const CreateWBSForm = ({
 
                   {formData.level > 0 && formData.parent_wbs_id && (
                     <div className="mt-2 space-y-1">
-                      <div className="text-info">
+                      <div className="text-muted">
                         Parent Budget:{" "}
-                        <span className="font-medium">
+                        <span className="font-medium text-ink">
                           OMR {budgetInfo.parentBudget.toLocaleString()}
                         </span>
                       </div>
-                      <div className="text-info">
+                      <div className="text-muted">
                         Already Allocated:{" "}
-                        <span className="font-medium">
+                        <span className="font-medium text-ink">
                           OMR {budgetInfo.usedBudget.toLocaleString()}
                         </span>
                       </div>
-                      <div className="text-success">
+                      <div className="text-muted">
                         Available:{" "}
-                        <span className="font-bold">
+                        <span className="font-bold text-success">
                           OMR {budgetInfo.availableBudget.toLocaleString()}
                         </span>
                       </div>
                       {budgetInfo.availableBudget <= 0 && (
-                        <div className="text-danger font-medium mt-1">
+                        <div className="flex items-start gap-1.5 text-danger font-medium mt-1">
+                          <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
                           No budget available from parent. Cannot create WBS
                           with budget.
                         </div>
@@ -620,46 +603,18 @@ const CreateWBSForm = ({
 
       {/* Error Popup */}
       {errorPopup.show && (
-        <div
-          className="fixed inset-0 flex items-center justify-center z-[10000]"
-          style={{
-            backgroundColor: "rgba(0, 0, 0, 0.3)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-          }}
-        >
-          <div
-            className="bg-surface rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl"
-            style={{
-              animation: "fadeIn 0.3s ease-out",
-              border: "1px solid rgba(255, 255, 255, 0.1)",
-              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-            }}
-          >
-            <div className="flex items-center mb-4">
-              <div className="w-10 h-10 bg-danger-soft rounded-full flex items-center justify-center mr-4">
-                <AlertTriangle className="w-5 h-5 text-danger" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-ink">
-                  {errorPopup.title}
-                </h3>
-                <p className="text-sm text-muted">
-                  Please correct and try again
-                </p>
-              </div>
-              <button
-                onClick={() =>
-                  setErrorPopup((prev) => ({ ...prev, show: false }))
-                }
-                className="ml-auto p-2 text-faint hover:text-muted rounded-full hover:bg-surface-2"
-              >
-                <X className="h-4 w-4 rotate-45" />
-              </button>
-            </div>
-            <p className="text-ink-3 mb-4">
-              {errorPopup.message}
-            </p>
+        <Modal
+          open
+          onClose={() => setErrorPopup((prev) => ({ ...prev, show: false }))}
+          title={errorPopup.title}
+          description="Please correct and try again"
+          maxWidthClass="max-w-md"
+          icon={
+            <span className="grid h-9 w-9 place-items-center rounded-full bg-danger-soft">
+              <AlertTriangle className="h-5 w-5 text-danger" />
+            </span>
+          }
+          footer={
             <button
               onClick={() =>
                 setErrorPopup((prev) => ({ ...prev, show: false }))
@@ -668,8 +623,10 @@ const CreateWBSForm = ({
             >
               Dismiss
             </button>
-          </div>
-        </div>
+          }
+        >
+            <p className="text-ink-3">{errorPopup.message}</p>
+        </Modal>
       )}
     </div>
   );

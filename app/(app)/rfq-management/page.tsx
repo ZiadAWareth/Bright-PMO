@@ -1722,6 +1722,7 @@ const RFQManagementPage = () => {
                 Procurement Details
               </h3>
               <button
+                aria-label="Close procurement details"
                 onClick={() => setShowProcurementDetailsModal(false)}
                 className="text-muted hover:text-ink-3"
               >
@@ -1865,6 +1866,7 @@ const RFQManagementPage = () => {
                 Vendor Details
               </h3>
               <button
+                aria-label="Close vendor details"
                 onClick={() => setShowVendorDetailsModal(false)}
                 className="text-muted hover:text-ink-3"
               >
@@ -2004,6 +2006,7 @@ const RFQManagementPage = () => {
                 RFQ Response Details
               </h3>
               <button
+                aria-label="Close response details"
                 onClick={() => setShowRFQResponseDetailsModal(false)}
                 className="text-muted hover:text-ink-3"
               >

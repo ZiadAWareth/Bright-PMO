@@ -57,12 +57,13 @@ export function SearchableDropdown<T>({
       
       {value && (
         <button
+          aria-label="Clear selection"
           type="button"
           onClick={onClear}
           className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-surface-2 rounded"
           disabled={disabled}
         >
-          <X size={16} className="text-muted" />
+          <X size={16} className="text-muted" aria-hidden="true" />
         </button>
       )}
       

@@ -117,26 +117,16 @@ export default function AnalyticsPage() {
     const IconComponent = currentData.icon;
 
     return (
-        <DashboardLayout title="Analytics Dashboard">
+        <DashboardLayout
+            title="Analytics & Insights"
+            icon={Brain}
+            subtitle="Advanced data analysis and insights for strategic optimization and future planning"
+        >
             <div className="min-h-screen bg-gradient-to-br from-surface-2 via-info-soft to-accent-indigo-soft p-6">
                 <div className="max-w-7xl mx-auto space-y-8">
-                    {/* Header Section */}
-                    <div className="text-center space-y-6">
-                        <div className="inline-flex items-center gap-3 px-6 py-3 bg-white/80 backdrop-blur-sm rounded-full shadow-lg border border-white/20">
-                            <Brain className="w-8 h-8 text-accent-indigo" />
-                            <h1 className="text-3xl font-bold bg-gradient-to-r from-accent-indigo to-accent-violet bg-clip-text text-transparent">
-                                Analytics & Insights
-                            </h1>
-                        </div>
-                        <p className="text-lg text-muted max-w-2xl mx-auto">
-                            Advanced data analysis and insights for strategic
-                            optimization and future planning
-                        </p>
-                    </div>
-
                     {/* Role Switcher */}
                     <div className="flex justify-center">
-                        <div className="flex gap-2 p-2 bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-white/20">
+                        <div className="flex gap-2 p-2 bg-surface/80 backdrop-blur-sm rounded-xl shadow-lg border border-line/60">
                             {Object.keys(roleData).map((role) => (
                                 <Button
                                     key={role}
@@ -164,7 +154,7 @@ export default function AnalyticsPage() {
                     {/* Role-Based Content */}
                     <div key={currentRole} className="animate-fadeIn space-y-8">
                         {/* Hero Card */}
-                        <Card className="relative overflow-hidden bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+                        <Card className="relative overflow-hidden bg-surface/80 backdrop-blur-sm border-0 shadow-xl">
                             <div
                                 className={`absolute inset-0 bg-gradient-to-r ${currentData.gradient} opacity-10`}
                             />
@@ -182,7 +172,7 @@ export default function AnalyticsPage() {
                                 <CardDescription className="text-xl text-muted mb-6">
                                     {currentData.subtitle}
                                 </CardDescription>
-                                <div className="inline-flex items-center gap-4 px-8 py-4 bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20">
+                                <div className="inline-flex items-center gap-4 px-8 py-4 bg-surface/90 backdrop-blur-sm rounded-2xl shadow-lg border border-line/60">
                                     <div className="text-center">
                                         <div className="text-3xl font-bold text-ink-2">
                                             {currentData.totalValue}
@@ -222,7 +212,7 @@ function AdminAnalytics() {
         <div className="space-y-6">
             {/* System Performance Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+                <Card className="bg-surface/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                             <Database className="w-8 h-8 text-danger group-hover:scale-110 transition-transform duration-300" />
@@ -243,7 +233,7 @@ function AdminAnalytics() {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+                <Card className="bg-surface/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                             <Users className="w-8 h-8 text-accent-pink group-hover:scale-110 transition-transform duration-300" />
@@ -264,7 +254,7 @@ function AdminAnalytics() {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+                <Card className="bg-surface/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                             <Activity className="w-8 h-8 text-accent-violet group-hover:scale-110 transition-transform duration-300" />
@@ -287,7 +277,7 @@ function AdminAnalytics() {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+                <Card className="bg-surface/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                             <Shield className="w-8 h-8 text-accent-indigo group-hover:scale-110 transition-transform duration-300" />
@@ -340,7 +330,7 @@ function ProjectManagerAnalytics() {
         <div className="space-y-6">
             {/* Project Performance Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+                <Card className="bg-surface/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                             <Target className="w-8 h-8 text-info group-hover:scale-110 transition-transform duration-300" />
@@ -363,7 +353,7 @@ function ProjectManagerAnalytics() {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+                <Card className="bg-surface/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                             <DollarSign className="w-8 h-8 text-accent-indigo group-hover:scale-110 transition-transform duration-300" />
@@ -386,7 +376,7 @@ function ProjectManagerAnalytics() {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+                <Card className="bg-surface/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                             <Users className="w-8 h-8 text-accent-violet group-hover:scale-110 transition-transform duration-300" />
@@ -439,7 +429,7 @@ function TechnicalAnalytics() {
         <div className="space-y-6">
             {/* Technical Performance Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+                <Card className="bg-surface/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                             <Cpu className="w-8 h-8 text-success group-hover:scale-110 transition-transform duration-300" />
@@ -462,7 +452,7 @@ function TechnicalAnalytics() {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+                <Card className="bg-surface/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                             <Zap className="w-8 h-8 text-success group-hover:scale-110 transition-transform duration-300" />
@@ -483,7 +473,7 @@ function TechnicalAnalytics() {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+                <Card className="bg-surface/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                             <Star className="w-8 h-8 text-bright-2 group-hover:scale-110 transition-transform duration-300" />
@@ -534,7 +524,7 @@ function PMOAnalytics() {
         <div className="space-y-6">
             {/* Portfolio Performance Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+                <Card className="bg-surface/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                             <Globe className="w-8 h-8 text-accent-violet group-hover:scale-110 transition-transform duration-300" />
@@ -555,7 +545,7 @@ function PMOAnalytics() {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+                <Card className="bg-surface/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                             <Target className="w-8 h-8 text-accent-violet group-hover:scale-110 transition-transform duration-300" />
@@ -578,7 +568,7 @@ function PMOAnalytics() {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+                <Card className="bg-surface/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                             <Award className="w-8 h-8 text-accent-indigo group-hover:scale-110 transition-transform duration-300" />
@@ -601,7 +591,7 @@ function PMOAnalytics() {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+                <Card className="bg-surface/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                             <TrendingUp className="w-8 h-8 text-bright-2 group-hover:scale-110 transition-transform duration-300" />
@@ -652,7 +642,7 @@ function ExecutiveAnalytics() {
         <div className="space-y-6">
             {/* Executive Dashboard Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group col-span-full lg:col-span-1">
+                <Card className="bg-surface/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group col-span-full lg:col-span-1">
                     <CardContent className="p-8">
                         <div className="flex items-center justify-between mb-6">
                             <Award className="w-12 h-12 text-warning group-hover:scale-110 transition-transform duration-300" />
@@ -675,7 +665,7 @@ function ExecutiveAnalytics() {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+                <Card className="bg-surface/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                             <TrendingUp className="w-8 h-8 text-bright group-hover:scale-110 transition-transform duration-300" />
@@ -696,7 +686,7 @@ function ExecutiveAnalytics() {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+                <Card className="bg-surface/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                             <Star className="w-8 h-8 text-danger group-hover:scale-110 transition-transform duration-300" />
@@ -749,7 +739,7 @@ function ITAnalytics() {
         <div className="space-y-6">
             {/* IT Support Dashboard Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+                <Card className="bg-surface/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                             <Shield className="w-8 h-8 text-bright-2 group-hover:scale-110 transition-transform duration-300" />
@@ -770,7 +760,7 @@ function ITAnalytics() {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+                <Card className="bg-surface/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                             <Activity className="w-8 h-8 text-info group-hover:scale-110 transition-transform duration-300" />
@@ -793,7 +783,7 @@ function ITAnalytics() {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+                <Card className="bg-surface/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                             <CheckCircle className="w-8 h-8 text-success group-hover:scale-110 transition-transform duration-300" />
@@ -816,7 +806,7 @@ function ITAnalytics() {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+                <Card className="bg-surface/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                             <Database className="w-8 h-8 text-accent-indigo group-hover:scale-110 transition-transform duration-300" />
@@ -869,7 +859,7 @@ function DirectorAnalytics() {
         <div className="space-y-6">
             {/* Strategic Dashboard Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+                <Card className="bg-surface/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                             <Award className="w-8 h-8 text-accent-violet group-hover:scale-110 transition-transform duration-300" />
@@ -892,7 +882,7 @@ function DirectorAnalytics() {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+                <Card className="bg-surface/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                             <TrendingUp className="w-8 h-8 text-success group-hover:scale-110 transition-transform duration-300" />
@@ -915,7 +905,7 @@ function DirectorAnalytics() {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+                <Card className="bg-surface/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                             <Target className="w-8 h-8 text-info group-hover:scale-110 transition-transform duration-300" />
@@ -938,7 +928,7 @@ function DirectorAnalytics() {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+                <Card className="bg-surface/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                             <AlertTriangle className="w-8 h-8 text-bright group-hover:scale-110 transition-transform duration-300" />
@@ -964,7 +954,7 @@ function DirectorAnalytics() {
 
             {/* Strategic Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+                <Card className="bg-surface/80 backdrop-blur-sm border-0 shadow-lg">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <BarChart3 className="w-5 h-5 text-accent-violet" />
@@ -981,7 +971,7 @@ function DirectorAnalytics() {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+                <Card className="bg-surface/80 backdrop-blur-sm border-0 shadow-lg">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <TrendingUp className="w-5 h-5 text-success" />

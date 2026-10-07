@@ -61,7 +61,16 @@ export async function GET(
   try {
     const id = Number(risks_id);
     console.log("RISKID", id);
-    const risk = await prisma.risk.findUnique({ where: { risk_id: id }, include: { mitigations: true } });
+    const risk = await prisma.risk.findUnique({
+      where: { risk_id: id },
+      include: {
+        mitigations: {
+          include: {
+            assignee: { include: { account: true } },
+          },
+        },
+      },
+    });
     if (!risk) {
       return NextResponse.json({ error: "Risk not found" }, { status: 404 });
     }

@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
-import { X, Save, AlertCircle, Search } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { X, Save, AlertCircle } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
 import {
@@ -126,8 +126,6 @@ export default function AddRiskModal({
     const [loading, setLoading] = useState(true);
     const [project, setProject] = useState<ProjectDetails | null>(null);
     const [dateError, setDateError] = useState<string>("");
-    const [ownerSearchQuery, setOwnerSearchQuery] = useState<string>("");
-    const [showOwnerDropdown, setShowOwnerDropdown] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
@@ -173,14 +171,6 @@ export default function AddRiskModal({
             toast.error("Failed to load project details");
         }
     };
-
-    const filteredUsers = useMemo(() => {
-        if (!ownerSearchQuery.trim()) return users;
-        const query = ownerSearchQuery.toLowerCase();
-        return users.filter(user =>
-            `${user.account.first_name} ${user.account.last_name}`.toLowerCase().includes(query)
-        );
-    }, [users, ownerSearchQuery]);
 
     const validateDate = (dateValue: string) => {
         if (!project) return true;
@@ -413,66 +403,24 @@ export default function AddRiskModal({
                             />
                         </div>
 
-                        <div className="relative">
+                        <div>
                             <label className="block text-sm font-medium text-ink-3 mb-1">
                                 Owner <span className="text-danger">*</span>
                             </label>
-                            <div className="relative">
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-faint" />
-                                    <input
-                                        type="text"
-                                        value={ownerSearchQuery}
-                                        onChange={(e) => setOwnerSearchQuery(e.target.value)}
-                                        onFocus={() => setShowOwnerDropdown(true)}
-                                        placeholder="Search owner..."
-                                        className="w-full pl-10 pr-3 py-2 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-bright dark:text-white"
-                                    />
-                                </div>
-                                {showOwnerDropdown && (
-                                    <div className="absolute z-50 w-full mt-1 bg-surface border border-line rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                                        <div
-                                            className="px-3 py-2 hover:bg-bright-soft cursor-pointer text-sm text-ink-3"
-                                            onClick={() => {
-                                                setForm(prev => ({ ...prev, owner_id: 0 }));
-                                                setOwnerSearchQuery("");
-                                                setShowOwnerDropdown(false);
-                                            }}
-                                        >
-                                            Select Owner
-                                        </div>
-                                        {filteredUsers.length > 0 ? (
-                                            filteredUsers.map((user) => (
-                                                <div
-                                                    key={user.user_id}
-                                                    className={`px-3 py-2 hover:bg-bright-soft  cursor-pointer text-sm ${
-                                                        form.owner_id === user.user_id
-                                                            ? 'bg-bright-soft  text-bright-deep'
-                                                            : 'text-ink-3'
-                                                    }`}
-                                                    onClick={() => {
-                                                        setForm(prev => ({ ...prev, owner_id: user.user_id }));
-                                                        setOwnerSearchQuery(`${user.account.first_name} ${user.account.last_name}`);
-                                                        setShowOwnerDropdown(false);
-                                                    }}
-                                                >
-                                                    {user.account.first_name} {user.account.last_name}
-                                                </div>
-                                            ))
-                                        ) : (
-                                            <div className="px-3 py-2 text-sm text-muted">
-                                                No users found
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                            {showOwnerDropdown && (
-                                <div
-                                    className="fixed inset-0 z-40"
-                                    onClick={() => setShowOwnerDropdown(false)}
-                                />
-                            )}
+                            <Dropdown
+                              value={form.owner_id ? String(form.owner_id) : ''}
+                              onChange={(__v: string) => setForm(prev => ({ ...prev, owner_id: parseInt(__v) || 0 }))}
+                              options={users.map((user) => ({
+                                  value: String(user.user_id),
+                                  label: `${user.account.first_name} ${user.account.last_name}`,
+                              }))}
+                              placeholder="Select owner…"
+                              searchable
+                              searchPlaceholder="Search owner..."
+                              name="owner_id"
+                              required={true}
+                              modal
+                            />
                         </div>
 
                         <div>

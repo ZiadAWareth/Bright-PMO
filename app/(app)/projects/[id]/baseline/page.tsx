@@ -580,7 +580,7 @@ const BaselinePage = () => {
             disabled={loading || done}
           >
             <span>{"Next: Request Approvals"}</span>
-            <Plus size={16} />
+            <Plus size={16} aria-hidden="true" />
           </button>
         </div>
       )}

@@ -5,6 +5,7 @@ import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.share
 import { DollarSign, TrendingUp, ExternalLink } from "lucide-react";
 import { ProjectWithRelations } from "@/types/project";
 import { formatCurrency } from "./constants";
+import { StatCard } from "@/components/ui/form-shell";
 
 interface BudgetSectionProps {
     project: ProjectWithRelations;
@@ -23,28 +24,20 @@ export default function BudgetSection({ project, projectId, router }: BudgetSect
                 </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div className="bg-info-soft rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-info font-medium">Total Budget</p>
-                            <p className="text-2xl font-bold text-info">{formatCurrency(project.budget_amount)}</p>
-                        </div>
-                        <DollarSign className="w-8 h-8 text-info" />
-                    </div>
-                </div>
-                <div className="bg-success-soft rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-success font-medium">Spent</p>
-                            <p className="text-2xl font-bold text-success">{formatCurrency(project.actual_cost)}</p>
-                            <p className="text-xs text-success">
-                                {((project.actual_cost / project.budget_amount) * 100).toFixed(1)}% of budget
-                            </p>
-                        </div>
-                        <TrendingUp className="w-8 h-8 text-success" />
-                    </div>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <StatCard
+                    label="Total Budget"
+                    value={formatCurrency(project.budget_amount)}
+                    icon={DollarSign}
+                    tone="info"
+                />
+                <StatCard
+                    label="Spent"
+                    value={formatCurrency(project.actual_cost)}
+                    hint={`${((project.actual_cost / project.budget_amount) * 100).toFixed(1)}% of budget`}
+                    icon={TrendingUp}
+                    tone="success"
+                />
             </div>
 
             <div className="mb-6">
@@ -58,14 +51,6 @@ export default function BudgetSection({ project, projectId, router }: BudgetSect
                         style={{ width: `${Math.min((project.actual_cost / project.budget_amount) * 100, 100)}%` }}
                     ></div>
                 </div>
-            </div>
-
-            <div className="bg-surface-2 rounded-lg p-4 text-center">
-                <p className="text-muted text-sm mb-3">View detailed budget breakdown, category analysis, and spending forecasts</p>
-                <button onClick={() => router.push(`/projects/${projectId}/budget`)} className="inline-flex items-center space-x-2 px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors font-medium text-sm">
-                    <span>Explore detailed budget analysis</span>
-                    <ExternalLink size={14} />
-                </button>
             </div>
         </div>
     );

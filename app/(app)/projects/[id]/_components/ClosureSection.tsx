@@ -1,116 +1,229 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
-import { FileText, CheckCircle, AlertTriangle, Clock, ExternalLink } from "lucide-react";
+import {
+    FileText,
+    CheckCircle,
+    AlertTriangle,
+    Clock,
+    ArrowRight,
+} from "lucide-react";
 import { ProjectWithRelations } from "@/types/project";
+import {
+    EmptyState,
+    StatCard,
+    StatusBadge,
+    actionPrimary,
+    actionSecondary,
+    type BadgeTone,
+} from "@/components/ui/form-shell";
 
 interface ClosureSectionProps {
     project: ProjectWithRelations;
     projectId: string;
-    router: AppRouterInstance;
+    /** Retained so the call site in the project page keeps compiling. */
+    router?: AppRouterInstance;
 }
 
-export default function ClosureSection({ project, projectId, router }: ClosureSectionProps) {
+/** Project status to the pill shown when closure is unavailable. */
+const STATUS_TONE: Record<string, { label: string; tone: BadgeTone }> = {
+    execution: { label: "In Execution", tone: "info" },
+    planning: { label: "In Planning", tone: "warning" },
+    on_hold: { label: "On Hold", tone: "warning" },
+    cancelled: { label: "Cancelled", tone: "danger" },
+};
+
+export default function ClosureSection({
+    project,
+    projectId,
+}: ClosureSectionProps) {
+    const href = `/projects/${projectId}/closure`;
+
+    const docs = project.closure_documents ?? [];
+    const checks = project.closure_checklists ?? [];
+    const punch = project.punch_list_items ?? [];
+
+    const docsApproved = docs.filter((d) => d.document && d.approved).length;
+    const docsPending = docs.filter((d) => !d.document).length;
+    const checksDone = checks.filter((c) => c.status === "complete").length;
+    const checksPending = checks.filter((c) => c.status === "pending").length;
+    const punchResolved = punch.filter((i) => i.status === "resolved").length;
+    const punchOpen = punch.filter((i) => i.status === "open").length;
+
+    const pct = (n: number, total: number) =>
+        total ? Math.round((n / total) * 100) : 0;
+
+    const started = checks.length > 0;
+    const completed = project.status === "completed";
+
     return (
-        <div className="bg-surface border border-line rounded-xl p-6">
-            <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-ink">Project Closure Overview</h3>
-                <div className="flex items-center space-x-3">
-                    <button onClick={() => router.push(`/projects/${projectId}/closure`)} className="flex items-center space-x-2 px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors">
-                        <ExternalLink size={16} />
-                        <span>Manage Closure</span>
-                    </button>
-                </div>
-            </div>
+        <section
+            aria-labelledby="closure-section-heading"
+            className="rounded-xl border border-line bg-surface"
+        >
+            <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-6 py-4">
+                <h2
+                    id="closure-section-heading"
+                    className="font-display text-[15px] font-semibold text-ink"
+                >
+                    Project Closure
+                </h2>
+                {/* One route, one control. The header previously offered
+                    "Manage Closure" while the summary below offered "View
+                    Details" — two buttons of different weight going to the
+                    same page. */}
+                <Link href={href} className={actionSecondary}>
+                    Open closure
+                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Link>
+            </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-info-soft rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-info font-medium">Closure Documents</p>
-                            <p className="text-2xl font-bold text-info">{project.closure_documents?.length || 0}</p>
-                            <p className="text-xs text-info">{project.closure_documents?.filter((doc) => doc.document && doc.approved).length || 0} approved</p>
-                        </div>
-                        <FileText className="w-8 h-8 text-info" />
-                    </div>
+            <div className="space-y-6 p-6">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <StatCard
+                        label="Closure Documents"
+                        value={docs.length}
+                        hint={
+                            docs.length
+                                ? `${docsApproved} approved · ${docsPending} pending upload`
+                                : "None required yet"
+                        }
+                        icon={FileText}
+                        tone="info"
+                    />
+                    <StatCard
+                        label="Checklist Items"
+                        value={
+                            <>
+                                {checksDone}
+                                <span className="text-[15px] font-normal text-muted">
+                                    /{checks.length}
+                                </span>
+                            </>
+                        }
+                        hint={
+                            checks.length
+                                ? `${pct(checksDone, checks.length)}% complete · ${checksPending} pending`
+                                : "Not started"
+                        }
+                        icon={CheckCircle}
+                        tone="success"
+                    />
+                    <StatCard
+                        label="Punch List Items"
+                        value={
+                            <>
+                                {punchResolved}
+                                <span className="text-[15px] font-normal text-muted">
+                                    /{punch.length}
+                                </span>
+                            </>
+                        }
+                        hint={
+                            punch.length
+                                ? `${pct(punchResolved, punch.length)}% resolved · ${punchOpen} open`
+                                : "None raised"
+                        }
+                        icon={AlertTriangle}
+                        tone={punchOpen > 0 ? "warning" : "neutral"}
+                    />
                 </div>
-                <div className="bg-success-soft rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-success font-medium">Checklist Items</p>
-                            <p className="text-2xl font-bold text-success">
-                                {project.closure_checklists?.filter((item) => item.status === "complete").length || 0}
-                                <span className="text-sm text-success font-normal">/{project.closure_checklists?.length || 0}</span>
-                            </p>
-                            <p className="text-xs text-success">
-                                {project.closure_checklists?.length ? Math.round(((project.closure_checklists?.filter((item) => item.status === "complete").length || 0) / project.closure_checklists.length) * 100) : 0}% complete
-                            </p>
-                        </div>
-                        <CheckCircle className="w-8 h-8 text-success" />
-                    </div>
-                </div>
-                <div className="bg-bright-soft rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-bright font-medium">Punch List Items</p>
-                            <p className="text-2xl font-bold text-bright">
-                                {project.punch_list_items?.filter((item) => item.status === "resolved").length || 0}
-                                <span className="text-sm text-bright font-normal">/{project.punch_list_items?.length || 0}</span>
-                            </p>
-                            <p className="text-xs text-bright">
-                                {project.punch_list_items?.length ? Math.round(((project.punch_list_items?.filter((item) => item.status === "resolved").length || 0) / project.punch_list_items.length) * 100) : 0}% resolved
-                            </p>
-                        </div>
-                        <AlertTriangle className="w-8 h-8 text-bright" />
-                    </div>
-                </div>
-            </div>
 
-            {project.status !== "completed" ? (
-                <div className="text-center py-8 border-2 border-dashed border-line rounded-lg">
-                    <Clock className="w-12 h-12 text-faint mx-auto mb-3" />
-                    <h4 className="text-lg font-medium text-ink mb-2">Project Still in Execution Phase</h4>
-                    <p className="text-muted mb-4">The closure process can only be initiated once the project status is set to &quot;Completed&quot;.</p>
-                    <span className={`px-4 py-2 rounded-full text-sm font-medium ${project.status === "execution" ? "bg-info-soft text-info  " : project.status === "planning" ? "bg-warning-soft text-warning  " : "bg-surface-2 text-ink-2  "}`}>
-                        Current Status: {project.status.replace("_", " ").toUpperCase()}
-                    </span>
-                </div>
-            ) : !project.closure_checklists || project.closure_checklists.length === 0 ? (
-                <div className="text-center py-8 border-2 border-dashed border-line rounded-lg">
-                    <CheckCircle className="w-12 h-12 text-faint mx-auto mb-3" />
-                    <h4 className="text-lg font-medium text-ink mb-2">Project Closure Not Started</h4>
-                    <p className="text-muted mb-4">Click &quot;Manage Closure&quot; to start the closure process and manage completion documents, checklists, and punch list items.</p>
-                    <button onClick={() => router.push(`/projects/${projectId}/closure`)} className="inline-flex items-center space-x-2 px-6 py-3 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors">
-                        <CheckCircle size={20} />
-                        <span>Start Closure Process</span>
-                    </button>
-                </div>
-            ) : (
-                <div className="bg-surface-2 rounded-lg p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <h4 className="text-lg font-semibold text-ink">Closure Progress Summary</h4>
-                        <button onClick={() => router.push(`/projects/${projectId}/closure`)} className="flex items-center space-x-2 px-4 py-2 text-bright border border-bright rounded-lg hover:bg-bright-soft transition-colors">
-                            <ExternalLink size={16} />
-                            <span>View Details</span>
-                        </button>
+                {!completed ? (
+                    <EmptyState
+                        icon={Clock}
+                        tone="info"
+                        title="Closure not yet available"
+                        description="The closure workflow opens once this project is marked Completed."
+                    >
+                        <div className="flex items-center justify-center gap-2 border-t border-line pt-5 text-[13px] text-muted">
+                            Current status
+                            <StatusBadge
+                                label={
+                                    STATUS_TONE[project.status]?.label ??
+                                    project.status.replace("_", " ")
+                                }
+                                tone={STATUS_TONE[project.status]?.tone ?? "neutral"}
+                            />
+                        </div>
+                    </EmptyState>
+                ) : !started ? (
+                    <EmptyState
+                        icon={CheckCircle}
+                        title="Closure not started"
+                        description="Starting closure creates the seven-step checklist covering inspection, punch list, documents, handover, approval and the final report."
+                        action={
+                            <Link href={href} className={actionPrimary}>
+                                <CheckCircle className="h-4 w-4" aria-hidden="true" />
+                                Start closure process
+                            </Link>
+                        }
+                    />
+                ) : (
+                    /* Outstanding work only.
+                       This block used to restate the three figures above as a
+                       second "Progress Summary" grid, so the same numbers were
+                       on screen twice in different framings. It now shows the
+                       progress bar and what is left, which is the part the
+                       cards do not already say. */
+                    <div className="rounded-xl border border-line bg-surface-2 p-5">
+                        <div className="flex flex-wrap items-baseline justify-between gap-3">
+                            <h3 className="text-[13.5px] font-semibold text-ink">
+                                Closure progress
+                            </h3>
+                            <p className="text-[13px] text-muted">
+                                <span className="font-semibold tabular-nums text-ink">
+                                    {pct(checksDone, checks.length)}%
+                                </span>{" "}
+                                complete
+                            </p>
+                        </div>
+
+                        <div
+                            className="mt-3 h-2 w-full overflow-hidden rounded-full bg-surface-3"
+                            role="progressbar"
+                            aria-valuenow={pct(checksDone, checks.length)}
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                            aria-label="Closure checklist progress"
+                        >
+                            <div
+                                className={`h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none ${
+                                    checksDone === checks.length
+                                        ? "bg-success"
+                                        : "bg-bright"
+                                }`}
+                                style={{
+                                    width: `${pct(checksDone, checks.length)}%`,
+                                }}
+                            />
+                        </div>
+
+                        <dl className="mt-5 grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-3">
+                            {[
+                                { label: "Documents pending upload", value: docsPending },
+                                { label: "Checklist items pending", value: checksPending },
+                                { label: "Open punch list items", value: punchOpen },
+                            ].map((row) => (
+                                <div key={row.label} className="bg-surface px-4 py-3">
+                                    <dt className="text-[12.5px] text-muted">
+                                        {row.label}
+                                    </dt>
+                                    <dd
+                                        className={`mt-0.5 font-display text-[19px] font-semibold tabular-nums ${
+                                            row.value > 0 ? "text-ink" : "text-faint"
+                                        }`}
+                                    >
+                                        {row.value}
+                                    </dd>
+                                </div>
+                            ))}
+                        </dl>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="text-center">
-                            <div className="text-2xl font-bold text-info">{project.closure_documents?.filter((doc) => !doc.document).length || 0}</div>
-                            <div className="text-sm text-muted">Documents pending upload</div>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-2xl font-bold text-warning">{project.closure_checklists?.filter((item) => item.status === "pending").length || 0}</div>
-                            <div className="text-sm text-muted">Checklist items pending</div>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-2xl font-bold text-danger">{project.punch_list_items?.filter((item) => item.status === "open").length || 0}</div>
-                            <div className="text-sm text-muted">Open punch list items</div>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
+                )}
+            </div>
+        </section>
     );
 }

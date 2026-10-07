@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Calendar, Users, Plus } from "lucide-react";
+import { Modal } from "@/components/ui/modal";
 import { GanttTask } from "./types";
 import { Spinner } from "@/components/ui/spinner";
 import { Dropdown } from "@/components/ui/dropdown";
@@ -234,28 +235,17 @@ const GanttResourceAssignmentModal = ({
   console.log("Existing Assignments:", existingAssignments);
 
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 p-4">
-      <div className="bg-surface rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-xl font-bold text-ink">
-                Assign Resource
-              </h2>
-              <p className="text-sm text-muted">
-                {selectedTask
-                  ? `Task: ${selectedTask.name}`
-                  : "Select a task to assign resources"}
-              </p>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-surface-2 rounded-lg"
-              disabled={isSubmitting}
-            >
-              <Plus size={20} className="rotate-45" />
-            </button>
-          </div>
+    <Modal
+      open
+      onClose={onClose}
+      title="Assign Resource"
+      description={
+        selectedTask
+          ? `Task: ${selectedTask.name}`
+          : "Select a task to assign resources"
+      }
+      maxWidthClass="max-w-2xl"
+    >
 
           {/* Existing Assignments */}
           {currentTaskAssignments.length > 0 && (
@@ -843,9 +833,7 @@ const GanttResourceAssignmentModal = ({
               </button>
             </div>
           </form>
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 };
 

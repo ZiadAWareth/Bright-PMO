@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 
@@ -8,71 +8,59 @@ interface ProtectedRouteProps {
     children: React.ReactNode;
 }
 
-// Skeleton component for the dashboard layout
-const DashboardSkeleton = () => (
-    <div className="min-h-screen bg-canvas">
-        {/* Header Skeleton */}
-        <header className="bg-surface shadow-sm border-b border-line">
-            <div className="px-4 sm:px-6 lg:px-8">
-                <div className="flex items-center justify-between h-16">
-                    {/* Logo/Title */}
-                    <div className="flex items-center">
-                        <div className="h-8 bg-surface-3 rounded w-32 animate-pulse"></div>
-                    </div>
+/**
+ * Marks that an ancestor `ProtectedRoute` is already verifying the session.
+ *
+ * `RouteGuard` wraps every screen in the `(app)` group, and all 34 pages inside
+ * that group still wrap themselves as well, from before the guard was hoisted
+ * into the layout. Nested that way each instance ran its own `/api/auth/me`
+ * call and rendered its own skeleton, so a cold load stacked two placeholder
+ * pages and paid for two round trips. The inner instance now defers to the
+ * outer one and simply renders its children, which makes the redundant wrappers
+ * harmless and lets them be removed page by page rather than in one sweep.
+ */
+const VerifyingContext = createContext(false);
 
-                    {/* Right side - Search, User menu */}
-                    <div className="flex items-center space-x-4">
-                        <div className="h-10 bg-surface-3 rounded w-64 animate-pulse"></div>
-                        <div className="h-10 w-10 bg-surface-3 rounded-full animate-pulse"></div>
-                    </div>
-                </div>
+/**
+ * Placeholder for the page body while the session is verified.
+ *
+ * This renders *inside* `AppShell`, which has already drawn the real sidebar,
+ * the real navbar and the real logo — none of which depend on the answer from
+ * `/api/auth/me`. An earlier version of this skeleton painted its own header,
+ * its own 264px sidebar and its own content grid, so a cold load showed a
+ * second, fake chrome nested inside the real one: a grey bar under the real
+ * navbar and a grey column beside the real sidebar. Restricting the
+ * placeholder to the content column removes that duplication, and the parts of
+ * the shell that are known at build time now stay solid throughout the load.
+ *
+ * The role-dependent parts of the shell keep their own placeholders — the nav
+ * list in `AppShell` genuinely cannot be drawn until the role is known.
+ */
+const ContentSkeleton = () => (
+    <div className="p-6" aria-busy="true" aria-live="polite">
+        <div className="mx-auto max-w-7xl animate-pulse motion-reduce:animate-none">
+            {/* Page header */}
+            <div className="mb-6">
+                <div className="mb-2 h-7 w-56 rounded bg-surface-3" />
+                <div className="h-4 w-72 rounded bg-surface-3" />
             </div>
-        </header>
 
-        <div className="flex">
-            {/* Sidebar Skeleton */}
-            <div className="w-64 bg-surface shadow-sm border-r border-line min-h-screen">
-                <div className="p-4">
-                    {/* Navigation items skeleton */}
-                    {Array.from({ length: 8 }).map((_, index) => (
-                        <div
-                            key={index}
-                            className="flex items-center space-x-3 mb-4"
-                        >
-                            <div className="h-5 w-5 bg-surface-3 rounded animate-pulse"></div>
-                            <div className="h-4 bg-surface-3 rounded w-32 animate-pulse"></div>
+            {/* Content grid */}
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, index) => (
+                    <div
+                        key={index}
+                        className="rounded-lg border border-line bg-surface p-6 shadow-sm"
+                    >
+                        <div className="mb-2 flex items-center space-x-2">
+                            <div className="h-6 w-3/4 rounded bg-surface-3" />
+                            <div className="h-5 w-16 rounded-full bg-surface-3" />
                         </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Main Content Skeleton */}
-            <div className="flex-1 p-6">
-                <div className="max-w-7xl mx-auto">
-                    {/* Page header skeleton */}
-                    <div className="mb-6">
-                        <div className="h-8 bg-surface-3 rounded w-48 animate-pulse mb-2"></div>
-                        <div className="h-4 bg-surface-3 rounded w-32 animate-pulse"></div>
+                        <div className="mb-4 h-4 w-full rounded bg-surface-3" />
+                        <div className="mb-2 h-2 w-full rounded bg-surface-3" />
+                        <div className="h-2 w-3/4 rounded bg-surface-3" />
                     </div>
-
-                    {/* Content grid skeleton */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {Array.from({ length: 6 }).map((_, index) => (
-                            <div
-                                key={index}
-                                className="bg-surface rounded-lg shadow-sm p-6 animate-pulse"
-                            >
-                                <div className="flex items-center space-x-2 mb-2">
-                                    <div className="h-6 bg-surface-3 rounded w-3/4"></div>
-                                    <div className="h-5 bg-surface-3 rounded-full w-16"></div>
-                                </div>
-                                <div className="h-4 bg-surface-3 rounded w-full mb-4"></div>
-                                <div className="h-2 bg-surface-3 rounded w-full mb-2"></div>
-                                <div className="h-2 bg-surface-3 rounded w-3/4"></div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+                ))}
             </div>
         </div>
     </div>
@@ -80,9 +68,12 @@ const DashboardSkeleton = () => (
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     const router = useRouter();
+    const alreadyVerifying = useContext(VerifyingContext);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        if (alreadyVerifying) return;
+
         const verifyAuth = async () => {
             try {
                 // Try to get token from localStorage (backward compatibility)
@@ -122,11 +113,21 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
         };
 
         verifyAuth();
-    }, [router]);
+    }, [router, alreadyVerifying]);
 
-    if (isLoading) {
-        return <DashboardSkeleton />;
+    // An outer instance owns the check; rendering a second skeleton here would
+    // only duplicate it.
+    if (alreadyVerifying) {
+        return <>{children}</>;
     }
 
-    return <>{children}</>;
+    if (isLoading) {
+        return <ContentSkeleton />;
+    }
+
+    return (
+        <VerifyingContext.Provider value={true}>
+            {children}
+        </VerifyingContext.Provider>
+    );
 }

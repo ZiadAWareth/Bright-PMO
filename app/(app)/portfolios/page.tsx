@@ -11,7 +11,7 @@ import { FilterBar, FilterSelect } from "@/components/ui/filter-bar";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ViewToggle, type ListViewMode } from "@/components/ui/view-toggle";
 import { PersonCell } from "@/components/ui/person-cell";
-import { LoadingState, Spinner } from "@/components/ui/spinner";
+import { Spinner } from "@/components/ui/spinner";
 import { useDebounce } from "@/hooks/useDebounce";
 import { PortfolioWithRelations } from "@/types/portfolio";
 import useCurrentUser from "@/hooks/useCurrentUser";
@@ -30,10 +30,13 @@ import {
   EmptyState,
 } from "@/components/ui/entity-card";
 import {
+  CardSkeleton,
   ListCard,
   ListHead,
   ListMessage,
+  ListRegion,
   ListRow,
+  ListSkeleton,
   NewButton,
   RowAction,
   RowActions,
@@ -446,8 +449,18 @@ export default function PortfoliosPage() {
             />
           </FilterBar>
 
+          <ListRegion busy={loading}>
           {loading ? (
-            <LoadingState />
+            view === "grid" ? (
+              <CardSkeleton />
+            ) : (
+              <ListCard>
+                <table className="w-full border-collapse">
+                  <ListHead columns={COLUMNS} />
+                  <ListSkeleton columns={COLUMNS.length} />
+                </table>
+              </ListCard>
+            )
           ) : filtered.length === 0 ? (
             <EmptyState
               icon={<FolderOpen className="h-10 w-10" />}
@@ -563,6 +576,8 @@ export default function PortfoliosPage() {
               </table>
             </ListCard>
           )}
+
+          </ListRegion>
 
           {!loading && filtered.length > 0 && (
             <ListPagination

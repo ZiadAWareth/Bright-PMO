@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
-import { Calendar, Plus, Users, Search } from "lucide-react";
+import { Calendar, Users, Search } from "lucide-react";
+import { Modal } from "@/components/ui/modal";
 import axios from "axios";
 import { Spinner } from "@/components/ui/spinner";
 import { Dropdown } from "@/components/ui/dropdown";
@@ -170,40 +171,18 @@ const ScheduleResourceAssignmentModal = ({
     (r) => r.resource_id === parseInt(formData.resource_id)
   );
 
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
   return (
-    <div
-      className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 p-4"
-      onClick={handleBackdropClick}
+    <Modal
+      open
+      onClose={onClose}
+      title="Assign Scheduled Resource"
+      description={`Task: ${task.name}`}
+      maxWidthClass="max-w-lg"
     >
-      <div className="bg-surface rounded-lg shadow-lg w-full max-w-lg mx-auto">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-xl font-bold text-ink">
-                Assign Scheduled Resource
-              </h2>
-              <p className="text-sm text-muted">
-                Task: {task.name}
-              </p>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-surface-2 rounded-lg"
-              disabled={isSubmitting}
-            >
-              <Plus size={20} className="rotate-45" />
-            </button>
-          </div>
 
           {/* Existing Assignments */}
-          <div className="mb-6 p-4 bg-info-soft border border-info rounded-lg">
-            <h3 className="text-sm font-semibold text-info mb-2">
+          <div className="mb-6 p-4 bg-surface border border-line border-l-[3px] border-l-info rounded-lg">
+            <h3 className="text-sm font-semibold text-ink mb-2">
               Current Assignments
             </h3>
             <div className="space-y-2 mb-3">
@@ -212,10 +191,10 @@ const ScheduleResourceAssignmentModal = ({
                   key={assignment.assignment_id}
                   className="flex items-center justify-between text-sm"
                 >
-                  <span className="text-info">
+                  <span className="text-ink-2">
                     {assignment.resource.name} ({assignment.resource.role})
                   </span>
-                  <span className="text-info">
+                  <span className="text-muted">
                     {assignment.allocation_percentage}%  {assignment.planned_hours}h
                   </span>
                 </div>
@@ -396,9 +375,7 @@ const ScheduleResourceAssignmentModal = ({
               </button>
             </div>
           </form>
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 };
 

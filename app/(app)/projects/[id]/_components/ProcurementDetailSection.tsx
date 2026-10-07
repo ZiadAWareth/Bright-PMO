@@ -1,138 +1,227 @@
 "use client";
 
 import React from "react";
-import { useRouter } from "next/navigation";
-import { Edit, ExternalLink, Plus, FileText, CheckCircle, Clock, DollarSign } from "lucide-react";
+import Link from "next/link";
+import {
+    Edit,
+    ArrowRight,
+    Plus,
+    FileText,
+    CheckCircle,
+    Clock,
+    DollarSign,
+} from "lucide-react";
+import {
+    EmptyState,
+    StatCard,
+    StatusBadge,
+    RowAction,
+    RowActions,
+    actionPrimary,
+    actionSecondary,
+    type BadgeTone,
+} from "@/components/ui/form-shell";
 
 interface ProcurementDetailSectionProps {
     projectId: string;
     procurements: any[];
-    setProcurements: React.Dispatch<React.SetStateAction<any[]>>;
+    setProcurements?: React.Dispatch<React.SetStateAction<any[]>>;
 }
 
-export default function ProcurementDetailSection({ projectId, procurements }: ProcurementDetailSectionProps) {
-    const router = useRouter();
+/** Statuses that count as active work rather than finished or not yet started. */
+const IN_PROGRESS = ["Planning", "Tendering", "Evaluation", "Awarded"];
+
+/**
+ * Procurement status to a badge tone.
+ *
+ * The status was previously upper-cased in the markup ("COMPLETED"), which is
+ * shouting for a value the reader is only scanning. `StatusBadge` capitalises
+ * it instead, so the badge matches every other status pill in the product.
+ */
+const STATUS_TONE: Record<string, BadgeTone> = {
+    Completed: "success",
+    Awarded: "info",
+    Planning: "warning",
+    Tendering: "warning",
+    Evaluation: "warning",
+    Cancelled: "danger",
+};
+
+export default function ProcurementDetailSection({
+    projectId,
+    procurements,
+}: ProcurementDetailSectionProps) {
+    const items = procurements ?? [];
+    const base = `/projects/${projectId}/procurement`;
+
+    const completed = items.filter((p) => p.status === "Completed").length;
+    const inProgress = items.filter((p) => IN_PROGRESS.includes(p.status)).length;
+    const totalValue = items.reduce(
+        (sum, p) => sum + (p.estimated_cost || 0),
+        0,
+    );
+
+    const recent = [...items]
+        .sort(
+            (a, b) =>
+                new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        )
+        .slice(0, 5);
 
     return (
-        <div className="bg-surface border border-line rounded-xl p-6">
-            <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-ink">Project Procurement</h3>
-                <div className="flex items-center space-x-2">
-                    <button
-                        onClick={() => router.push(`/projects/${projectId}/procurement`)}
-                        className="flex items-center space-x-2 px-4 py-2 border border-line rounded-lg text-ink hover:bg-surface-2 transition-colors"
-                    >
-                        <ExternalLink size={16} />
-                        <span>View All</span>
-                    </button>
-                    <button
-                        onClick={() => router.push(`/projects/${projectId}/procurement/procurements/new`)}
-                        className="flex items-center space-x-2 px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors"
-                    >
-                        <Plus size={16} />
-                        <span>Add Procurement</span>
-                    </button>
+        <section
+            aria-labelledby="procurement-section-heading"
+            className="rounded-xl border border-line bg-surface"
+        >
+            <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-6 py-4">
+                <h2
+                    id="procurement-section-heading"
+                    className="font-display text-[15px] font-semibold text-ink"
+                >
+                    Project Procurement
+                </h2>
+                <div className="flex items-center gap-2">
+                    <Link href={base} className={actionSecondary}>
+                        View all
+                        <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                    </Link>
+                    <Link href={`${base}/procurements/new`} className={actionPrimary}>
+                        <Plus className="h-4 w-4" aria-hidden="true" />
+                        Add procurement
+                    </Link>
                 </div>
-            </div>
+            </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-info-soft rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-info font-medium">Total Procurements</p>
-                            <p className="text-2xl font-bold text-info">{procurements?.length || 0}</p>
-                        </div>
-                        <FileText className="w-8 h-8 text-info" />
-                    </div>
+            <div className="space-y-6 p-6">
+                <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                    <StatCard
+                        label="Total Procurements"
+                        value={items.length}
+                        icon={FileText}
+                        tone="info"
+                    />
+                    <StatCard
+                        label="Completed"
+                        value={completed}
+                        icon={CheckCircle}
+                        tone="success"
+                    />
+                    <StatCard
+                        label="In Progress"
+                        value={inProgress}
+                        icon={Clock}
+                        tone={inProgress > 0 ? "warning" : "neutral"}
+                    />
+                    <StatCard
+                        label="Total Value"
+                        value={`$${totalValue.toLocaleString()}`}
+                        hint="Estimated"
+                        icon={DollarSign}
+                        tone="neutral"
+                    />
                 </div>
-                <div className="bg-success-soft rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-success font-medium">Completed</p>
-                            <p className="text-2xl font-bold text-success">{procurements?.filter((p) => p.status === "Completed").length || 0}</p>
-                        </div>
-                        <CheckCircle className="w-8 h-8 text-success" />
-                    </div>
-                </div>
-                <div className="bg-warning-soft rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-warning font-medium">In Progress</p>
-                            <p className="text-2xl font-bold text-warning">{procurements?.filter((p) => ["Planning", "Tendering", "Evaluation", "Awarded"].includes(p.status)).length || 0}</p>
-                        </div>
-                        <Clock className="w-8 h-8 text-warning" />
-                    </div>
-                </div>
-                <div className="bg-accent-violet-soft rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-accent-violet font-medium">Total Value</p>
-                            <p className="text-2xl font-bold text-accent-violet">${procurements?.reduce((sum, p) => sum + (p.estimated_cost || 0), 0).toLocaleString() || 0}</p>
-                        </div>
-                        <DollarSign className="w-8 h-8 text-accent-violet" />
-                    </div>
-                </div>
-            </div>
 
-            <div className="space-y-4">
-                <h4 className="font-medium text-ink mb-4">Recent Procurements</h4>
-                {procurements && procurements.length > 0 ? (
-                    <div className="space-y-3">
-                        {procurements
-                            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                            .slice(0, 5)
-                            .map((procurement) => (
-                                <div key={procurement.procurement_id} className="border border-line rounded-lg p-4 hover:shadow-md transition-shadow">
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex-1">
-                                            <div className="flex items-center space-x-3 mb-2">
-                                                <h5 className="font-medium text-ink">{procurement.description}</h5>
-                                                <span className="px-2 py-1 rounded-md text-xs font-medium bg-info-soft text-info">{procurement.type?.toUpperCase()}</span>
-                                                <span className={`px-2 py-1 rounded-md text-xs font-medium ${procurement.status === "Completed" ? "bg-success-soft text-success  " : procurement.status === "Awarded" ? "bg-info-soft text-info  " : procurement.status === "Planning" ? "bg-warning-soft text-warning  " : "bg-surface-2 text-ink-2  "}`}>{procurement.status?.toUpperCase()}</span>
+                {recent.length > 0 ? (
+                    <div>
+                        <h3 className="mb-3 text-[13.5px] font-semibold text-ink">
+                            Recent procurements
+                        </h3>
+                        <ul className="overflow-hidden rounded-xl border border-line">
+                            {recent.map((procurement, index) => (
+                                <li
+                                    key={procurement.procurement_id}
+                                    className={`px-4 py-3 transition-colors hover:bg-surface-2 ${
+                                        index > 0 ? "border-t border-line" : ""
+                                    }`}
+                                >
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <h4 className="truncate text-[14px] font-medium text-ink">
+                                                    {procurement.description}
+                                                </h4>
+                                                {procurement.type && (
+                                                    <StatusBadge
+                                                        label={procurement.type}
+                                                        tone="neutral"
+                                                    />
+                                                )}
+                                                <StatusBadge
+                                                    label={procurement.status}
+                                                    tone={STATUS_TONE[procurement.status] ?? "neutral"}
+                                                />
                                             </div>
-                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                                                <div>
-                                                    <span className="text-muted">Estimated:</span>
-                                                    <p className="font-medium text-ink">${procurement.estimated_cost?.toLocaleString() || 0}</p>
+
+                                            {/* Figures set in tabular numerals so the
+                                                amounts line up down the list. */}
+                                            <dl className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-[12.5px]">
+                                                <div className="flex gap-1.5">
+                                                    <dt className="text-muted">Estimated</dt>
+                                                    <dd className="font-medium tabular-nums text-ink">
+                                                        ${(procurement.estimated_cost || 0).toLocaleString()}
+                                                    </dd>
                                                 </div>
-                                                <div>
-                                                    <span className="text-muted">Actual:</span>
-                                                    <p className="font-medium text-ink">${procurement.actual_cost?.toLocaleString() || 0}</p>
+                                                <div className="flex gap-1.5">
+                                                    <dt className="text-muted">Actual</dt>
+                                                    <dd className="font-medium tabular-nums text-ink">
+                                                        ${(procurement.actual_cost || 0).toLocaleString()}
+                                                    </dd>
                                                 </div>
-                                                <div>
-                                                    <span className="text-muted">Created:</span>
-                                                    <p className="font-medium text-ink">{new Date(procurement.created_at).toLocaleDateString()}</p>
+                                                <div className="flex gap-1.5">
+                                                    <dt className="text-muted">Contracts</dt>
+                                                    <dd className="font-medium tabular-nums text-ink">
+                                                        {procurement.contracts?.length || 0}
+                                                    </dd>
                                                 </div>
-                                                <div>
-                                                    <span className="text-muted">Contracts:</span>
-                                                    <p className="font-medium text-ink">{procurement.contracts?.length || 0}</p>
+                                                <div className="flex gap-1.5">
+                                                    <dt className="text-muted">Created</dt>
+                                                    <dd className="font-medium tabular-nums text-ink">
+                                                        {new Date(
+                                                            procurement.created_at,
+                                                        ).toLocaleDateString()}
+                                                    </dd>
                                                 </div>
-                                            </div>
+                                            </dl>
                                         </div>
-                                        <button
-                                            onClick={() => router.push(`/projects/${projectId}/procurement/procurements/${procurement.procurement_id}/edit`)}
-                                            className="ml-4 flex items-center space-x-1 px-3 py-1 bg-info text-white text-xs rounded hover:opacity-90"
-                                        >
-                                            <Edit size={14} />
-                                            <span>Edit</span>
-                                        </button>
+
+                                        <RowActions>
+                                            <RowAction
+                                                icon={Edit}
+                                                label={`Edit ${procurement.description}`}
+                                                href={`${base}/procurements/${procurement.procurement_id}/edit`}
+                                            />
+                                        </RowActions>
                                     </div>
-                                </div>
+                                </li>
                             ))}
+                        </ul>
+
+                        {items.length > recent.length && (
+                            <p className="mt-3 text-[12.5px] text-muted">
+                                Showing {recent.length} of {items.length}.{" "}
+                                <Link
+                                    href={base}
+                                    className="font-medium text-bright transition-colors hover:text-bright-deep"
+                                >
+                                    View all procurements
+                                </Link>
+                            </p>
+                        )}
                     </div>
                 ) : (
-                    <div className="text-center py-8">
-                        <FileText className="w-12 h-12 text-faint mx-auto mb-4" />
-                        <p className="text-muted mb-4">No procurements found for this project.</p>
-                        <button
-                            onClick={() => router.push(`/projects/${projectId}/procurement/procurements/new`)}
-                            className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors"
-                        >
-                            Add Procurement
-                        </button>
-                    </div>
+                    <EmptyState
+                        icon={FileText}
+                        title="No procurements yet"
+                        description="Add the first procurement to track tendering, awards and contract value for this project."
+                        action={
+                            <Link href={`${base}/procurements/new`} className={actionPrimary}>
+                                <Plus className="h-4 w-4" aria-hidden="true" />
+                                Add procurement
+                            </Link>
+                        }
+                    />
                 )}
             </div>
-        </div>
+        </section>
     );
 }

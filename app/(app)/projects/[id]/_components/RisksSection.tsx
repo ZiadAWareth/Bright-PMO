@@ -1,54 +1,56 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
-import { AlertTriangle, ExternalLink, Eye } from "lucide-react";
+import { AlertTriangle, ExternalLink, Eye, Plus } from "lucide-react";
+import { StatCard, actionSecondary } from "@/components/ui/form-shell";
+import AddRiskModal from "@/components/AddRiskModal";
 
 interface RisksSectionProps {
     risks: any[];
     projectId: string;
     router: AppRouterInstance;
+    onRiskAdded: () => void;
 }
 
-export default function RisksSection({ risks, projectId, router }: RisksSectionProps) {
+export default function RisksSection({ risks, projectId, router, onRiskAdded }: RisksSectionProps) {
+    const [showAddModal, setShowAddModal] = useState(false);
+
     return (
         <div className="bg-surface border border-line rounded-xl p-6">
             <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-semibold text-ink">Project Risks</h3>
-                <button onClick={() => router.push(`/projects/${projectId}/risk`)} className="flex items-center space-x-2 px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors">
-                    <ExternalLink size={16} />
-                    <span>View All Risks</span>
-                </button>
+                <div className="flex items-center gap-2">
+                    <button onClick={() => setShowAddModal(true)} className="flex items-center space-x-2 px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors">
+                        <Plus size={16} />
+                        <span>Add Risk</span>
+                    </button>
+                    <button onClick={() => router.push(`/projects/${projectId}/risk`)} className={actionSecondary}>
+                        <ExternalLink size={16} />
+                        <span>View All Risks</span>
+                    </button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-danger-soft rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-danger font-medium">High Risks</p>
-                            <p className="text-2xl font-bold text-danger">{risks?.filter((risk) => risk.riskLevel === "high").length || 0}</p>
-                        </div>
-                        <AlertTriangle className="w-8 h-8 text-danger" />
-                    </div>
-                </div>
-                <div className="bg-warning-soft rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-warning font-medium">Medium Risks</p>
-                            <p className="text-2xl font-bold text-warning">{risks?.filter((risk) => risk.riskLevel === "medium").length || 0}</p>
-                        </div>
-                        <AlertTriangle className="w-8 h-8 text-warning" />
-                    </div>
-                </div>
-                <div className="bg-success-soft rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-success font-medium">Low Risks</p>
-                            <p className="text-2xl font-bold text-success">{risks?.filter((risk) => risk.riskLevel === "low").length || 0}</p>
-                        </div>
-                        <AlertTriangle className="w-8 h-8 text-success" />
-                    </div>
-                </div>
+                <StatCard
+                    label="High Risks"
+                    value={risks?.filter((risk) => risk.riskLevel === "high").length || 0}
+                    icon={AlertTriangle}
+                    tone="danger"
+                />
+                <StatCard
+                    label="Medium Risks"
+                    value={risks?.filter((risk) => risk.riskLevel === "medium").length || 0}
+                    icon={AlertTriangle}
+                    tone="warning"
+                />
+                <StatCard
+                    label="Low Risks"
+                    value={risks?.filter((risk) => risk.riskLevel === "low").length || 0}
+                    icon={AlertTriangle}
+                    tone="success"
+                />
             </div>
 
             <div className="space-y-4">
@@ -106,10 +108,17 @@ export default function RisksSection({ risks, projectId, router }: RisksSectionP
                         <AlertTriangle className="w-12 h-12 text-faint mx-auto mb-3" />
                         <h4 className="text-lg font-medium text-ink mb-2">No Risks Yet</h4>
                         <p className="text-muted mb-4">This project doesn't have any risks created yet.</p>
-                        <button onClick={() => router.push(`/projects/${projectId}/risks`)} className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors">Add First Risk</button>
+                        <button onClick={() => setShowAddModal(true)} className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors">Add First Risk</button>
                     </div>
                 )}
             </div>
+
+            <AddRiskModal
+                isOpen={showAddModal}
+                onClose={() => setShowAddModal(false)}
+                onSuccess={onRiskAdded}
+                projectId={projectId}
+            />
         </div>
     );
 }

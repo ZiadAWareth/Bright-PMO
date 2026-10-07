@@ -4,6 +4,7 @@ import React from "react";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { Target, CheckCircle, Clock, AlertTriangle, Calendar, ExternalLink } from "lucide-react";
 import { ProjectWithRelations } from "@/types/project";
+import { StatCard } from "@/components/ui/form-shell";
 
 interface GanttSectionProps {
     project: ProjectWithRelations;
@@ -24,42 +25,30 @@ export default function GanttSection({ project, projectId, router, userTasks }: 
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-info-soft rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-info font-medium">Total Tasks</p>
-                            <p className="text-2xl font-bold text-info">{project.tasks?.length || 0}</p>
-                        </div>
-                        <Target className="w-8 h-8 text-info" />
-                    </div>
-                </div>
-                <div className="bg-success-soft rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-success font-medium">Completed</p>
-                            <p className="text-2xl font-bold text-success">{userTasks.filter((task) => task.status === "completed").length}</p>
-                        </div>
-                        <CheckCircle className="w-8 h-8 text-success" />
-                    </div>
-                </div>
-                <div className="bg-warning-soft rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-warning font-medium">In Progress</p>
-                            <p className="text-2xl font-bold text-warning">{project.tasks?.filter((task) => task.status === "in_progress").length || 0}</p>
-                        </div>
-                        <Clock className="w-8 h-8 text-warning" />
-                    </div>
-                </div>
-                <div className="bg-danger-soft rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-danger font-medium">Overdue</p>
-                            <p className="text-2xl font-bold text-danger">{project.tasks?.filter((task) => new Date(task.end_date) < new Date() && task.status !== "completed").length || 0}</p>
-                        </div>
-                        <AlertTriangle className="w-8 h-8 text-danger" />
-                    </div>
-                </div>
+                <StatCard
+                    label="Total Tasks"
+                    value={project.tasks?.length || 0}
+                    icon={Target}
+                    tone="info"
+                />
+                <StatCard
+                    label="Completed"
+                    value={userTasks.filter((task) => task.status === "completed").length}
+                    icon={CheckCircle}
+                    tone="success"
+                />
+                <StatCard
+                    label="In Progress"
+                    value={project.tasks?.filter((task) => task.status === "in_progress").length || 0}
+                    icon={Clock}
+                    tone="warning"
+                />
+                <StatCard
+                    label="Overdue"
+                    value={project.tasks?.filter((task) => new Date(task.end_date) < new Date() && task.status !== "completed").length || 0}
+                    icon={AlertTriangle}
+                    tone="danger"
+                />
             </div>
 
             <div className="space-y-4">
@@ -73,8 +62,8 @@ export default function GanttSection({ project, projectId, router, userTasks }: 
                         </span>
                     </div>
                     <div className="w-full bg-surface-3 rounded-full h-3 mb-2">
-                        <div className="bg-info h-3 rounded-full relative" style={{ width: `${project.progress_percentage}%` }}>
-                            <div className="absolute right-0 top-0 w-2 h-3 bg-info rounded-r-full"></div>
+                        <div className="bg-bright h-3 rounded-full relative" style={{ width: `${project.progress_percentage}%` }}>
+                            <div className="absolute right-0 top-0 w-2 h-3 bg-bright rounded-r-full"></div>
                         </div>
                     </div>
                     <div className="flex justify-between text-xs text-muted">
@@ -115,16 +104,16 @@ export default function GanttSection({ project, projectId, router, userTasks }: 
                     )}
                 </div>
 
-                <div className="bg-warning-soft border border-warning rounded-lg p-4">
+                <div className="rounded-lg border border-line border-l-[3px] border-l-bright bg-surface p-4">
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center space-x-2">
-                            <AlertTriangle className="w-5 h-5 text-warning" />
-                            <h5 className="font-medium text-warning">Critical Path Analysis</h5>
+                            <AlertTriangle className="w-5 h-5 text-bright" aria-hidden="true" />
+                            <h5 className="font-medium text-ink">Critical Path Analysis</h5>
                         </div>
-                        <span className="text-sm text-warning">Advanced view available</span>
+                        <span className="text-sm text-muted">Advanced view available</span>
                     </div>
-                    <p className="text-sm text-warning mb-3">View detailed task dependencies and critical path analysis in the full Gantt chart</p>
-                    <button onClick={() => router.push(`/projects/${projectId}/gantt`)} className="inline-flex items-center space-x-2 px-3 py-2 bg-warning text-white rounded-lg hover:opacity-90 transition-colors font-medium text-sm">
+                    <p className="text-sm text-muted mb-3">View detailed task dependencies and critical path analysis in the full Gantt chart</p>
+                    <button onClick={() => router.push(`/projects/${projectId}/gantt`)} className="inline-flex items-center space-x-2 px-3 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors font-medium text-sm">
                         <span>View detailed critical path analysis</span>
                         <ExternalLink size={14} />
                     </button>

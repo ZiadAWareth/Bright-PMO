@@ -1077,6 +1077,7 @@ const ProjectDetailsPage = ({
                                 </div>
                             </div>
                                     <button
+                                      aria-label="Close dialog"
                                         onClick={() => setShowDeleteConfirmation(false)}
                                         className="text-faint hover:text-bright"
                                     >

@@ -210,11 +210,12 @@ const EpsEditForm: React.FC<EpsEditFormProps> = ({ eps, allEps = [], onClose, on
             </h2>
           </div>
           <button
+            aria-label="Close dialog"
             type="button"
             onClick={onClose}
             className="text-faint hover:text-muted transition-colors"
           >
-            <X size={20} />
+            <X size={20} aria-hidden="true" />
           </button>
         </div>
         {/* Form */}
@@ -371,7 +372,7 @@ const EpsEditForm: React.FC<EpsEditFormProps> = ({ eps, allEps = [], onClose, on
               className="px-6 py-2 rounded-md bg-bright hover:bg-bright-deep text-white font-semibold flex items-center gap-2 disabled:opacity-60 transition-colors"
               disabled={isSubmitting}
             >
-              <Save size={16} />
+              <Save size={16} aria-hidden="true" />
               {isSubmitting ? "Saving..." : "Save Changes"}
             </button>
           </div>

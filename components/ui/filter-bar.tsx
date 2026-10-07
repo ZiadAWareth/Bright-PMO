@@ -84,7 +84,7 @@ export function FilterBar({
 
       {children && (
         <div
-          className={`grid transition-all duration-300 ease-out ${
+          className={`grid transition-all duration-300 ease-out motion-reduce:transition-none ${
             open ? "mt-3 grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
           }`}
         >

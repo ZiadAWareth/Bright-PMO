@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, RotateCcw, Trash2, Archive, Search } from 'lucide-react';
+import { RotateCcw, Trash2, Archive, Search } from 'lucide-react';
+import { Modal } from "@/components/ui/modal";
 import axios from 'axios';
 import { toast } from 'sonner';
 import { ProjectWithRelations } from '@/types/project';
@@ -188,33 +189,28 @@ const ArchivedProjectsModal: React.FC<ArchivedProjectsModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
   return (
-    <div 
-      className="fixed inset-0 backdrop-blur-md bg-white/10 dark:bg-black/20 z-50 flex items-center justify-center p-4"
-      onClick={handleBackdropClick}
-    >
-      <div className="bg-surface rounded-xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-line">
-          <div className="flex items-center space-x-3">
-            <Archive className="h-6 w-6 text-muted" />
-            <h2 className="text-xl font-semibold text-ink">
-              Archived Projects ({archivedProjects.length})
-            </h2>
-          </div>
+    <>
+    <Modal
+      open
+      onClose={onClose}
+      title={`Archived Projects (${archivedProjects.length})`}
+      maxWidthClass="max-w-6xl"
+      icon={<Archive className="h-6 w-6 text-muted" />}
+      footer={
+        <div className="flex w-full items-center justify-between">
+          <p className="text-sm text-muted">
+            {filteredProjects.length} of {archivedProjects.length} archived projects
+          </p>
           <button
             onClick={onClose}
-            className="text-faint hover:text-muted"
+            className="px-4 py-2 border border-line rounded-lg text-sm font-medium text-ink-3 hover:bg-surface-2"
           >
-            <X size={24} />
+            Close
           </button>
         </div>
+      }
+    >
 
         {/* Search and Actions */}
         <div className="p-6 border-b border-line">
@@ -410,39 +406,18 @@ const ArchivedProjectsModal: React.FC<ArchivedProjectsModalProps> = ({
           )}
         </div>
 
-        {/* Footer */}
-        <div className="p-6 border-t border-line">
-          <div className="flex justify-between items-center">
-            <p className="text-sm text-muted">
-              {filteredProjects.length} of {archivedProjects.length} archived projects
-            </p>
-            <button
-              onClick={onClose}
-              className="px-4 py-2 border border-line rounded-lg text-sm font-medium text-ink-3 hover:bg-surface-2"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      </div>
+    </Modal>
 
       {/* Delete Confirmation Modal */}
-      {showDeleteConfirmModal && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[60]">
-          <div className="bg-white/95 backdrop-blur-md rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl border border-white/20">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="bg-danger-soft p-2 rounded-full">
-                <Trash2 className="w-6 h-6 text-danger" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-ink">
-                  Permanently Delete Projects
-                </h3>
-                <p className="text-sm text-muted">
-                  This action cannot be undone
-                </p>
-              </div>
-            </div>
+      <Modal
+        open={showDeleteConfirmModal}
+        onClose={cancelPermanentDelete}
+        title="Permanently Delete Projects"
+        description="This action cannot be undone"
+        closeOnBackdrop={false}
+        icon={<Trash2 className="w-6 h-6 text-danger" />}
+      >
+        <>
             
             <p className="text-ink-3 mb-6">
               Are you sure you want to permanently delete{' '}
@@ -469,10 +444,9 @@ const ArchivedProjectsModal: React.FC<ArchivedProjectsModalProps> = ({
                 <span>{isDeleting ? 'Deleting...' : 'Delete Permanently'}</span>
               </button>
             </div>
-          </div>
-        </div>
-      )}
-    </div>
+        </>
+      </Modal>
+    </>
   );
 };
 

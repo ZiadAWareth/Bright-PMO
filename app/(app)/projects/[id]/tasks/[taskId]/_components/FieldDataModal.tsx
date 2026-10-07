@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Target } from "lucide-react";
+import { Modal } from "@/components/ui/modal";
 import type { Task, FieldDataEntry } from "./types";
 import { Spinner } from "@/components/ui/spinner";
 import { Dropdown } from "@/components/ui/dropdown";
@@ -126,36 +127,19 @@ const FieldDataModal = ({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{
-        backgroundColor: "rgba(0, 0, 0, 0.4)",
-        backdropFilter: "blur(8px)",
-        WebkitBackdropFilter: "blur(8px)",
-      }}
-      onClick={onClose}
+    <Modal
+      open
+      onClose={onClose}
+      title={editingEntry ? "Edit Field Data" : "Add Field Data"}
+      description={task.name}
+      maxWidthClass="max-w-md"
+      icon={
+        <span className="grid h-9 w-9 place-items-center rounded-full bg-success-soft">
+          <Target className="h-5 w-5 text-success" />
+        </span>
+      }
     >
-      <div
-        className="rounded-2xl max-w-md w-full shadow-2xl flex flex-col glass-panel"
-        style={{
-          maxHeight: "80vh"}}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center p-6 pb-4">
-          <div className="w-12 h-12 bg-success-soft rounded-full flex items-center justify-center mr-4">
-            <Target className="w-6 h-6 text-success" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-ink">
-              {editingEntry ? "Edit Field Data" : "Add Field Data"}
-            </h3>
-            <p className="text-sm text-muted">
-              {task.name}
-            </p>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 pb-6 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Resource Assignment Selection */}
           <div>
             <label className="block text-sm font-medium text-ink-3 mb-1">
@@ -526,8 +510,7 @@ const FieldDataModal = ({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 };
 

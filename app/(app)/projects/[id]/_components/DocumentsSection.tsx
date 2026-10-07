@@ -1,9 +1,28 @@
 "use client";
 
 import React from "react";
-import { FileText, FolderTree, Target, Archive, Download, Upload, Eye, Trash2 } from "lucide-react";
+import {
+    FileText,
+    FolderTree,
+    Target,
+    Archive,
+    Download,
+    Upload,
+    Eye,
+    Trash2,
+} from "lucide-react";
 import { ProjectWithRelations } from "@/types/project";
 import { formatFileSize, getFileIcon } from "./constants";
+import {
+    EmptyState,
+    StatCard,
+    StatusBadge,
+    RowAction,
+    RowActions,
+    actionPrimary,
+    actionSecondary,
+    type BadgeTone,
+} from "@/components/ui/form-shell";
 
 interface DocumentsSectionProps {
     project: ProjectWithRelations;
@@ -15,127 +34,200 @@ interface DocumentsSectionProps {
     handleDeleteDocument: (doc: any) => void;
 }
 
-export default function DocumentsSection({ project, activeView, setShowExportModal, handleFileSelect, handleDownloadDocument, handleViewDocument, handleDeleteDocument }: DocumentsSectionProps) {
+const ACCEPT =
+    ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.gif";
+
+/** Where a document is attached, and the badge that marks it. */
+function scopeOf(doc: any): { label: string; tone: BadgeTone } {
+    if (doc.task_id) return { label: "Task", tone: "warning" };
+    if (doc.wbs_id) return { label: "WBS", tone: "brand" };
+    return { label: "Project", tone: "success" };
+}
+
+export default function DocumentsSection({
+    project,
+    activeView,
+    setShowExportModal,
+    handleFileSelect,
+    handleDownloadDocument,
+    handleViewDocument,
+    handleDeleteDocument,
+}: DocumentsSectionProps) {
+    const documents: any[] = (project as any).documents ?? [];
+    const canDelete = ["admin", "project-manager"].includes(activeView);
+
+    const projectLevel = documents.filter((d) => !d.task_id && !d.wbs_id).length;
+    const taskLevel = documents.filter((d) => d.task_id).length;
+    const wbsLevel = documents.filter((d) => d.wbs_id).length;
+    const totalSize = documents.reduce(
+        (sum: number, d: any) => sum + (d.size || 0),
+        0,
+    );
+
     return (
-        <div className="bg-surface border border-line rounded-xl p-6">
-            <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-ink">Project Documents</h3>
-                <div className="flex items-center space-x-3">
-                    <button onClick={() => setShowExportModal(true)} disabled={(project as any).documents?.length === 0} className="flex items-center space-x-2 px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                        <Download size={16} />
-                        <span>Export All</span>
+        <section
+            aria-labelledby="documents-section-heading"
+            className="rounded-xl border border-line bg-surface"
+        >
+            <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-6 py-4">
+                <h2
+                    id="documents-section-heading"
+                    className="font-display text-[15px] font-semibold text-ink"
+                >
+                    Project Documents
+                </h2>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setShowExportModal(true)}
+                        disabled={documents.length === 0}
+                        className={actionSecondary}
+                    >
+                        <Download className="h-4 w-4" aria-hidden="true" />
+                        Export all
                     </button>
-                    <label className="flex items-center space-x-2 px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors cursor-pointer">
-                        <Upload size={16} />
-                        <span>Upload Document</span>
-                        <input type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.gif" onChange={(e) => handleFileSelect(e.target.files, e.target)} className="hidden" />
+                    {/* A label wrapping a hidden input is the upload control, so it
+                        carries the button styling. `focus-within` is what keeps it
+                        visible to keyboard users: the label itself never receives
+                        focus, only the input inside it does. */}
+                    <label
+                        className={`${actionPrimary} cursor-pointer focus-within:ring-[3px] focus-within:ring-bright-soft`}
+                    >
+                        <Upload className="h-4 w-4" aria-hidden="true" />
+                        Upload document
+                        <input
+                            type="file"
+                            multiple
+                            accept={ACCEPT}
+                            onChange={(e) => handleFileSelect(e.target.files, e.target)}
+                            className="sr-only"
+                        />
                     </label>
                 </div>
-            </div>
+            </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-                <div className="bg-info-soft rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-info font-medium">Total Documents</p>
-                            <p className="text-2xl font-bold text-info">{(project as any).documents?.length || 0}</p>
-                        </div>
-                        <FileText className="w-8 h-8 text-info" />
-                    </div>
+            <div className="space-y-6 p-6">
+                <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                    <StatCard
+                        label="Total Documents"
+                        value={documents.length}
+                        hint={documents.length ? formatFileSize(totalSize) : "Nothing uploaded"}
+                        icon={FileText}
+                        tone="info"
+                    />
+                    <StatCard
+                        label="Project Level"
+                        value={projectLevel}
+                        icon={FileText}
+                        tone="success"
+                    />
+                    <StatCard
+                        label="Task Level"
+                        value={taskLevel}
+                        icon={Target}
+                        tone="warning"
+                    />
+                    <StatCard
+                        label="WBS Level"
+                        value={wbsLevel}
+                        icon={FolderTree}
+                        tone="brand"
+                    />
                 </div>
-                <div className="bg-success-soft rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-success font-medium">Project Level</p>
-                            <p className="text-2xl font-bold text-success">{((project as any).documents || []).filter((doc: any) => !doc.task_id && !doc.wbs_id).length}</p>
-                        </div>
-                        <FileText className="w-8 h-8 text-success" />
-                    </div>
-                </div>
-                <div className="bg-warning-soft rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-warning font-medium">Task Level</p>
-                            <p className="text-2xl font-bold text-warning">{((project as any).documents || []).filter((doc: any) => doc.task_id).length}</p>
-                        </div>
-                        <Target className="w-8 h-8 text-warning" />
-                    </div>
-                </div>
-                <div className="bg-bright-soft rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-bright font-medium">WBS Level</p>
-                            <p className="text-2xl font-bold text-bright">{((project as any).documents || []).filter((doc: any) => doc.wbs_id).length}</p>
-                        </div>
-                        <FolderTree className="w-8 h-8 text-bright" />
-                    </div>
-                </div>
-                <div className="bg-accent-violet-soft rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-accent-violet font-medium">Total Size</p>
-                            <p className="text-2xl font-bold text-accent-violet">{formatFileSize(((project as any).documents || []).reduce((total: number, doc: any) => total + (doc.size || 0), 0))}</p>
-                        </div>
-                        <Archive className="w-8 h-8 text-accent-violet" />
-                    </div>
-                </div>
-            </div>
 
-            <div className="space-y-3">
-                {(project as any).documents && (project as any).documents.length > 0 ? (
-                    ((project as any).documents || []).map((document: any) => (
-                        <div key={document.document_id} className="flex items-center justify-between p-4 border border-line rounded-lg hover:bg-surface-2 transition-colors">
-                            <div className="flex items-center space-x-4">
-                                <div className="w-10 h-10 bg-surface-2 rounded-lg flex items-center justify-center">
-                                    {getFileIcon(document.name)}
-                                </div>
-                                <div className="flex-1">
-                                    <div className="flex items-center space-x-3">
-                                        <h4 className="font-medium text-ink">{document.name}</h4>
-                                        {document.task_id && <span className="px-2 py-1 bg-warning-soft text-warning text-xs rounded-full">Task Level</span>}
-                                        {document.wbs_id && <span className="px-2 py-1 bg-bright-soft text-bright text-xs rounded-full">WBS Level</span>}
-                                        {!document.task_id && !document.wbs_id && <span className="px-2 py-1 bg-success-soft text-success text-xs rounded-full">Project Level</span>}
+                {documents.length > 0 ? (
+                    <ul className="overflow-hidden rounded-xl border border-line">
+                        {documents.map((document: any, index: number) => {
+                            const scope = scopeOf(document);
+                            return (
+                                <li
+                                    key={document.document_id}
+                                    className={`flex items-center gap-4 px-4 py-3 transition-colors hover:bg-surface-2 ${
+                                        index > 0 ? "border-t border-line" : ""
+                                    }`}
+                                >
+                                    <span
+                                        aria-hidden="true"
+                                        className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-surface-2"
+                                    >
+                                        {getFileIcon(document.name)}
+                                    </span>
+
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="truncate text-[14px] font-medium text-ink">
+                                                {document.name}
+                                            </h3>
+                                            <StatusBadge label={scope.label} tone={scope.tone} />
+                                        </div>
+                                        {/* The file name used to be repeated here beside its own
+                                            heading; the meta line now carries only what the
+                                            heading does not already say. */}
+                                        <p className="mt-0.5 truncate text-[12.5px] text-muted">
+                                            {formatFileSize(document.size || 0)}
+                                            {document.uploader && (
+                                                <>
+                                                    {" · "}
+                                                    {document.uploader.first_name}{" "}
+                                                    {document.uploader.last_name}
+                                                </>
+                                            )}
+                                            {" · "}
+                                            {new Date(document.created_at).toLocaleDateString()}
+                                        </p>
+                                        {document.description && (
+                                            <p className="mt-1 truncate text-[12.5px] text-muted">
+                                                {document.description}
+                                            </p>
+                                        )}
                                     </div>
-                                    <div className="flex items-center space-x-4 mt-1 text-sm text-muted">
-                                        <span>{document.name}</span>
-                                        <span>•</span>
-                                        <span>{formatFileSize(document.size || 0)}</span>
-                                        <span>•</span>
-                                        <span>Uploaded by {document.uploader?.first_name} {document.uploader?.last_name}</span>
-                                        <span>•</span>
-                                        <span>{new Date(document.created_at).toLocaleDateString()}</span>
-                                    </div>
-                                    {document.description && <p className="text-sm text-muted mt-1">{document.description}</p>}
-                                </div>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <button onClick={() => handleDownloadDocument(document)} className="p-2 text-faint hover:text-info transition-colors rounded-full hover:bg-info-soft" title="Download">
-                                    <Download size={16} />
-                                </button>
-                                <button onClick={() => handleViewDocument(document)} className="p-2 text-faint hover:text-success transition-colors rounded-full hover:bg-success-soft" title="View">
-                                    <Eye size={16} />
-                                </button>
-                                {["admin", "project-manager"].includes(activeView) && (
-                                    <button onClick={() => handleDeleteDocument(document)} className="p-2 text-faint hover:text-danger transition-colors rounded-full hover:bg-danger-soft" title="Delete">
-                                        <Trash2 size={16} />
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    ))
+
+                                    <RowActions>
+                                        <RowAction
+                                            icon={Download}
+                                            label={`Download ${document.name}`}
+                                            onClick={() => handleDownloadDocument(document)}
+                                        />
+                                        <RowAction
+                                            icon={Eye}
+                                            label={`View ${document.name}`}
+                                            onClick={() => handleViewDocument(document)}
+                                        />
+                                        {canDelete && (
+                                            <RowAction
+                                                icon={Trash2}
+                                                tone="danger"
+                                                label={`Delete ${document.name}`}
+                                                onClick={() => handleDeleteDocument(document)}
+                                            />
+                                        )}
+                                    </RowActions>
+                                </li>
+                            );
+                        })}
+                    </ul>
                 ) : (
-                    <div className="text-center py-12 border-2 border-dashed border-line rounded-lg">
-                        <FileText className="w-16 h-16 text-faint mx-auto mb-4" />
-                        <h4 className="text-lg font-medium text-ink mb-2">No Documents Yet</h4>
-                        <p className="text-muted mb-6">Upload your first document to get started. Supported formats include PDF, DOC, XLS, PPT, and images.</p>
-                        <label className="inline-flex items-center space-x-2 px-6 py-3 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors cursor-pointer">
-                            <Upload size={20} />
-                            <span>Upload Your First Document</span>
-                            <input type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.gif" onChange={(e) => handleFileSelect(e.target.files, e.target)} className="hidden" />
-                        </label>
-                    </div>
+                    <EmptyState
+                        icon={FileText}
+                        title="No documents yet"
+                        description="Upload the first document to get started. PDF, Word, Excel, PowerPoint and image files are supported."
+                        action={
+                            <label
+                                className={`${actionPrimary} cursor-pointer focus-within:ring-[3px] focus-within:ring-bright-soft`}
+                            >
+                                <Upload className="h-4 w-4" aria-hidden="true" />
+                                Upload your first document
+                                <input
+                                    type="file"
+                                    multiple
+                                    accept={ACCEPT}
+                                    onChange={(e) => handleFileSelect(e.target.files, e.target)}
+                                    className="sr-only"
+                                />
+                            </label>
+                        }
+                    />
                 )}
             </div>
-        </div>
+        </section>
     );
 }

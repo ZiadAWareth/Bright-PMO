@@ -90,11 +90,11 @@ export function AddEntityModal({ entityName, fields, onSubmit, triggerButton }: 
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="bg-white/95 backdrop-blur-xl rounded-2xl p-8 w-full max-w-2xl mx-4 shadow-2xl border border-white/20 transform animate-slideUp">
+      <DialogContent className="bg-surface rounded-2xl p-8 w-full max-w-2xl mx-4 shadow-2xl border border-line">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold mb-6 text-ink flex items-center">
-            <div className="w-10 h-10 bg-gradient-to-r from-bright to-danger rounded-xl flex items-center justify-center mr-3">
-              <Plus className="w-5 h-5 text-white" />
+          <DialogTitle className="text-xl font-semibold mb-6 text-ink flex items-center gap-3">
+            <div className="w-9 h-9 bg-bright-soft rounded-lg flex items-center justify-center">
+              <Plus className="w-4.5 h-4.5 text-bright" aria-hidden="true" />
             </div>
             Add New {entityName}
           </DialogTitle>
@@ -102,8 +102,8 @@ export function AddEntityModal({ entityName, fields, onSubmit, triggerButton }: 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-2 gap-6">
             {fields.map((field) => (
-              <div key={field.name} className="group">
-                <Label htmlFor={field.name} className="block text-sm font-semibold text-ink-3 mb-2">
+              <div key={field.name}>
+                <Label htmlFor={field.name} className="block text-sm font-medium text-ink-3 mb-2">
                   {field.label}
                   {field.required && <span className="text-danger">*</span>}
                 </Label>
@@ -113,14 +113,14 @@ export function AddEntityModal({ entityName, fields, onSubmit, triggerButton }: 
                     value={formData[field.name] || ''}
                     onChange={(e) => handleChange(field.name, e.target.value)}
                     required={field.required}
-                    className="w-full px-4 py-3 border border-line rounded-xl bg-white/80 text-ink focus:ring-2 focus:ring-bright focus:border-transparent transition-all duration-300 group-hover:border-bright"
+                    className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent transition-colors"
                   />
                 ) : field.type === 'select' ? (
                   <Select
                     value={formData[field.name]}
                     onValueChange={(value) => handleChange(field.name, value)}
                   >
-                    <SelectTrigger className="w-full px-4 py-3 border border-line rounded-xl bg-white/80 text-ink focus:ring-2 focus:ring-bright focus:border-transparent transition-all duration-300 group-hover:border-bright">
+                    <SelectTrigger className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent transition-colors">
                       <SelectValue placeholder={`Select ${field.label}`} />
                     </SelectTrigger>
                     <SelectContent>
@@ -158,28 +158,27 @@ export function AddEntityModal({ entityName, fields, onSubmit, triggerButton }: 
                     required={field.required}
                     min={field.min}
                     max={field.max}
-                    className="w-full px-4 py-3 border border-line rounded-xl bg-white/80 text-ink focus:ring-2 focus:ring-bright focus:border-transparent transition-all duration-300 group-hover:border-bright"
+                    className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent transition-colors"
                   />
                 )}
               </div>
             ))}
           </div>
-          <div className="flex justify-end space-x-4 pt-6 border-t border-line">
+          <div className="flex justify-end space-x-3 pt-6 border-t border-line">
             <Button
               type="button"
               variant="outline"
               onClick={() => setOpen(false)}
-              className="px-6 py-3 text-muted hover:text-ink-2 font-medium rounded-xl hover:bg-surface-2 transition-all duration-300"
+              className="px-4 py-2 text-ink-3 font-medium rounded-lg border border-line hover:bg-surface-2 transition-colors"
             >
               Cancel
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={isSubmitting}
-              className="group relative overflow-hidden bg-gradient-to-r from-bright to-danger text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 hover:from-bright-deep hover:to-danger"
+              className="px-4 py-2 bg-bright text-white rounded-lg font-medium hover:bg-bright-deep transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <div className="absolute inset-0 bg-surface opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
-              <span className="relative">{isSubmitting ? 'Adding...' : 'Add'}</span>
+              {isSubmitting ? 'Adding...' : 'Add'}
             </Button>
           </div>
         </form>

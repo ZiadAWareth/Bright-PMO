@@ -22,7 +22,7 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { FilterBar, FilterSelect } from "@/components/ui/filter-bar";
 import MassUpdateModal from "@/components/MassUpdateModal";
 import ArchivedProjectsModal from "@/components/ArchivedProjectsModal";
-import { Spinner, LoadingState } from "@/components/ui/spinner";
+import { Spinner } from "@/components/ui/spinner";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ViewToggle, type ListViewMode } from "@/components/ui/view-toggle";
 import { PersonCell, personName } from "@/components/ui/person-cell";
@@ -38,10 +38,13 @@ import {
   EmptyState,
 } from "@/components/ui/entity-card";
 import {
+  CardSkeleton,
   ListCard,
   ListHead,
   ListMessage,
+  ListRegion,
   ListRow,
+  ListSkeleton,
   NewButton,
   RowAction,
   RowActions,
@@ -617,8 +620,18 @@ const ProjectsPage = () => {
             </div>
           )}
 
+          <ListRegion busy={isLoading}>
           {isLoading ? (
-            <LoadingState />
+            view === "grid" ? (
+              <CardSkeleton />
+            ) : (
+              <ListCard>
+                <table className="w-full border-collapse">
+                  <ListHead columns={COLUMNS} />
+                  <ListSkeleton columns={COLUMNS.length} />
+                </table>
+              </ListCard>
+            )
           ) : filtered.length === 0 ? (
             emptyState
           ) : view === "grid" ? (
@@ -727,6 +740,8 @@ const ProjectsPage = () => {
               </table>
             </ListCard>
           )}
+
+          </ListRegion>
 
           {!isLoading && filtered.length > 0 && (
             <ListPagination

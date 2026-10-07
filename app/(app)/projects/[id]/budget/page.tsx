@@ -26,6 +26,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import { ProjectSetup } from "@/types/project";
 import { Spinner } from "@/components/ui/spinner";
+import { StatCard, StatusBadge } from "@/components/ui/form-shell";
 
 interface Budget {
   budget_id: number;
@@ -696,187 +697,129 @@ const ProjectBudgetPage = () => {
     router.push(`/projects/${projectId}/team?from=previous`); // Adjust to next step
   };
 
+  const levelDotColor = (level: number) => {
+    switch (level % 3) {
+      case 0:
+        return "bg-accent-violet";
+      case 1:
+        return "bg-info";
+      default:
+        return "bg-success";
+    }
+  };
+
+  /** Fixed-width budget columns shared by every WBS/task row, so the numbers
+   *  land in the same place regardless of how deep a row is indented or how
+   *  long its name is. */
+  const BUDGET_COLS = "grid-cols-[minmax(0,1fr)_repeat(3,120px)]";
+
   const renderWBSItem = (wbsItem: WBSItem, level: number = 0) => {
     const indentWidth = level * 24; // 24px per level
     const budget = calculateWBSBudget(wbsItem);
     const isEditing = editingWBS === wbsItem.wbs_id;
-
-    // Color schemes based on level
-    const colorSchemes = [
-      {
-        gradient: "from-info to-info",
-        bg: "bg-info",
-        light: "bg-info-soft ",
-        border: "border-info ",
-      },
-      {
-        gradient: "from-success to-success",
-        bg: "bg-success",
-        light: "bg-success-soft ",
-        border: "border-success ",
-      },
-      {
-        gradient: "from-accent-violet to-accent-violet",
-        bg: "bg-accent-violet",
-        light: "bg-accent-violet-soft ",
-        border: "border-accent-violet ",
-      },
-      {
-        gradient: "from-bright to-bright-deep",
-        bg: "bg-bright",
-        light: "bg-bright-soft ",
-        border: "border-bright ",
-      },
-      {
-        gradient: "from-accent-pink to-accent-pink",
-        bg: "bg-accent-pink",
-        light: "bg-accent-pink-soft ",
-        border: "border-accent-pink ",
-      },
-      {
-        gradient: "from-accent-indigo to-accent-indigo",
-        bg: "bg-accent-indigo",
-        light: "bg-accent-indigo-soft ",
-        border: "border-accent-indigo ",
-      },
-    ];
-    const colorScheme = colorSchemes[level % colorSchemes.length];
+    const hasChildren = (wbsItem.children?.length ?? 0) > 0;
+    const hasTasks = (wbsItem.tasks?.length ?? 0) > 0;
+    const isExpandable = hasChildren || hasTasks;
 
     return (
       <div
         key={`wbs-${wbsItem.wbs_id}`}
-        className={`${level > 0 ? "mt-4" : "mb-6"}`}
-        style={{ marginLeft: `${indentWidth}px` }}
+        className={level > 0 ? "mt-3" : "mb-4"}
       >
-        <div className="rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
-          {/* WBS Header with Gradient */}
-          <div
-            className={`px-6 py-4 bg-gradient-to-r ${colorScheme.gradient} text-white relative overflow-hidden`}
-          >
-            {/* Decorative background pattern */}
-            <div className="absolute inset-0 bg-white/10 opacity-20"></div>
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-16 translate-x-16"></div>
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-12 -translate-x-12"></div>
-
-            <div className="flex items-center justify-between relative z-10">
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center space-x-2">
-                  <div
-                    className={`w-3 h-3 rounded-full bg-surface shadow-md`}
-                  ></div>
-                </div>
-
-                <div>
-                  <div className="flex items-center space-x-3 mb-1">
-                    <h3 className="text-base font-bold text-white drop-shadow-sm">
-                      {wbsItem.name}
-                    </h3>
-                    <span className="px-2 py-1 bg-white/20 backdrop-blur-sm text-white rounded-full text-xs border border-white/30">
-                      WBS
-                    </span>
-                  </div>
-                  {wbsItem.description && (
-                    <p className="text-xs text-white/90 drop-shadow-sm">
-                      {wbsItem.description}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-4">
-                {/* Budget Information with Edit Functionality */}
-                <div className="text-right">
-                  <div className="grid grid-cols-3 gap-4 text-xs">
-                    {/* Planned Budget - Clickable for editing (except for root level) */}
-                    <div
-                      className={`${
-                        wbsItem.level === 0 || !canEditBudget()
-                          ? "cursor-not-allowed opacity-75"
-                          : `cursor-pointer hover:bg-white/10 ${
-                              isEditing
-                                ? "bg-white/20 ring-2 ring-white/50"
-                                : ""
-                            }`
-                      } rounded px-2 py-1 transition-colors`}
-                      onClick={() =>
-                        wbsItem.level !== 0 &&
-                        !isEditing &&
-                        canEditBudget() &&
-                        startEditing(wbsItem.wbs_id, budget.planned)
-                      }
-                      title={
-                        wbsItem.level === 0
-                          ? "Root WBS budget is linked to project budget"
-                          : !canEditBudget()
-                          ? "You don't have permission to edit budgets. Only PMO, PJM, or ADMIN users can modify budget data."
-                          : "Click to edit planned budget"
-                      }
-                    >
-                      <div className="text-white/80">
-                        Planned
-                        {wbsItem.level === 0 && (
-                          <span className="ml-1 text-xs opacity-60">
-                            (Project)
-                          </span>
-                        )}
-                      </div>
-                      {isEditing && wbsItem.level !== 0 ? (
-                        <div className="flex items-center space-x-1">
-                          <span className="text-xs text-white/90">OMR</span>
-                          <input
-                            type="number"
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onKeyDown={(e) => handleKeyPress(e, wbsItem.wbs_id)}
-                            onBlur={(e) => handleBlur(wbsItem.wbs_id)}
-                            className="w-16 px-1 py-0.5 text-xs border border-white/30 rounded bg-white/20 text-white placeholder-white/70 focus:outline-none focus:ring-1 focus:ring-white/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            autoFocus
-                            placeholder="0"
-                          />
-                        </div>
-                      ) : (
-                        <div className="font-bold text-white">
-                          OMR {budget.planned.toLocaleString()}
-                        </div>
-                      )}
-                    </div>
-
-                    <div>
-                      <div className="text-white/80">Actual</div>
-                      <div className="font-bold text-white">
-                        OMR {budget.actual.toLocaleString()}
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="text-white/80">Variance</div>
-                      <div
-                        className={`font-bold ${
-                          budget.variance >= 0
-                            ? "text-white"
-                            : "text-white"
-                        }`}
-                      >
-                        OMR {budget.variance.toLocaleString()}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Expand/Collapse Button */}
-                {wbsItem.children && wbsItem.children.length > 0 && (
-                  <button
-                    onClick={() => toggleExpand(wbsItem.wbs_id)}
-                    className="p-1 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
-                  >
-                    {wbsItem.isExpanded ? (
-                      <ChevronDown size={16} className="text-white" />
-                    ) : (
-                      <ChevronRight size={16} className="text-white" />
-                    )}
-                  </button>
+        <div
+          className={`grid items-center gap-4 rounded-xl border border-line bg-surface p-4 ${BUDGET_COLS}`}
+        >
+          <div className="flex items-center gap-3 min-w-0" style={{ paddingLeft: `${indentWidth}px` }}>
+            {/* Expand/Collapse Button */}
+            {isExpandable ? (
+              <button
+                onClick={() => toggleExpand(wbsItem.wbs_id)}
+                aria-label={wbsItem.isExpanded ? "Collapse WBS item" : "Expand WBS item"}
+                aria-expanded={wbsItem.isExpanded}
+                className="p-1 rounded hover:bg-surface-2 transition-colors shrink-0"
+              >
+                {wbsItem.isExpanded ? (
+                  <ChevronDown size={16} className="text-muted" aria-hidden="true" />
+                ) : (
+                  <ChevronRight size={16} className="text-muted" aria-hidden="true" />
                 )}
+              </button>
+            ) : (
+              <span className="w-3 h-3 shrink-0" />
+            )}
+            <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${levelDotColor(level)}`} aria-hidden="true" />
+
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <h3 className="text-[14.5px] font-semibold text-ink truncate">
+                  {wbsItem.name}
+                </h3>
+                <StatusBadge label="WBS" tone="neutral" />
               </div>
+              {wbsItem.description && (
+                <p className="text-[12.5px] text-muted truncate">
+                  {wbsItem.description}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Planned Budget - Clickable for editing (except for root level) */}
+          <div
+            className={`${
+              wbsItem.level === 0 || !canEditBudget()
+                ? "cursor-not-allowed opacity-75"
+                : `cursor-pointer hover:bg-surface-2 ${
+                    isEditing ? "bg-bright-soft ring-1 ring-bright" : ""
+                  }`
+            } rounded px-2 py-1 transition-colors text-xs`}
+            onClick={() =>
+              wbsItem.level !== 0 &&
+              !isEditing &&
+              canEditBudget() &&
+              startEditing(wbsItem.wbs_id, budget.planned)
+            }
+            title={
+              wbsItem.level === 0
+                ? "Root WBS budget is linked to project budget"
+                : !canEditBudget()
+                ? "You don't have permission to edit budgets. Only PMO, PJM, or ADMIN users can modify budget data."
+                : "Click to edit planned budget"
+            }
+          >
+            {wbsItem.level === 0 && (
+              <div className="text-muted text-[11px] opacity-70">(Project)</div>
+            )}
+            {isEditing && wbsItem.level !== 0 ? (
+              <div className="flex items-center space-x-1">
+                <span className="text-[11px] text-muted">OMR</span>
+                <input
+                  type="number"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  onKeyDown={(e) => handleKeyPress(e, wbsItem.wbs_id)}
+                  onBlur={(e) => handleBlur(wbsItem.wbs_id)}
+                  className="w-16 px-1 py-0.5 text-xs border border-line rounded bg-surface text-ink focus:outline-none focus:ring-1 focus:ring-bright [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  autoFocus
+                  placeholder="0"
+                />
+              </div>
+            ) : (
+              <div className="font-semibold text-ink">
+                OMR {budget.planned.toLocaleString()}
+              </div>
+            )}
+          </div>
+
+          <div className="text-xs px-2 py-1">
+            <div className="font-semibold text-ink">
+              OMR {budget.actual.toLocaleString()}
+            </div>
+          </div>
+
+          <div className="text-xs px-2 py-1">
+            <div className={`font-semibold ${budget.variance < 0 ? "text-danger" : "text-ink"}`}>
+              OMR {budget.variance.toLocaleString()}
             </div>
           </div>
         </div>
@@ -885,14 +828,14 @@ const ProjectBudgetPage = () => {
         {wbsItem.isExpanded &&
           wbsItem.children &&
           wbsItem.children.length > 0 && (
-            <div className="mt-4">
+            <div className="mt-3">
               {wbsItem.children.map((child) => renderWBSItem(child, level + 1))}
             </div>
           )}
 
         {/* Render tasks if expanded */}
         {wbsItem.isExpanded && wbsItem.tasks && wbsItem.tasks.length > 0 && (
-          <div className="mt-4">
+          <div className="mt-3">
             {wbsItem.tasks.map((task) => renderTask(task, level))}
           </div>
         )}
@@ -905,140 +848,89 @@ const ProjectBudgetPage = () => {
     const indentWidth = (wbsLevel + 1) * 24; // Additional indent for tasks
     const isEditing = editingTask === task.task_id;
 
-    // Consistent color scheme for all tasks
-    const taskColorScheme = {
-      gradient: "from-muted to-muted",
-      bg: "bg-muted",
-      light: "bg-surface-2 ",
-      border: "border-line ",
-    };
-
     return (
-      <div
-        key={`task-${task.task_id}`}
-        className="mt-4"
-        style={{ marginLeft: `${indentWidth}px` }}
-      >
-        <div className="rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
-          {/* Task Header with Gradient */}
+      <div key={`task-${task.task_id}`} className="mt-3">
+        <div
+          className={`grid items-center gap-4 rounded-xl border border-line bg-surface-2 p-4 ${BUDGET_COLS}`}
+        >
+          <div className="flex items-center gap-3 min-w-0" style={{ paddingLeft: `${indentWidth}px` }}>
+            <CheckSquare className="w-4 h-4 text-muted shrink-0" aria-hidden="true" />
+
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <h4 className="text-[13.5px] font-semibold text-ink truncate">
+                  {task.name}
+                </h4>
+                {task.is_milestone && (
+                  <StatusBadge label="Milestone" tone="warning" />
+                )}
+                {task.is_critical_path && (
+                  <StatusBadge label="Critical" tone="danger" />
+                )}
+                {!task.is_milestone && !task.is_critical_path && (
+                  <StatusBadge label="Task" tone="neutral" />
+                )}
+              </div>
+              {task.description && (
+                <p className="text-[12px] text-muted truncate">
+                  {task.description}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Planned Budget - Clickable for editing */}
           <div
-            className={`px-6 py-4 bg-gradient-to-r ${taskColorScheme.gradient} text-white relative overflow-hidden`}
+            className={`${
+              !canEditBudget()
+                ? "cursor-not-allowed opacity-75"
+                : `cursor-pointer hover:bg-surface-3 ${
+                    isEditing ? "bg-bright-soft ring-1 ring-bright" : ""
+                  }`
+            } rounded px-2 py-1 transition-colors text-xs`}
+            onClick={() =>
+              !isEditing &&
+              canEditBudget() &&
+              startTaskEditing(task.task_id, taskBudget.planned)
+            }
+            title={
+              !canEditBudget()
+                ? "You don't have permission to edit budgets. Only PMO, PJM, or ADMIN users can modify budget data."
+                : "Click to edit planned budget"
+            }
           >
-            {/* Decorative background pattern */}
-            <div className="absolute inset-0 bg-white/10 opacity-20"></div>
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-16 translate-x-16"></div>
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-12 -translate-x-12"></div>
-
-            <div className="flex items-center justify-between relative z-10">
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center space-x-2">
-                  <CheckSquare className="w-4 h-4 text-white" />
-                </div>
-
-                <div>
-                  <div className="flex items-center space-x-3 mb-1">
-                    <h4 className="text-base font-bold text-white drop-shadow-sm">
-                      {task.name}
-                    </h4>
-                    {task.is_milestone ? (
-                      <span className="px-2 py-1 bg-warning/30 backdrop-blur-sm text-white rounded-full text-xs border border-warning/50">
-                        Milestone
-                      </span>
-                    ) : task.is_critical_path ? (
-                      <span className="px-2 py-1 bg-danger/30 backdrop-blur-sm text-white rounded-full text-xs border border-danger/50">
-                        Critical
-                      </span>
-                    ) : (
-                      <span className="px-2 py-1 bg-white/20 backdrop-blur-sm text-white rounded-full text-xs border border-white/30">
-                        Task
-                      </span>
-                    )}
-                    {task.is_milestone && task.is_critical_path && (
-                      <span className="px-2 py-1 bg-danger/30 backdrop-blur-sm text-white rounded-full text-xs border border-danger/50">
-                        Critical
-                      </span>
-                    )}
-                  </div>
-                  {task.description && (
-                    <p className="text-xs text-white/90 drop-shadow-sm">
-                      {task.description}
-                    </p>
-                  )}
-                </div>
+            {isEditing ? (
+              <div className="flex items-center space-x-1">
+                <span className="text-[11px] text-muted">OMR</span>
+                <input
+                  type="number"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  onKeyDown={(e) =>
+                    handleTaskKeyPress(e, task.task_id)
+                  }
+                  onBlur={(e) => handleTaskBlur(task.task_id)}
+                  className="w-16 px-1 py-0.5 text-xs border border-line rounded bg-surface text-ink focus:outline-none focus:ring-1 focus:ring-bright [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  autoFocus
+                  placeholder="0"
+                />
               </div>
-
-              <div className="flex items-center space-x-4">
-                {/* Task Budget Information with Edit Functionality */}
-                <div className="text-right">
-                  <div className="grid grid-cols-3 gap-4 text-xs">
-                    {/* Planned Budget - Clickable for editing */}
-                    <div
-                      className={`${
-                        !canEditBudget()
-                          ? "cursor-not-allowed opacity-75"
-                          : `cursor-pointer hover:bg-white/10 ${
-                              isEditing
-                                ? "bg-white/20 ring-2 ring-white/50"
-                                : ""
-                            }`
-                      } rounded px-2 py-1 transition-colors`}
-                      onClick={() =>
-                        !isEditing &&
-                        canEditBudget() &&
-                        startTaskEditing(task.task_id, taskBudget.planned)
-                      }
-                      title={
-                        !canEditBudget()
-                          ? "You don't have permission to edit budgets. Only PMO, PJM, or ADMIN users can modify budget data."
-                          : "Click to edit planned budget"
-                      }
-                    >
-                      <div className="text-white/80">Planned</div>
-                      {isEditing ? (
-                        <div className="flex items-center space-x-1">
-                          <span className="text-xs text-white/90">OMR</span>
-                          <input
-                            type="number"
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onKeyDown={(e) =>
-                              handleTaskKeyPress(e, task.task_id)
-                            }
-                            onBlur={(e) => handleTaskBlur(task.task_id)}
-                            className="w-16 px-1 py-0.5 text-xs border border-white/30 rounded bg-white/20 text-white placeholder-white/70 focus:outline-none focus:ring-1 focus:ring-white/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            autoFocus
-                            placeholder="0"
-                          />
-                        </div>
-                      ) : (
-                        <div className="font-bold text-white">
-                          OMR {taskBudget.planned.toLocaleString()}
-                        </div>
-                      )}
-                    </div>
-
-                    <div>
-                      <div className="text-white/80">Actual</div>
-                      <div className="font-bold text-white">
-                        OMR {taskBudget.actual.toLocaleString()}
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="text-white/80">Variance</div>
-                      <div
-                        className={`font-bold ${
-                          taskBudget.variance >= 0
-                            ? "text-white"
-                            : "text-white"
-                        }`}
-                      >
-                        OMR {taskBudget.variance.toLocaleString()}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+            ) : (
+              <div className="font-semibold text-ink">
+                OMR {taskBudget.planned.toLocaleString()}
               </div>
+            )}
+          </div>
+
+          <div className="text-xs px-2 py-1">
+            <div className="font-semibold text-ink">
+              OMR {taskBudget.actual.toLocaleString()}
+            </div>
+          </div>
+
+          <div className="text-xs px-2 py-1">
+            <div className={`font-semibold ${taskBudget.variance < 0 ? "text-danger" : "text-ink"}`}>
+              OMR {taskBudget.variance.toLocaleString()}
             </div>
           </div>
         </div>
@@ -1049,66 +941,41 @@ const ProjectBudgetPage = () => {
   return (
     <DashboardLayout
       title="Project Budget"
+      backHref={
+        showNavButtons
+          ? `/projects/${projectId}/setup`
+          : `/projects/${projectId}`
+      }
+      backLabel="Back to Project"
+      subtitle={
+        project ? `${project.name} (${project.project_code})` : undefined
+      }
+      meta={
+        user ? (
+          <StatusBadge
+            label={`${user.role.name} ${canEditBudget() ? "(Edit Access)" : "(Read Only)"}`}
+            tone={canEditBudget() ? "success" : "warning"}
+          />
+        ) : undefined
+      }
       onViewChange={setActiveView}
       activeView={activeView}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={() => {
-              if (showNavButtons) {
-                router.push(`/projects/${projectId}/setup`);
-              } else {
-                router.push(`/projects/${projectId}`);
-              }
-            }}
-            className="p-2 rounded-lg text-faint hover:text-muted hover:bg-surface-2 transition-colors"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <div>
-            <div className="flex items-center space-x-3">
-              <h1 className="text-2xl font-bold text-ink">
-                Project Budget
-              </h1>
-              {user && (
-                <span
-                  className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    canEditBudget()
-                      ? "bg-success-soft text-success  "
-                      : "bg-warning-soft text-warning  "
-                  }`}
-                >
-                  {user.role.name}{" "}
-                  {canEditBudget() ? "(Edit Access)" : "(Read Only)"}
-                </span>
-              )}
-            </div>
-            {project && (
-              <p className="text-muted">
-                {project.name} ({project.project_code})
-              </p>
-            )}
-          </div>
-        </div>
-
-      </div>
-
       {/* Error Message */}
       {error && (
-        <div className="mb-6 p-4 bg-danger-soft border border-danger rounded-lg shadow-sm">
+        <div className="mb-6 rounded-xl border border-line border-l-[3px] border-l-danger bg-surface p-4">
           <div className="flex items-start space-x-3">
-            <AlertTriangle className="w-5 h-5 text-danger mt-0.5 flex-shrink-0" />
+            <AlertTriangle className="w-5 h-5 text-danger mt-0.5 flex-shrink-0" aria-hidden="true" />
             <div className="flex-1">
-              <h3 className="text-sm font-medium text-danger mb-1">
+              <h3 className="font-display text-[14.5px] font-semibold text-ink mb-1">
                 Budget Validation Error
               </h3>
-              <p className="text-sm text-danger">{error}</p>
+              <p className="text-[13px] text-muted">{error}</p>
             </div>
             <button
+              aria-label="Dismiss error"
               onClick={() => setError(null)}
-              className="text-danger hover:text-danger transition-colors"
+              className="text-faint hover:text-ink transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -1118,14 +985,14 @@ const ProjectBudgetPage = () => {
 
       {/* Access Control Notice */}
       {!canEditBudget() && (
-        <div className="mb-6 p-4 bg-info-soft border border-info rounded-lg shadow-sm">
+        <div className="mb-6 rounded-xl border border-line border-l-[3px] border-l-info bg-surface p-4">
           <div className="flex items-start space-x-3">
-            <AlertTriangle className="w-5 h-5 text-info mt-0.5 flex-shrink-0" />
+            <AlertTriangle className="w-5 h-5 text-info mt-0.5 flex-shrink-0" aria-hidden="true" />
             <div className="flex-1">
-              <h3 className="text-sm font-medium text-info mb-1">
+              <h3 className="font-display text-[14.5px] font-semibold text-ink mb-1">
                 Read-Only Access
               </h3>
-              <p className="text-sm text-info">
+              <p className="text-[13px] text-muted">
                 You have read-only access to this budget page. Only users with
                 PMO, PJM, or ADMIN roles can edit budget data.
               </p>
@@ -1136,43 +1003,36 @@ const ProjectBudgetPage = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-surface rounded-xl shadow p-4 flex items-center space-x-3">
-          <DollarSign className="w-8 h-8 text-success" />
-          <div>
-            <p className="text-sm text-muted">
-              Total Planned
-            </p>
-            <p className="text-lg font-semibold text-ink">
-              OMR {totalPlanned.toLocaleString()}
-            </p>
-          </div>
-        </div>
-        <div className="bg-surface rounded-xl shadow p-4 flex items-center space-x-3">
-          <BarChart3 className="w-8 h-8 text-info" />
-          <div>
-            <p className="text-sm text-muted">
-              Total Actual
-            </p>
-            <p className="text-lg font-semibold text-ink">
-              OMR {totalActual.toLocaleString()}
-            </p>
-          </div>
-        </div>
-        <div className="bg-surface rounded-xl shadow p-4 flex items-center space-x-3">
-          <Calendar className="w-8 h-8 text-accent-violet" />
-          <div>
-            <p className="text-sm text-muted">
-              Total Variance
-            </p>
-            <p className="text-lg font-semibold text-ink">
-              OMR {totalVariance.toLocaleString()}
-            </p>
-          </div>
-        </div>
+        <StatCard
+          label="Total Planned"
+          value={`OMR ${totalPlanned.toLocaleString()}`}
+          icon={DollarSign}
+          tone="brand"
+        />
+        <StatCard
+          label="Total Actual"
+          value={`OMR ${totalActual.toLocaleString()}`}
+          icon={BarChart3}
+          tone="info"
+        />
+        <StatCard
+          label="Total Variance"
+          value={`OMR ${totalVariance.toLocaleString()}`}
+          icon={Calendar}
+          tone={totalVariance < 0 ? "danger" : "success"}
+        />
       </div>
 
       {/* Hierarchical WBS Budget View */}
       <div className="space-y-4">
+        {!loading && wbsData.length > 0 && (
+          <div className={`grid gap-4 px-4 text-[11px] font-medium uppercase tracking-wide text-muted ${BUDGET_COLS}`}>
+            <span>WBS / Task</span>
+            <span>Planned</span>
+            <span>Actual</span>
+            <span>Variance</span>
+          </div>
+        )}
         {loading ? (
           <div className="text-center py-8">
             <Spinner size={32} className="mx-auto text-bright-primary" />

@@ -26,7 +26,6 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, Calendar, Plus, Download, Eye, Users, Search } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
-import { LoadingState, Spinner } from "@/components/ui/spinner";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ViewToggle, type ListViewMode } from "@/components/ui/view-toggle";
 import { PersonCell } from "@/components/ui/person-cell";
@@ -39,10 +38,13 @@ import {
   EntityStats,
 } from "@/components/ui/entity-card";
 import {
+  CardSkeleton,
   ListCard,
   ListHead,
   ListMessage,
+  ListRegion,
   ListRow,
+  ListSkeleton,
   NewButton,
   RowAction,
   RowActions,
@@ -482,16 +484,6 @@ export default function TimesheetPage() {
     });
   };
 
-  if (loading) {
-    return (
-      <DashboardLayout title="My Timesheet">
-        <div className="flex items-center justify-center h-64">
-          <Spinner size={48} className="text-bright-primary" />
-        </div>
-      </DashboardLayout>
-    );
-  }
-
   const currentTimesheets = getCurrentWeekTimesheets();
 
   return (
@@ -708,7 +700,19 @@ export default function TimesheetPage() {
                 />
               </FilterBar>
 
-              {visibleTimesheets.length === 0 ? (
+              <ListRegion busy={loading}>
+              {loading ? (
+                view === "grid" ? (
+                  <CardSkeleton />
+                ) : (
+                  <ListCard>
+                    <table className="w-full border-collapse">
+                      <ListHead columns={TIMESHEET_COLUMNS} />
+                      <ListSkeleton columns={TIMESHEET_COLUMNS.length} />
+                    </table>
+                  </ListCard>
+                )
+              ) : visibleTimesheets.length === 0 ? (
                 <EmptyState
                   icon={<Calendar className="h-10 w-10" />}
                   title="No timesheets found"
@@ -762,7 +766,9 @@ export default function TimesheetPage() {
                 </ListCard>
               )}
 
-              {visibleTimesheets.length > 0 && (
+              </ListRegion>
+
+              {!loading && visibleTimesheets.length > 0 && (
                 <ListPagination
                   page={page}
                   pageCount={timesheetPageCount}
@@ -858,8 +864,18 @@ export default function TimesheetPage() {
                   />
                 </FilterBar>
 
+                <ListRegion busy={allTeamLoading}>
                 {allTeamLoading ? (
-                  <LoadingState label="Loading team timesheets…" />
+                  view === "grid" ? (
+                    <CardSkeleton />
+                  ) : (
+                    <ListCard>
+                      <table className="w-full border-collapse">
+                        <ListHead columns={TEAM_COLUMNS} />
+                        <ListSkeleton columns={TEAM_COLUMNS.length} />
+                      </table>
+                    </ListCard>
+                  )
                 ) : visibleTeamTimesheets.length === 0 ? (
                   <EmptyState
                     icon={<Clock className="h-10 w-10" />}
@@ -908,6 +924,8 @@ export default function TimesheetPage() {
                     </table>
                   </ListCard>
                 )}
+
+                </ListRegion>
 
                 {!allTeamLoading && visibleTeamTimesheets.length > 0 && (
                   <ListPagination

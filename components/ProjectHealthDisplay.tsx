@@ -102,11 +102,19 @@ export default function ProjectHealthDisplay({
   }, [projectId]);
 
   const getHealthColor = (score: number) => {
-    if (score >= 90) return "text-success bg-success-soft border-success";
-    if (score >= 80) return "text-info bg-info-soft border-info";
-    if (score >= 70) return "text-warning bg-warning-soft border-warning";
-    if (score >= 60) return "text-bright bg-bright-soft border-bright";
-    return "text-danger bg-danger-soft border-danger";
+    if (score >= 90) return "text-success bg-success-soft border-line";
+    if (score >= 80) return "text-info bg-info-soft border-line";
+    if (score >= 70) return "text-warning bg-warning-soft border-line";
+    if (score >= 60) return "text-bright bg-bright-soft border-line";
+    return "text-danger bg-danger-soft border-line";
+  };
+
+  const getHealthAccent = (score: number) => {
+    if (score >= 90) return "border-l-success";
+    if (score >= 80) return "border-l-info";
+    if (score >= 70) return "border-l-warning";
+    if (score >= 60) return "border-l-bright";
+    return "border-l-danger";
   };
 
   const getScoreColor = (score: number) => {
@@ -165,15 +173,15 @@ export default function ProjectHealthDisplay({
     <div className="space-y-6">
       {/* Header with Overall Health Score */}
       <div
-        className={`rounded-xl border p-6 ${getHealthColor(
+        className={`rounded-xl border border-line bg-surface border-l-[3px] p-6 ${getHealthAccent(
           healthData.healthScore
         )}`}
       >
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold mb-2">Project Health Score</h2>
+            <h2 className="text-2xl font-bold mb-2 text-ink">Project Health Score</h2>
             <div className="flex items-center space-x-4">
-              <span className="text-4xl font-bold">
+              <span className={`text-4xl font-bold ${getScoreColor(healthData.healthScore)}`}>
                 {healthData.healthScore}%
               </span>
               <div>
@@ -184,11 +192,11 @@ export default function ProjectHealthDisplay({
                 >
                   Grade {healthData.healthGrade}
                 </div>
-                <div className="text-sm mt-1">{healthData.healthStatus}</div>
+                <div className="text-sm mt-1 text-muted">{healthData.healthStatus}</div>
               </div>
             </div>
           </div>
-          <div className="flex items-center">
+          <div className={`flex items-center ${getScoreColor(healthData.healthScore)}`}>
             <Activity className="h-8 w-8 opacity-60" />
           </div>
         </div>
@@ -196,10 +204,10 @@ export default function ProjectHealthDisplay({
 
       {/* Risk Flags */}
       {healthData.riskFlags.length > 0 && (
-        <div className="bg-danger-soft border border-danger rounded-xl p-4">
+        <div className="rounded-xl border border-line border-l-[3px] border-l-danger bg-surface p-4">
           <div className="flex items-center mb-3">
             <AlertTriangle className="h-5 w-5 text-danger mr-2" />
-            <h3 className="text-lg font-semibold text-danger">
+            <h3 className="text-lg font-semibold text-ink">
               Critical Issues
             </h3>
           </div>
@@ -207,7 +215,7 @@ export default function ProjectHealthDisplay({
             {healthData.riskFlags.map((flag, index) => (
               <li key={index} className="flex items-start">
                 <AlertCircle className="h-4 w-4 text-danger mr-2 mt-0.5 flex-shrink-0" />
-                <span className="text-sm text-danger">
+                <span className="text-sm text-ink-2">
                   {flag}
                 </span>
               </li>
@@ -552,20 +560,20 @@ export default function ProjectHealthDisplay({
         <div className="space-y-6">
           {/* Recommendations */}
           {healthData.recommendations.length > 0 ? (
-            <div className="bg-info-soft border border-info rounded-xl p-6">
-              <h3 className="text-lg font-semibold mb-4 flex items-center text-info">
-                <TrendingUp className="h-5 w-5 mr-2" />
+            <div className="rounded-xl border border-line border-l-[3px] border-l-bright bg-surface p-6">
+              <h3 className="text-lg font-semibold mb-4 flex items-center text-ink">
+                <TrendingUp className="h-5 w-5 mr-2 text-bright" />
                 Actionable Recommendations
               </h3>
               <ul className="space-y-3">
                 {healthData.recommendations.map((recommendation, index) => (
                   <li key={index} className="flex items-start">
-                    <div className="flex-shrink-0 w-6 h-6 bg-info-soft rounded-full flex items-center justify-center mr-3 mt-0.5">
-                      <span className="text-xs font-medium text-info">
+                    <div className="flex-shrink-0 w-6 h-6 bg-bright-soft rounded-full flex items-center justify-center mr-3 mt-0.5">
+                      <span className="text-xs font-medium text-bright-deep">
                         {index + 1}
                       </span>
                     </div>
-                    <span className="text-sm text-info">
+                    <span className="text-sm text-ink-2">
                       {recommendation}
                     </span>
                   </li>
@@ -573,12 +581,12 @@ export default function ProjectHealthDisplay({
               </ul>
             </div>
           ) : (
-            <div className="bg-success-soft border border-success rounded-xl p-6 text-center">
+            <div className="rounded-xl border border-line border-l-[3px] border-l-success bg-surface p-6 text-center">
               <CheckCircle className="mx-auto h-12 w-12 text-success mb-3" />
-              <h3 className="text-lg font-semibold text-success mb-2">
+              <h3 className="text-lg font-semibold text-ink mb-2">
                 Great Job!
               </h3>
-              <p className="text-sm text-success">
+              <p className="text-sm text-muted">
                 Your project is performing well across all health metrics. No
                 specific recommendations at this time.
               </p>
@@ -586,9 +594,9 @@ export default function ProjectHealthDisplay({
           )}
 
           {/* Health Score Explanation */}
-          <div className="bg-surface-2 border border-line rounded-xl p-6">
-            <h3 className="text-lg font-semibold mb-4 flex items-center">
-              <Info className="h-5 w-5 mr-2" />
+          <div className="bg-surface border border-line rounded-xl p-6">
+            <h3 className="text-lg font-semibold mb-4 flex items-center text-ink">
+              <Info className="h-5 w-5 mr-2 text-info" />
               How Health Score is Calculated
             </h3>
             <div className="space-y-4 text-sm text-muted">

@@ -29,10 +29,11 @@ const ProjectScheduleHeader: React.FC<ProjectScheduleHeaderProps> = ({
         <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
                 <button
+                  aria-label="Go back"
                     onClick={onBack}
                     className="p-2 hover:bg-surface-2 rounded-lg"
                 >
-                    <ArrowLeft size={20} />
+                    <ArrowLeft size={20} aria-hidden="true" />
                 </button>
                 <div>
                     <h1 className="text-2xl font-bold text-ink">

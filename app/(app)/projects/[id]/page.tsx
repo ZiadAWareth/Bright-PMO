@@ -2,7 +2,10 @@
 
 import React from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { StatusBadge } from "@/components/ui/form-shell";
+import {
+  EntityCode,
+  StatusBadge,
+} from "@/components/ui/form-shell";
 import {
     humanize,
     priorityTone,
@@ -44,6 +47,7 @@ import DocumentsSection from "./_components/DocumentsSection";
 import CriticalPathSection from "./_components/CriticalPathSection";
 import ClosureSection from "./_components/ClosureSection";
 import { Spinner } from "@/components/ui/spinner";
+import { Modal } from "@/components/ui/modal";
 import { UserAvatar } from "@/components/ui/person-cell";
 import { Dropdown } from "@/components/ui/dropdown";
 import { TabRow } from "@/components/ui/tab-row";
@@ -107,6 +111,36 @@ const ProjectDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => 
                             label={humanize(project.priority)}
                             tone={priorityTone(project.priority)}
                         />
+                        {roleSpecificActions[0] && (
+                            <button onClick={() => d.handleActionClick(roleSpecificActions[0].action)} className={`group flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 ${roleSpecificActions[0].variant === "primary" ? "bg-bright text-white hover:bg-bright-deep focus:ring-bright" : roleSpecificActions[0].variant === "danger" ? "bg-danger text-white hover:opacity-90 focus:ring-danger" : "border border-line text-ink-3 hover:bg-surface-2 hover:border-line  focus:ring-line"}`}>
+                                <span>{roleSpecificActions[0].icon}</span>
+                                <span>{roleSpecificActions[0].label}</span>
+                            </button>
+                        )}
+                        {roleSpecificActions.length > 1 && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <button
+                                        aria-label="More project actions"
+                                        className="flex items-center justify-center h-[38px] w-[38px] rounded-lg border border-line text-ink-3 hover:bg-surface-2 hover:border-line transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-line"
+                                    >
+                                        <MoreHorizontal size={18} aria-hidden="true" />
+                                    </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    {roleSpecificActions.slice(1).map((action, index) => (
+                                        <DropdownMenuItem
+                                            key={index}
+                                            onClick={() => d.handleActionClick(action.action)}
+                                            variant={action.variant === "danger" ? "destructive" : "default"}
+                                        >
+                                            {action.icon}
+                                            <span>{action.label}</span>
+                                        </DropdownMenuItem>
+                                    ))}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
                     </>
                 }
                 meta={
@@ -115,6 +149,10 @@ const ProjectDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => 
                         <span className="inline-flex items-center gap-1.5"><MapPin size={14} aria-hidden="true" />{project.location}</span>
                         <span className="inline-flex items-center gap-1.5"><Users size={14} aria-hidden="true" />{project.team_members.length} members</span>
                         <span className="inline-flex items-center gap-1.5"><Calendar size={14} aria-hidden="true" />{new Date(project.start_date).toLocaleDateString()} – {new Date(project.planned_end_date).toLocaleDateString()}</span>
+                        <span className="inline-flex items-center gap-1.5">Managed by <span className="font-medium text-ink">{project.manager ? `${project.manager.account.first_name} ${project.manager.account.last_name}` : "No manager assigned"}</span></span>
+                        {d.activeView === "admin" && (
+                            <span className="inline-flex items-center gap-1.5">{`Created by ${project.creator.account.first_name} ${project.creator.account.last_name}`} on {new Date(project.created_at).toLocaleDateString()}</span>
+                        )}
                     </div>
                 }
                 onViewChange={d.setActiveView}
@@ -182,51 +220,6 @@ const ProjectDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => 
                             <div className="mt-auto w-full bg-surface-3 rounded-full h-1.5">
                                 <div className={`${riskColors.bg} h-1.5 rounded-full transition-all duration-300`} style={{ width: `${riskScorePercent}%` }}></div>
                             </div>
-                        </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex items-center justify-between pt-4 border-t border-line">
-                        <div className="flex items-center space-x-4">
-                            <span className="text-sm text-muted">Managed by <span className="font-medium text-ink">{project.manager ? `${project.manager.account.first_name} ${project.manager.account.last_name}` : "No manager assigned"}</span></span>
-                            {d.activeView === "admin" && (
-                                <span className="text-sm text-muted">{`Created by ${project.creator.account.first_name} ${project.creator.account.last_name}`} on {new Date(project.created_at).toLocaleDateString()}</span>
-                            )}
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            {/* Only the primary action stays a visible button; everything
-                                else (Archive, Delete, etc.) lives behind the overflow menu
-                                so this row doesn't grow with every role's action list. */}
-                            {roleSpecificActions[0] && (
-                                <button onClick={() => d.handleActionClick(roleSpecificActions[0].action)} className={`group flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 ${roleSpecificActions[0].variant === "primary" ? "bg-bright text-white hover:bg-bright-deep focus:ring-bright" : roleSpecificActions[0].variant === "danger" ? "bg-danger text-white hover:opacity-90 focus:ring-danger" : "border border-line text-ink-3 hover:bg-surface-2 hover:border-line  focus:ring-line"}`}>
-                                    <span>{roleSpecificActions[0].icon}</span>
-                                    <span>{roleSpecificActions[0].label}</span>
-                                </button>
-                            )}
-                            {roleSpecificActions.length > 1 && (
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <button
-                                            aria-label="More project actions"
-                                            className="flex items-center justify-center h-[38px] w-[38px] rounded-lg border border-line text-ink-3 hover:bg-surface-2 hover:border-line transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-line"
-                                        >
-                                            <MoreHorizontal size={18} />
-                                        </button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        {roleSpecificActions.slice(1).map((action, index) => (
-                                            <DropdownMenuItem
-                                                key={index}
-                                                onClick={() => d.handleActionClick(action.action)}
-                                                variant={action.variant === "danger" ? "destructive" : "default"}
-                                            >
-                                                {action.icon}
-                                                <span>{action.label}</span>
-                                            </DropdownMenuItem>
-                                        ))}
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            )}
                         </div>
                     </div>
                 </div>
@@ -322,7 +315,7 @@ const ProjectDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => 
                     {d.activeTab === "team" && <TeamSection project={project} projectId={d.projectId} router={d.router} />}
                     {d.activeTab === "budget" && <BudgetSection project={project} projectId={d.projectId} router={d.router} />}
                     {d.activeTab === "schedule" && <ScheduleSection project={project} projectId={d.projectId} router={d.router} />}
-                    {d.activeTab === "risks" && <RisksSection risks={d.risks} projectId={d.projectId} router={d.router} />}
+                    {d.activeTab === "risks" && <RisksSection risks={d.risks} projectId={d.projectId} router={d.router} onRiskAdded={d.fetchRisks} />}
                     {d.activeTab === "procurement" && ["admin", "project-manager", "pmo", "procurement"].includes(d.activeView) && <ProcurementDetailSection projectId={d.projectId} procurements={d.procurements} setProcurements={d.setProcurements} />}
                     {d.activeTab === "documents" && <DocumentsSection project={project} activeView={d.activeView} setShowExportModal={d.setShowExportModal} handleFileSelect={d.handleFileSelect} handleDownloadDocument={d.handleDownloadDocument} handleViewDocument={d.handleViewDocument} handleDeleteDocument={d.handleDeleteDocument} />}
                     {d.activeTab === "critical-path" && <CriticalPathSection project={project} projectId={d.projectId} router={d.router} />}
@@ -341,51 +334,50 @@ const ProjectDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => 
 
                 {/* Delete Confirmation Modal */}
                 {d.showDeleteConfirmation && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: "rgba(0, 0, 0, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} onClick={() => d.setShowDeleteConfirmation(false)}>
-                        <div className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"  onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center mb-4">
-                                <div className="w-12 h-12 bg-danger-soft rounded-full flex items-center justify-center mr-4"><AlertTriangle className="w-6 h-6 text-danger" /></div>
-                                <div><h3 className="text-lg font-semibold text-ink">Delete Project</h3><p className="text-sm text-muted">This action cannot be undone</p></div>
-                            </div>
-                            <p className="text-ink-3 mb-6">Are you sure you want to delete <strong>&quot;{project?.name}&quot;</strong>? This will permanently delete the project and all associated data.</p>
-                            <div className="flex justify-end space-x-3">
-                                <button onClick={() => d.setShowDeleteConfirmation(false)} disabled={d.isDeleting} className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50">Cancel</button>
+                                        <Modal
+                      open
+                      onClose={() => d.setShowDeleteConfirmation(false)}
+                      title="Delete Project"
+                      description="This action cannot be undone"
+                      icon={<span className="grid h-9 w-9 place-items-center rounded-full bg-danger-soft"><AlertTriangle className="h-5 w-5 text-danger" /></span>}
+                      footer={<><button onClick={() => d.setShowDeleteConfirmation(false)} disabled={d.isDeleting} className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50">Cancel</button>
                                 <button onClick={d.handleDeleteProject} disabled={d.isDeleting} className="px-4 py-2 bg-danger text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 flex items-center space-x-2">
                                     {d.isDeleting && <Spinner size={16} />}<span>{d.isDeleting ? "Deleting..." : "Delete Project"}</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                                </button></>}
+                    >
+                      <p className="text-ink-3 mb-6">Are you sure you want to delete <strong>&quot;{project?.name}&quot;</strong>? This will permanently delete the project and all associated data.</p>
+                    </Modal>
                 )}
 
                 {/* Archive Confirmation Modal */}
                 {d.showArchiveConfirmation && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: "rgba(0, 0, 0, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} onClick={() => d.setShowArchiveConfirmation(false)}>
-                        <div className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"  onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center mb-4">
-                                <div className="w-12 h-12 bg-bright-soft rounded-full flex items-center justify-center mr-4"><Archive className="w-6 h-6 text-bright" /></div>
-                                <div><h3 className="text-lg font-semibold text-ink">Archive Project</h3><p className="text-sm text-muted">This will move the project to archive</p></div>
-                            </div>
-                            <p className="text-ink-3 mb-6">Are you sure you want to archive <strong>&quot;{project?.name}&quot;</strong>? This will move the project to the archived projects section. You can unarchive it later if needed.</p>
-                            <div className="flex justify-end space-x-3">
-                                <button onClick={() => d.setShowArchiveConfirmation(false)} disabled={d.isArchiving} className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50">Cancel</button>
+                                        <Modal
+                      open
+                      onClose={() => d.setShowArchiveConfirmation(false)}
+                      title="Archive Project"
+                      description="This will move the project to archive"
+                      icon={<span className="grid h-9 w-9 place-items-center rounded-full bg-bright-soft"><Archive className="h-5 w-5 text-bright" /></span>}
+                      footer={<><button onClick={() => d.setShowArchiveConfirmation(false)} disabled={d.isArchiving} className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50">Cancel</button>
                                 <button onClick={d.handleArchiveProject} disabled={d.isArchiving} className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors disabled:opacity-50 flex items-center space-x-2">
                                     {d.isArchiving && <Spinner size={16} />}<Archive size={16} /><span>{d.isArchiving ? "Archiving..." : "Archive Project"}</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                                </button></>}
+                    >
+                      <p className="text-ink-3 mb-6">Are you sure you want to archive <strong>&quot;{project?.name}&quot;</strong>? This will move the project to the archived projects section. You can unarchive it later if needed.</p>
+                    </Modal>
                 )}
 
                 {/* Change Manager Modal */}
                 {d.showChangeManagerModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: "rgba(0, 0, 0, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} onClick={() => d.setShowChangeManagerModal(false)}>
-                        <div className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"  onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-xl font-semibold text-ink">Change Project Manager</h3>
-                                <button onClick={() => d.setShowChangeManagerModal(false)} className="p-2 text-faint hover:text-muted rounded-full hover:bg-surface-2">×</button>
-                            </div>
-                            <div className="mb-6">
+                                        <Modal
+                      open
+                      onClose={() => d.setShowChangeManagerModal(false)}
+                      title="Change Project Manager"
+                      footer={<><button onClick={() => { d.setShowChangeManagerModal(false); d.setSelectedManagerId(""); }} disabled={d.isChangingManager} className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50">Cancel</button>
+                                <button onClick={d.handleChangeManager} disabled={d.isChangingManager || !d.selectedManagerId} className="px-4 py-2 bg-info text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 flex items-center space-x-2">
+                                    {d.isChangingManager && <Spinner size={16} />}<UserPlus size={16} /><span>{d.isChangingManager ? "Changing..." : "Change Manager"}</span>
+                                </button></>}
+                    >
+                      <div className="mb-6">
                                 <div className="mb-4">
                                     <label className="block text-sm font-medium text-ink-3 mb-1">Current Manager</label>
                                     <div className="w-full flex items-center justify-between px-4 py-3 border border-line rounded-xl bg-surface-2">
@@ -407,14 +399,7 @@ const ProjectDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => 
                                     {d.availableManagers.length === 0 && <p className="text-sm text-muted mt-1">No available PJM users to assign as manager</p>}
                                 </div>
                             </div>
-                            <div className="flex justify-end space-x-3">
-                                <button onClick={() => { d.setShowChangeManagerModal(false); d.setSelectedManagerId(""); }} disabled={d.isChangingManager} className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50">Cancel</button>
-                                <button onClick={d.handleChangeManager} disabled={d.isChangingManager || !d.selectedManagerId} className="px-4 py-2 bg-info text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 flex items-center space-x-2">
-                                    {d.isChangingManager && <Spinner size={16} />}<UserPlus size={16} /><span>{d.isChangingManager ? "Changing..." : "Change Manager"}</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    </Modal>
                 )}
 
                 {/* Assign to Task Modal */}
@@ -461,13 +446,16 @@ const ProjectDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => 
 
                 {/* Delete Document Confirmation Modal */}
                 {d.showDeleteDocumentModal && d.documentToDelete && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: "rgba(0, 0, 0, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} onClick={() => d.setShowDeleteDocumentModal(false)}>
-                        <div className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"  onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center mb-4">
-                                <div className="w-12 h-12 bg-danger-soft rounded-full flex items-center justify-center mr-4"><Trash2 className="w-6 h-6 text-danger" /></div>
-                                <div><h3 className="text-lg font-semibold text-ink">Delete Document</h3><p className="text-sm text-muted">This action cannot be undone</p></div>
-                            </div>
-                            <div className="mb-6">
+                                        <Modal
+                      open
+                      onClose={() => d.setShowDeleteDocumentModal(false)}
+                      title="Delete Document"
+                      description="This action cannot be undone"
+                      icon={<span className="grid h-9 w-9 place-items-center rounded-full bg-danger-soft"><Trash2 className="h-5 w-5 text-danger" /></span>}
+                      footer={<><button onClick={() => { d.setShowDeleteDocumentModal(false); }} className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors">Cancel</button>
+                                <button onClick={d.confirmDeleteDocument} className="px-4 py-2 bg-danger text-white rounded-lg hover:opacity-90 transition-colors flex items-center space-x-2"><Trash2 size={16} /><span>Delete Document</span></button></>}
+                    >
+                      <div className="mb-6">
                                 <p className="text-ink-3 mb-3">Are you sure you want to delete this document?</p>
                                 <div className="bg-surface-2 rounded-lg p-3">
                                     <div className="flex items-center space-x-3">
@@ -479,23 +467,23 @@ const ProjectDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => 
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex justify-end space-x-3">
-                                <button onClick={() => { d.setShowDeleteDocumentModal(false); }} className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors">Cancel</button>
-                                <button onClick={d.confirmDeleteDocument} className="px-4 py-2 bg-danger text-white rounded-lg hover:opacity-90 transition-colors flex items-center space-x-2"><Trash2 size={16} /><span>Delete Document</span></button>
-                            </div>
-                        </div>
-                    </div>
+                    </Modal>
                 )}
 
                 {/* Export All Documents Modal */}
                 {d.showExportModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: "rgba(0, 0, 0, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} onClick={() => d.setShowExportModal(false)}>
-                        <div className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"  onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center mb-4">
-                                <div className="w-12 h-12 bg-info-soft rounded-full flex items-center justify-center mr-4"><Download className="w-6 h-6 text-info" /></div>
-                                <div><h3 className="text-lg font-semibold text-ink">Export All Documents</h3><p className="text-sm text-muted">Download all project documents</p></div>
-                            </div>
-                            <div className="mb-6">
+                                        <Modal
+                      open
+                      onClose={() => d.setShowExportModal(false)}
+                      title="Export All Documents"
+                      description="Download all project documents"
+                      icon={<span className="grid h-9 w-9 place-items-center rounded-full bg-info-soft"><Download className="h-5 w-5 text-info" /></span>}
+                      footer={<><button onClick={() => d.setShowExportModal(false)} disabled={d.isExporting} className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50">Cancel</button>
+                                <button onClick={d.handleExportAllDocuments} disabled={d.isExporting} className="px-4 py-2 bg-info text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 flex items-center space-x-2">
+                                    {d.isExporting && <Spinner size={16} />}<Download size={16} /><span>{d.isExporting ? "Exporting..." : "Export All Documents"}</span>
+                                </button></>}
+                    >
+                      <div className="mb-6">
                                 <p className="text-ink-3 mb-3">Are you sure you want to download all documents from this project?</p>
                                 <div className="bg-surface-2 rounded-lg p-3">
                                     <div className="flex items-center justify-between text-sm"><span className="text-muted">Total documents:</span><span className="font-medium text-ink">{(project as any).documents?.length || 0}</span></div>
@@ -503,25 +491,19 @@ const ProjectDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => 
                                 </div>
                                 <p className="text-xs text-muted mt-2">Files will be downloaded individually to your default download folder.</p>
                             </div>
-                            <div className="flex justify-end space-x-3">
-                                <button onClick={() => d.setShowExportModal(false)} disabled={d.isExporting} className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50">Cancel</button>
-                                <button onClick={d.handleExportAllDocuments} disabled={d.isExporting} className="px-4 py-2 bg-info text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 flex items-center space-x-2">
-                                    {d.isExporting && <Spinner size={16} />}<Download size={16} /><span>{d.isExporting ? "Exporting..." : "Export All Documents"}</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    </Modal>
                 )}
 
                 {/* Progress Update Modal */}
                 {d.showProgressModal && d.progressUpdateTarget && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: "rgba(0, 0, 0, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} onClick={() => d.setShowProgressModal(false)}>
-                        <div className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"  onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center mb-4">
-                                <div className="w-12 h-12 bg-info-soft rounded-full flex items-center justify-center mr-4"><RefreshCw className="w-6 h-6 text-info" /></div>
-                                <div><h3 className="text-lg font-semibold text-ink">Update {d.progressUpdateTarget.type === "project" ? "Project" : "Task"} Progress</h3><p className="text-sm text-muted">{d.progressUpdateTarget.name}</p></div>
-                            </div>
-                            <form onSubmit={(e) => { e.preventDefault(); const formData = new FormData(e.currentTarget); const data = Object.fromEntries(formData.entries()); d.handleUpdateProgress(data); }} className="space-y-4">
+                                        <Modal
+                      open
+                      onClose={() => d.setShowProgressModal(false)}
+                      title={<>Update {d.progressUpdateTarget.type === "project" ? "Project" : "Task"} Progress</>}
+                      description={<>{d.progressUpdateTarget.name}</>}
+                      icon={<span className="grid h-9 w-9 place-items-center rounded-full bg-info-soft"><RefreshCw className="h-5 w-5 text-info" /></span>}
+                    >
+                      <form onSubmit={(e) => { e.preventDefault(); const formData = new FormData(e.currentTarget); const data = Object.fromEntries(formData.entries()); d.handleUpdateProgress(data); }} className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-ink-3 mb-1">Progress Percentage</label>
                                     <div className="relative">
@@ -556,93 +538,71 @@ const ProjectDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => 
                                     </button>
                                 </div>
                             </form>
-                        </div>
-                    </div>
+                    </Modal>
                 )}
 
                 {/* Upload Document Modal */}
                 {d.showUploadModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: "rgba(0, 0, 0, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} onClick={() => d.setShowUploadModal(false)}>
-                        <div className="rounded-2xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto shadow-2xl glass-panel"  onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-xl font-semibold text-ink">Upload Document</h3>
-                                <button onClick={() => d.setShowUploadModal(false)} className="p-2 text-faint hover:text-muted rounded-full hover:bg-surface-2">×</button>
-                            </div>
-                            <div className="space-y-4">
+                                        <Modal
+                      open
+                      onClose={() => d.setShowUploadModal(false)}
+                      title="Upload Document"
+                    >
+                      <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-ink-3 mb-2">Selected Files ({d.uploadFiles.length})</label>
-                                    <div className="space-y-2">
-                                        {d.uploadFiles.map((file, index) => (
-                                            <div key={index} className="flex items-center space-x-3 p-3 bg-surface-2 rounded-lg">
-                                                <div className="w-8 h-8 bg-info-soft rounded-lg flex items-center justify-center">{getFileIcon(file.name)}</div>
-                                                <div className="flex-1"><p className="text-sm font-medium text-ink">{file.name}</p><p className="text-xs text-muted">{formatFileSize(file.size)}</p></div>
-                                                <button onClick={() => d.setUploadFiles(d.uploadFiles.filter((_, i) => i !== index))} className="p-1 text-faint hover:text-danger transition-colors"><Trash2 size={16} /></button>
-                                            </div>
-                                        ))}
+                                    <div className="mb-2 flex items-center justify-between">
+                                        <label className="text-sm font-medium text-ink-3">Selected Files ({d.uploadFiles.length})</label>
+                                        <label className="inline-flex cursor-pointer items-center gap-1.5 text-[13px] font-medium text-bright hover:text-bright-deep focus-within:ring-[3px] focus-within:ring-bright-soft rounded-md">
+                                            <Plus size={14} aria-hidden="true" />
+                                            Add files
+                                            <input
+                                                type="file"
+                                                multiple
+                                                onChange={(e) => {
+                                                    if (e.target.files && e.target.files.length > 0) {
+                                                        d.setUploadFiles([...d.uploadFiles, ...Array.from(e.target.files)]);
+                                                    }
+                                                    e.target.value = "";
+                                                }}
+                                                className="sr-only"
+                                            />
+                                        </label>
                                     </div>
+                                    {d.uploadFiles.length === 0 ? (
+                                        <div className="rounded-lg border border-dashed border-line p-6 text-center text-sm text-muted">
+                                            No files selected. Use &ldquo;Add files&rdquo; above to choose documents to upload.
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            {d.uploadFiles.map((file, index) => (
+                                                <div key={index} className="flex items-center space-x-3 p-3 bg-surface-2 rounded-lg">
+                                                    <div className="w-8 h-8 bg-surface-3 rounded-lg flex items-center justify-center">{getFileIcon(file.name)}</div>
+                                                    <div className="flex-1 min-w-0"><p className="text-sm font-medium text-ink truncate">{file.name}</p><p className="text-xs text-muted">{formatFileSize(file.size)}</p></div>
+                                                    <button
+                                                      aria-label={`Remove ${file.name}`} onClick={() => d.setUploadFiles(d.uploadFiles.filter((_, i) => i !== index))} className="p-1 text-faint hover:text-danger transition-colors"><Trash2 size={16} /></button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-ink-3 mb-2">Upload Location</label>
-                                    <Dropdown
-                                      value={String(d.uploadLocation.type ?? '')}
-                                      onChange={(__v: string) => d.setUploadLocation({ type: __v as "project" | "wbs" | "task", id: __v === "project" ? undefined : "" })}
-                                      options={[
-                                      { value: String("project"), label: "Project Level" },
-                                      { value: String("wbs"), label: "WBS Level" },
-                                      { value: String("task"), label: "Task Level" },
-                                    ]}
-                                    />
-                                </div>
-                                {d.uploadLocation.type === "wbs" && (
-                                    <div>
-                                        <label className="block text-sm font-medium text-ink-3 mb-2">Select WBS</label>
-                                        <Dropdown
-                                          value={String(d.uploadLocation.id || "")}
-                                          onChange={(__v: string) => d.setUploadLocation({ ...d.uploadLocation, id: __v })}
-                                          options={[
-                                          { value: String(""), label: "Select a WBS..." },
-                                          ...(project?.wbs?.map((wbs) => ({ value: String(wbs.wbs_id), label: `${wbs.wbs_code} - ${wbs.name}` })) ?? []),
-                                        ]}
-                                        />
-                                    </div>
-                                )}
-                                {d.uploadLocation.type === "task" && (
-                                    <div>
-                                        <label className="block text-sm font-medium text-ink-3 mb-2">Select Task</label>
-                                        <Dropdown
-                                          value={String(d.uploadLocation.id || "")}
-                                          onChange={(__v: string) => d.setUploadLocation({ ...d.uploadLocation, id: __v })}
-                                          options={[
-                                          { value: String(""), label: "Select a task..." },
-                                          ...(project?.tasks?.map((task) => ({ value: String(task.task_id), label: `${task.name} (${task.status})` })) ?? []),
-                                        ]}
-                                        />
-                                    </div>
-                                )}
                                 <div>
                                     <label className="block text-sm font-medium text-ink-3 mb-2">Description (Optional)</label>
                                     <textarea value={d.uploadDescription} onChange={(e) => d.setUploadDescription(e.target.value)} placeholder="Add a description for these documents..." rows={3} className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-bright focus:border-transparent resize-none" />
                                 </div>
-                                <div className="bg-info-soft border border-info rounded-lg p-4">
+                                <div className="rounded-lg border border-line bg-surface-2 p-4">
                                     <div className="flex items-start space-x-3">
-                                        <FileText className="w-5 h-5 text-info mt-0.5" />
-                                        <div className="text-sm">
-                                            <p className="font-medium text-info mb-1">Upload Information</p>
-                                            <p className="text-info">
-                                                {d.uploadLocation.type === "project" && "Documents will be uploaded to the project level and visible to all team members."}
-                                                {d.uploadLocation.type === "wbs" && "Documents will be associated with the selected WBS and relevant team members."}
-                                                {d.uploadLocation.type === "task" && "Documents will be uploaded as task deliverables and linked to the specific task."}
-                                            </p>
+                                        <FileText className="w-5 h-5 text-muted mt-0.5" aria-hidden="true" />
+                                        <div className="text-[13px] text-muted">
+                                            Documents will be uploaded to the project level and visible to all team members.
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             <div className="flex justify-end space-x-3 pt-6 border-t border-line mt-6">
                                 <button onClick={() => d.setShowUploadModal(false)} className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors">Cancel</button>
-                                <button onClick={d.handleUploadModalSubmit} disabled={d.uploadFiles.length === 0 || (d.uploadLocation.type !== "project" && !d.uploadLocation.id)} className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Upload {d.uploadFiles.length} File{d.uploadFiles.length !== 1 ? "s" : ""}</button>
+                                <button onClick={d.handleUploadModalSubmit} disabled={d.uploadFiles.length === 0} className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Upload {d.uploadFiles.length} File{d.uploadFiles.length !== 1 ? "s" : ""}</button>
                             </div>
-                        </div>
-                    </div>
+                    </Modal>
                 )}
 
                 {/* BOM Modal */}
@@ -669,6 +629,7 @@ const ProjectDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => 
                                     </p>
                                 </div>
                                 <button
+                                  aria-label="Close dialog"
                                     onClick={() => d.setShowBOMModal(false)}
                                     className="p-2 hover:bg-surface-2 rounded-lg transition-colors"
                                 >
@@ -680,7 +641,7 @@ const ProjectDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => 
                                     <h3 className="font-semibold text-ink mb-2">Project Information</h3>
                                     <div className="grid grid-cols-2 gap-4 text-sm">
                                         <div><span className="text-muted">Project:</span><span className="ml-2 font-medium">{project?.name}</span></div>
-                                        <div><span className="text-muted">Code:</span><span className="ml-2 font-medium">{project?.project_code}</span></div>
+                                        <div><span className="text-muted">Code:</span><span className="ml-2 font-medium"><EntityCode code={project?.project_code} /></span></div>
                                         <div><span className="text-muted">Status:</span><span className="ml-2 font-medium capitalize">{project?.status}</span></div>
                                         <div><span className="text-muted">Period:</span><span className="ml-2 font-medium">{project?.start_date ? new Date(project.start_date).toLocaleDateString() : "N/A"} - {project?.planned_end_date ? new Date(project.planned_end_date).toLocaleDateString() : "N/A"}</span></div>
                                     </div>

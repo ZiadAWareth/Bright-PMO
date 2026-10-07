@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save } from 'lucide-react';
+import { Save } from 'lucide-react';
+import { Modal } from "@/components/ui/modal";
 import axios from 'axios';
 import { toast } from 'sonner';
 import { Spinner } from "@/components/ui/spinner";
@@ -144,31 +145,13 @@ const MassUpdateModal: React.FC<MassUpdateModalProps> = ({
       .replace('_', ' ');
   };
 
-  if (!isOpen) return null;
-
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
   return (
-    <div 
-      className="fixed inset-0 backdrop-blur-md bg-white/10 dark:bg-black/20 z-50 flex items-center justify-center p-4"
-      onClick={handleBackdropClick}
+    <Modal
+      open={isOpen}
+      onClose={onClose}
+      title={`Mass Update Projects (${selectedProjects.length} selected)`}
+      maxWidthClass="max-w-4xl"
     >
-      <div className="bg-surface rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-surface border-b border-line px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-ink">
-            Mass Update Projects ({selectedProjects.length} selected)
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-faint hover:text-muted"
-          >
-            <X size={24} />
-          </button>
-        </div>
 
         {loading ? (
           <div className="p-8 text-center">
@@ -361,8 +344,7 @@ const MassUpdateModal: React.FC<MassUpdateModalProps> = ({
             </div>
           </form>
         )}
-      </div>
-    </div>
+    </Modal>
   );
 };
 

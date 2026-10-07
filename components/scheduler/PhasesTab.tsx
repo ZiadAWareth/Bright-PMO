@@ -1,7 +1,7 @@
 import React from "react";
 import {
   Calendar, Building, CheckCircle, Clock, Target, Star, Zap, Activity,
-  Edit2, Trash2, Filter, Circle, AlertTriangle
+  Edit2, Trash2, Filter, Circle, AlertTriangle, Info
 } from "lucide-react"; // or wherever your icons are
 import type { Task } from "@/types/project";
 
@@ -155,43 +155,43 @@ function PhasesTab(props: PhasesTabProps){
                 status = "active";
             }
 
-            // Enhanced color scheme based on level with gradients
+            // Color scheme based on level: a small accent dot + soft task-row tint
             const colorSchemes = [
                 {
-                    gradient: "from-info to-info",
-                    bg: "bg-info",
+                    dot: "bg-info",
                     light: "bg-info-soft ",
                     border: "border-info ",
+                    text: "text-info",
                 },
                 {
-                    gradient: "from-success to-success",
-                    bg: "bg-success",
+                    dot: "bg-success",
                     light: "bg-success-soft ",
                     border: "border-success ",
+                    text: "text-success",
                 },
                 {
-                    gradient: "from-accent-violet to-accent-violet",
-                    bg: "bg-accent-violet",
+                    dot: "bg-accent-violet",
                     light: "bg-accent-violet-soft ",
                     border: "border-accent-violet ",
+                    text: "text-accent-violet",
                 },
                 {
-                    gradient: "from-bright to-bright-deep",
-                    bg: "bg-bright",
+                    dot: "bg-bright",
                     light: "bg-bright-soft ",
                     border: "border-bright ",
+                    text: "text-bright",
                 },
                 {
-                    gradient: "from-accent-pink to-accent-pink",
-                    bg: "bg-accent-pink",
+                    dot: "bg-accent-pink",
                     light: "bg-accent-pink-soft ",
                     border: "border-accent-pink ",
+                    text: "text-accent-pink",
                 },
                 {
-                    gradient: "from-accent-indigo to-accent-indigo",
-                    bg: "bg-accent-indigo",
+                    dot: "bg-accent-indigo",
                     light: "bg-accent-indigo-soft ",
                     border: "border-accent-indigo ",
+                    text: "text-accent-indigo",
                 },
             ];
             const colorScheme = colorSchemes[(level - 1) % colorSchemes.length];
@@ -211,19 +211,13 @@ function PhasesTab(props: PhasesTabProps){
                     style={{ marginLeft: `${indentWidth}px` }}
                 >
                     <div
-                        className={`${bgIntensity} rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 ${colorScheme.border} border-2 overflow-hidden`}
+                        className={`${bgIntensity} rounded-xl border border-line border-l-[3px] ${colorScheme.border} overflow-hidden`}
                     >
-                        {/* WBS Header with Gradient */}
-                        <div
-                            className={`px-6 py-5 bg-gradient-to-r ${colorScheme.gradient} text-white relative overflow-hidden`}
-                        >
-                            {/* Decorative background pattern */}
-                            <div className="absolute inset-0 bg-white/10 opacity-20"></div>
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-16 translate-x-16"></div>
-                            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-12 -translate-x-12"></div>
+                        {/* WBS Header */}
+                        <div className="px-6 py-5">
                             <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-3">
-                                    <div className="flex items-center space-x-2">
+                                <div className="flex items-center space-x-3 min-w-0">
+                                    <div className="flex items-center space-x-2 shrink-0">
                                         {level > 1 && (
                                             <div className="flex items-center text-faint mr-2">
                                                 <div className="text-lg">
@@ -233,12 +227,13 @@ function PhasesTab(props: PhasesTabProps){
                                                 </div>
                                             </div>
                                         )}
-                                        <div
-                                            className={`w-3 h-3 rounded-full bg-surface shadow-md`}
-                                        ></div>
+                                        <span
+                                            className={`w-2.5 h-2.5 rounded-full shrink-0 ${colorScheme.dot}`}
+                                            aria-hidden="true"
+                                        ></span>
                                     </div>
-                                    <div className="relative z-10">
-                                        <div className="flex items-center space-x-3 mb-2">
+                                    <div className="min-w-0">
+                                        <div className="flex items-center space-x-3 mb-2 flex-wrap">
                                             <h3
                                                 className={`${
                                                     level === 1
@@ -246,46 +241,46 @@ function PhasesTab(props: PhasesTabProps){
                                                         : level === 2
                                                         ? "text-lg"
                                                         : "text-base"
-                                                } font-bold text-white drop-shadow-sm`}
+                                                } font-semibold text-ink`}
                                             >
                                                 {wbs.name}
                                             </h3>
-                                            <span className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white rounded-full text-xs font-mono border border-white/30">
+                                            <span className="px-2.5 py-0.5 bg-surface-2 text-ink-3 rounded-full text-xs font-mono">
                                                 {wbs.wbs_code}
                                             </span>
-                                            <span className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white rounded-full text-xs border border-white/30">
+                                            <span className="px-2.5 py-0.5 bg-surface-2 text-ink-3 rounded-full text-xs">
                                                 Level {wbs.level}
                                             </span>
                                         </div>
                                         {wbs.description && (
-                                            <p className="text-sm text-white/90 drop-shadow-sm">
+                                            <p className="text-sm text-muted">
                                                 {wbs.description}
                                             </p>
                                         )}
                                     </div>
                                 </div>
-                                <div className="flex items-center space-x-4 relative z-10">
+                                <div className="flex items-center space-x-4 shrink-0">
                                     <div className="text-right">
                                         <div className="flex items-center space-x-2 mb-1">
-                                            <div className="text-lg font-bold text-white drop-shadow-sm">
+                                            <div className="text-lg font-bold text-ink">
                                                 {progress.toFixed(0)}%
                                             </div>
                                             {progress === 100 && (
                                                 <CheckCircle
                                                     size={18}
-                                                    className="text-white"
+                                                    className="text-success"
                                                 />
                                             )}
                                             {progress > 0 && progress < 100 && (
                                                 <Clock
                                                     size={16}
-                                                    className="text-white"
+                                                    className="text-muted"
                                                 />
                                             )}
                                         </div>
-                                        <div className="w-24 bg-white/20 rounded-full h-3 mt-1 relative overflow-hidden">
+                                        <div className="w-24 bg-surface-3 rounded-full h-3 mt-1 relative overflow-hidden">
                                             <div
-                                                className={`h-3 rounded-full transition-all duration-500 shadow-sm ${
+                                                className={`h-3 rounded-full transition-all duration-500 ${
                                                     progress === 100
                                                         ? "bg-success"
                                                         : progress > 75
@@ -300,25 +295,22 @@ function PhasesTab(props: PhasesTabProps){
                                                     width: `${progress}%`,
                                                 }}
                                             ></div>
-                                            {progress > 0 && progress < 100 && (
-                                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
-                                            )}
                                         </div>
-                                        <div className="text-xs text-white/80 mt-1">
+                                        <div className="text-xs text-muted mt-1">
                                             {completedTasks}/{allTasks.length}{" "}
                                             tasks
                                         </div>
                                     </div>
                                     <div className="flex flex-col items-end space-y-1">
                                         <span
-                                            className={`px-4 py-2 rounded-full text-sm font-semibold backdrop-blur-sm border border-white/30 ${
+                                            className={`px-3 py-1 rounded-full text-xs font-semibold ${
                                                 status === "completed"
-                                                    ? "bg-success/20 text-white"
+                                                    ? "bg-success-soft text-success"
                                                     : status === "active"
-                                                    ? "bg-info/20 text-white"
+                                                    ? "bg-info-soft text-info"
                                                     : status === "delayed"
-                                                    ? "bg-danger/20 text-white"
-                                                    : "bg-white/20 text-white"
+                                                    ? "bg-danger-soft text-danger"
+                                                    : "bg-surface-2 text-ink-3"
                                             }`}
                                         >
                                             {status.charAt(0).toUpperCase() +
@@ -326,7 +318,7 @@ function PhasesTab(props: PhasesTabProps){
                                         </span>
                                         {status === "active" &&
                                             inProgressTasks > 0 && (
-                                                <div className="text-xs text-white/80 px-2 py-1 bg-white/10 rounded-full">
+                                                <div className="text-xs text-muted px-2 py-1 bg-surface-2 rounded-full">
                                                     {inProgressTasks} in
                                                     progress
                                                 </div>
@@ -334,7 +326,7 @@ function PhasesTab(props: PhasesTabProps){
                                     </div>
                                 </div>
                             </div>
-                            <div className="mt-3 space-y-2 text-sm text-white/80 relative z-10">
+                            <div className="mt-3 space-y-2 text-sm text-muted">
                                 <div className="flex items-center justify-between">
                                     <span className="flex items-center space-x-2">
                                         <Calendar
@@ -419,12 +411,12 @@ function PhasesTab(props: PhasesTabProps){
                                                         {isOverdue ? (
                                                             <AlertTriangle
                                                                 size={14}
-                                                                className="text-white"
+                                                                className="text-danger"
                                                             />
                                                         ) : isNearDeadline ? (
                                                             <Clock
                                                                 size={14}
-                                                                className="text-white"
+                                                                className="text-bright"
                                                             />
                                                         ) : (
                                                             <Calendar
@@ -435,9 +427,9 @@ function PhasesTab(props: PhasesTabProps){
                                                         <span
                                                             className={`${
                                                                 isOverdue
-                                                                    ? "text-white"
+                                                                    ? "text-danger"
                                                                     : isNearDeadline
-                                                                    ? "text-white"
+                                                                    ? "text-bright"
                                                                     : ""
                                                             }`}
                                                         >
@@ -492,7 +484,7 @@ function PhasesTab(props: PhasesTabProps){
                                     {tasksToDisplay.map((task: Task) => (
                                         <div
                                             key={task.task_id}
-                                            className={`p-5 ${colorScheme.light} rounded-xl ${colorScheme.border} border shadow-md hover:shadow-lg transition-all duration-300`}
+                                            className={`p-5 bg-surface rounded-xl border border-line border-l-[3px] ${colorScheme.border} transition-colors`}
                                         >
                                             <div className="flex items-start justify-between">
                                                 <div className="flex-1 min-w-0">
@@ -655,14 +647,6 @@ function PhasesTab(props: PhasesTabProps){
                                                                     width: `${task.progress_percentage}%`,
                                                                 }}
                                                             ></div>
-
-                                                            {/* Animated shimmer effect for active tasks */}
-                                                            {task.progress_percentage >
-                                                                0 &&
-                                                                task.progress_percentage <
-                                                                    100 && (
-                                                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse"></div>
-                                                                )}
                                                         </div>
 
                                                         {/* Progress Details */}
@@ -790,8 +774,14 @@ function PhasesTab(props: PhasesTabProps){
                                                                     </div>
 
                                                                     {/* Weighted Formula Explanation */}
-                                                                    <div className="mt-2 p-2 bg-info-soft rounded text-xs text-info">
-                                                                        <div className="font-medium mb-1">
+                                                                    <div className="mt-2 p-2 bg-surface-2 border-l-[3px] border-l-info rounded text-xs text-muted">
+                                                                        <div className="flex items-center gap-1 font-medium mb-1 text-ink-3">
+                                                                            <Info
+                                                                                size={
+                                                                                    12
+                                                                                }
+                                                                                className="text-info"
+                                                                            />
                                                                             How
                                                                             progress
                                                                             is
@@ -814,7 +804,7 @@ function PhasesTab(props: PhasesTabProps){
                                                                         ]
                                                                             .length >
                                                                             0 && (
-                                                                            <div className="mt-1 text-info">
+                                                                            <div className="mt-1 text-muted">
                                                                                 Example:
                                                                                 If
                                                                                 50%
@@ -850,15 +840,15 @@ function PhasesTab(props: PhasesTabProps){
                             tasksToDisplay.length === 0 &&
                             allTasks.length > 0 && (
                                 <div className="p-6 text-center">
-                                    <div className="p-4 bg-info-soft border border-info rounded-md">
+                                    <div className="p-4 bg-surface border border-line border-l-[3px] border-l-info rounded-md">
                                         <Filter
                                             size={24}
                                             className="mx-auto mb-3 text-info"
                                         />
-                                        <p className="text-sm font-medium text-info">
+                                        <p className="text-sm font-medium text-ink">
                                             No matching tasks in this WBS
                                         </p>
-                                        <p className="text-xs text-info mt-1">
+                                        <p className="text-xs text-muted mt-1">
                                             This WBS has {allTasks.length} total
                                             tasks that don't match your current
                                             filters

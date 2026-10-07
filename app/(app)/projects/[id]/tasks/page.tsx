@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { Modal } from "@/components/ui/modal";
 import {
     ArrowLeft,
     Calendar,
@@ -637,6 +638,14 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
         <ProtectedRoute>
             <DashboardLayout
                 title={getPageTitle()}
+                subtitle={getPageDescription()}
+                backHref={`/projects/${projectId}`}
+                backLabel="Back to Project"
+                meta={
+                    <span className="px-3 py-1 bg-info-soft text-info rounded-full text-sm font-medium">
+                        {filteredTasks.length} tasks
+                    </span>
+                }
                 onViewChange={setActiveView}
                 activeView={activeView}
             >
@@ -663,30 +672,6 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
 
                 {/* Page Header */}
                 <div className="bg-surface border border-line rounded-xl p-6 mb-6">
-                    <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-2">
-                                <button
-                                    onClick={() =>
-                                        router.push(`/projects/${projectId}`)
-                                    }
-                                    className="p-2 rounded-lg text-faint hover:text-muted hover:bg-surface-2 transition-colors"
-                                >
-                                    <ArrowLeft size={20} />
-                                </button>
-                                <h1 className="text-2xl font-bold text-ink">
-                                    {getPageTitle()}
-                                </h1>
-                                <span className="px-3 py-1 bg-info-soft text-info rounded-full text-sm font-medium">
-                                    {filteredTasks.length} tasks
-                                </span>
-                            </div>
-                            <p className="text-muted mb-3">
-                                {getPageDescription()}
-                            </p>
-                        </div>
-                    </div>
-
                     {/* Task Statistics */}
                     <StatGrid className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
                         <StatTile
@@ -1227,34 +1212,41 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
 
                 {/* Progress Update Modal */}
                 {showProgressModal && selectedTask && (
-                    <div
-                        className="fixed inset-0 z-50 flex items-center justify-center"
-                        style={{
-                            backgroundColor: "rgba(0, 0, 0, 0.4)",
-                            backdropFilter: "blur(8px)",
-                            WebkitBackdropFilter: "blur(8px)",
-                        }}
-                        onClick={() => setShowProgressModal(false)}
+                                        <Modal
+                      open
+                      onClose={() => setShowProgressModal(false)}
+                      title="Update Task Progress"
+                      description={<>{selectedTask.name}</>}
+                      icon={<span className="grid h-9 w-9 place-items-center rounded-full bg-info-soft"><RefreshCw className="h-5 w-5 text-info" /></span>}
+                      footer={<><button
+                                        type="button"
+                                        onClick={() => {
+                                            setShowProgressModal(false);
+                                            setSelectedTask(null);
+                                        }}
+                                        disabled={isUpdatingProgress}
+                                        className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        form="task-progress-form"
+                                        type="submit"
+                                        disabled={isUpdatingProgress}
+                                        className="px-4 py-2 bg-info text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 flex items-center space-x-2"
+                                    >
+                                        {isUpdatingProgress && (
+                                            <Spinner size={16} />
+                                        )}
+                                        <RefreshCw size={16} />
+                                        <span>
+                                            {isUpdatingProgress
+                                                ? "Updating..."
+                                                : "Update Progress"}
+                                        </span>
+                                    </button></>}
                     >
-                        <div
-                            className="rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl glass-panel"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="flex items-center mb-4">
-                                <div className="w-12 h-12 bg-info-soft rounded-full flex items-center justify-center mr-4">
-                                    <RefreshCw className="w-6 h-6 text-info" />
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-semibold text-ink">
-                                        Update Task Progress
-                                    </h3>
-                                    <p className="text-sm text-muted">
-                                        {selectedTask.name}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <form
+                      <form id="task-progress-form"
                                 onSubmit={(e) => {
                                     e.preventDefault();
                                     const formData = new FormData(
@@ -1323,38 +1315,8 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                                         className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink focus:ring-2 focus:ring-info focus:border-transparent"
                                     />
                                 </div>
-
-                                <div className="flex justify-end space-x-3 pt-4 border-t border-line">
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setShowProgressModal(false);
-                                            setSelectedTask(null);
-                                        }}
-                                        disabled={isUpdatingProgress}
-                                        className="px-4 py-2 border border-line text-ink-3 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={isUpdatingProgress}
-                                        className="px-4 py-2 bg-info text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 flex items-center space-x-2"
-                                    >
-                                        {isUpdatingProgress && (
-                                            <Spinner size={16} />
-                                        )}
-                                        <RefreshCw size={16} />
-                                        <span>
-                                            {isUpdatingProgress
-                                                ? "Updating..."
-                                                : "Update Progress"}
-                                        </span>
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
+</form>
+                    </Modal>
                 )}
             </DashboardLayout>
         </ProtectedRoute>

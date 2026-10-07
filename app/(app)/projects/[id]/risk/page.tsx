@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import {
     ArrowLeft,
@@ -521,33 +522,20 @@ const RiskPage = () => {
                 tasks={tasks}
             />            {/* Delete Confirmation Modal */}
             {showDeleteConfirm && riskToDelete && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-                    <div className="bg-surface rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
-                        <div className="p-6">
-                            <div className="flex items-start gap-4">
-                                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-danger-soft flex items-center justify-center">
-                                    <AlertTriangle className="w-5 h-5 text-danger" />
-                                </div>
-                                <div className="flex-1">
-                                    <h3 className="text-lg font-semibold text-ink mb-2">
-                                        Confirm Risk Deletion
-                                    </h3>
-                                    <p className="text-sm text-muted leading-relaxed">
-                                        Are you sure you want to delete {riskToDelete.name}? This action cannot be undone.
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => {
-                                        setShowDeleteConfirm(false);
-                                        setRiskToDelete(null);
-                                    }}
-                                    className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-faint hover:text-muted"
-                                >
-                                    ×
-                                </button>
-                            </div>
-                        </div>
-                        <div className="px-6 py-4 bg-surface-2 flex justify-end gap-3">
+                <Modal
+                    open
+                    onClose={() => {
+                        setShowDeleteConfirm(false);
+                        setRiskToDelete(null);
+                    }}
+                    title="Confirm Risk Deletion"
+                    icon={
+                        <span className="grid h-9 w-9 place-items-center rounded-full bg-danger-soft">
+                            <AlertTriangle className="h-5 w-5 text-danger" />
+                        </span>
+                    }
+                    footer={
+                        <>
                             <Button
                                 variant="outline"
                                 onClick={() => {
@@ -564,9 +552,13 @@ const RiskPage = () => {
                             >
                                 Delete
                             </Button>
-                        </div>
-                    </div>
-                </div>
+                        </>
+                    }
+                >
+                    <p className="text-sm text-muted leading-relaxed">
+                        Are you sure you want to delete {riskToDelete.name}? This action cannot be undone.
+                    </p>
+                </Modal>
             )}
         </DashboardLayout>
     );

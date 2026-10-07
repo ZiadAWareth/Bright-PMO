@@ -58,7 +58,7 @@ export function EntityCardHeader({
 }) {
   return (
     <div className="mb-3">
-      <h3 className="line-clamp-2 text-[15px] font-semibold leading-snug text-ink transition-colors group-hover:text-bright">
+      <h3 className="line-clamp-2 font-display text-[15px] font-semibold leading-snug text-ink transition-colors group-hover:text-bright">
         {title}
       </h3>
       {subtitle && (
@@ -178,7 +178,7 @@ export function EmptyState({
   return (
     <div className="flex flex-col items-center justify-center rounded-[14px] border border-dashed border-line bg-surface px-6 py-16 text-center">
       {icon && <div className="mb-4 text-faint">{icon}</div>}
-      <h3 className="text-[15px] font-semibold text-ink">{title}</h3>
+      <h3 className="font-display text-[15px] font-semibold text-ink">{title}</h3>
       {message && (
         <p className="mt-1.5 max-w-sm text-[13px] text-muted">{message}</p>
       )}
@@ -204,8 +204,8 @@ export type StatTone = keyof typeof STAT_TONE;
  * Several screens hand-rolled this out of `Card`/`CardHeader`/`CardContent`
  * with their own paddings and type sizes, so the same "4 KPIs" band was a
  * different height and weight on every page. The figure is the point, so it is
- * the largest thing in the tile and always `tabular-nums` — otherwise the
- * numbers jitter sideways as they change.
+ * the largest thing in the tile, carries the display face, and is always
+ * `tabular-nums` — otherwise the numbers jitter sideways as they change.
  */
 export function StatGrid({
   children,
@@ -252,7 +252,7 @@ export function StatTile({
         )}
       </div>
       <div
-        className={`mt-2 text-[24px] font-semibold leading-none tabular-nums ${
+        className={`mt-2 font-display text-[24px] font-semibold leading-none tabular-nums ${
           tone === "neutral" ? "text-ink" : STAT_TONE[tone]
         }`}
       >

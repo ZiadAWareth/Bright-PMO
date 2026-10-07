@@ -18,7 +18,6 @@ import { FilterBar, FilterSelect } from "@/components/ui/filter-bar";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ViewToggle, type ListViewMode } from "@/components/ui/view-toggle";
 import { PersonCell } from "@/components/ui/person-cell";
-import { LoadingState } from "@/components/ui/spinner";
 import { useDebounce } from "@/hooks/useDebounce";
 import {
   EmptyState,
@@ -32,10 +31,13 @@ import {
   StatTile,
 } from "@/components/ui/entity-card";
 import {
+  CardSkeleton,
   ListCard,
   ListHead,
   ListMessage,
+  ListRegion,
   ListRow,
+  ListSkeleton,
   NewButton,
   RowAction,
   RowActions,
@@ -334,8 +336,18 @@ export default function UsersPage() {
           />
         </FilterBar>
 
+        <ListRegion busy={loading}>
         {loading ? (
-          <LoadingState />
+          view === "grid" ? (
+            <CardSkeleton />
+          ) : (
+            <ListCard>
+              <table className="w-full border-collapse">
+                <ListHead columns={COLUMNS} />
+                <ListSkeleton columns={COLUMNS.length} />
+              </table>
+            </ListCard>
+          )
         ) : filtered.length === 0 ? (
           <EmptyState
             icon={<Users className="h-10 w-10" />}
@@ -441,6 +453,7 @@ export default function UsersPage() {
             </table>
           </ListCard>
         )}
+        </ListRegion>
 
         {!loading && filtered.length > 0 && (
           <ListPagination
