@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { TeamUserSelect } from "@/components/TeamUserSelect";
+import { TeamUserSelect } from "@/features/team/components/TeamUserSelect";
 import axios from "axios";
 import { toast } from "sonner";
 import {

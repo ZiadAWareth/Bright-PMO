@@ -8,7 +8,6 @@ import {
     Briefcase,
     CalendarRange,
     Clock,
-    Database,
     FileText,
     FolderOpen,
     Home,
@@ -54,7 +53,6 @@ interface DashboardLayoutProps {
  */
 const ROUTE_ICONS: [string, LucideIcon][] = [
     ["/analytics/dashboard", LayoutDashboard],
-    ["/analytics/reporting-engine", Database],
     ["/analytics/reports", FileText],
     ["/analytics", BarChart3],
     ["/eps", BarChart3],

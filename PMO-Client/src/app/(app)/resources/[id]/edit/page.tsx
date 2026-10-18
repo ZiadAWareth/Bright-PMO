@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { AlertCircle, Minus, Plus, Save } from "lucide-react";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import {
   CancelButton,
   Field,

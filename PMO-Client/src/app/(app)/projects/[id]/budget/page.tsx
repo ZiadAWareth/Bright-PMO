@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
-import { ProjectSetup } from "@/types/project";
+import { ProjectSetup } from "@/features/projects/types";
 import { Spinner } from "@/components/ui/spinner";
 import { StatCard, StatusBadge } from "@/components/ui/form-shell";
 

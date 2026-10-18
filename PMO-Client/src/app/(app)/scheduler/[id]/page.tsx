@@ -3,14 +3,22 @@
 import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { FormSection, InfoGrid, StatusBadge } from "@/components/ui/form-shell";
+import {
+  FormSection,
+  InfoGrid,
+  StatusBadge,
+  EmptyState,
+  RowAction,
+  actionPrimary,
+  actionSecondary,
+} from "@/components/ui/form-shell";
 import {
   feasibilityTone,
   humanize,
   priorityTone,
   scheduleStatusTone,
 } from "@/lib/status-tone";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import {
   ArrowLeft,
   Plus,
@@ -38,23 +46,21 @@ import {
   X,
   Loader2,
   Link,
-  CheckSquare
+  CheckSquare,
+  Layers
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import axios from "@/lib/axios";
-import { TeamUserSelect } from '@/components/TeamUserSelect';
-import { AddEntityModal } from '@/components/AddEntityModal';
-import ResourceAssignmentModal from '@/components/scheduler/ResourceAssignmentModal';
-import ScheduleResourceAssignmentModal from '@/components/ScheduleResourceAssignmentModal';
-import ScheduleTaskDependencyModal from '@/components/ScheduleTaskDependencyModal';
+import { TeamUserSelect } from '@/features/team/components/TeamUserSelect';
+import { AddEntityModal } from '@/components/form/AddEntityModal';
+import ResourceAssignmentModal from '@/features/waterfall/schedule/components/ResourceAssignmentModal';
+import ScheduleResourceAssignmentModal from '@/features/scheduler/components/ScheduleResourceAssignmentModal';
+import ScheduleTaskDependencyModal from '@/features/scheduler/components/ScheduleTaskDependencyModal';
 import { Spinner } from "@/components/ui/spinner";
 import { UserAvatar, personName } from "@/components/ui/person-cell";
 import { Modal } from "@/components/ui/modal";
@@ -1259,7 +1265,7 @@ const ScheduleDetailPage = () => {
 
           {/* Approval Section */}
           {userApproval && currentUser && (
-            <div className="mx-6 mt-4 rounded-xl border border-line border-l-[3px] border-l-info bg-surface p-4 flex-shrink-0">
+            <div className="mb-4 rounded-xl border border-line border-l-[3px] border-l-info bg-surface p-4 flex-shrink-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <CheckCircle size={20} className="text-info shrink-0" aria-hidden="true" />
@@ -1281,22 +1287,41 @@ const ScheduleDetailPage = () => {
           )}
 
           {/* Main Content: WBS/tasks and Team Members side by side */}
-          <div className="flex flex-1 min-h-0 overflow-hidden">
+          <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
             {/* WBS Content */}
-            <div className="flex-1 overflow-y-auto p-6 bg-surface-2">
-                          <div className="space-y-4">
-              {wbsItems.map(item => (
-                <div key={item.id}>
-                  {renderWBSItem(item)}
+            <div className="min-w-0">
+              {wbsItems.length === 0 ? (
+                <EmptyState
+                  icon={Layers}
+                  title="No WBS items yet"
+                  description="Break the schedule into WBS items, then add tasks under them."
+                  action={
+                    !readonly && (
+                      <button type="button" className={actionPrimary} onClick={() => setShowWBSModal(true)}>
+                        <Plus size={16} aria-hidden="true" />
+                        Add WBS
+                      </button>
+                    )
+                  }
+                />
+              ) : (
+                <div className="space-y-4">
+                  {wbsItems.map(item => (
+                    <div key={item.id}>
+                      {renderWBSItem(item)}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              )}
             </div>
 
-            {/* Team Members Column */}
-            <div className="w-80 border-l border-line bg-surface overflow-y-auto flex-shrink-0">
-              <div className="p-6 border-b border-line">
-                <h2 className="text-lg font-semibold text-ink mb-4">Team Members</h2>
+            {/* Team Members */}
+            <FormSection className="lg:sticky lg:top-4">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <h2 className="text-[11px] font-semibold uppercase tracking-wider text-faint">
+                  Team Members
+                  <span className="ml-1.5 tabular-nums text-muted">{teamMembers.length}</span>
+                </h2>
                 <AddEntityModal
                   entityName="Team Member"
                   fields={[
@@ -1356,70 +1381,92 @@ const ScheduleDetailPage = () => {
                     }
                   }}
                   triggerButton={
-                    <Button className="w-full" size="sm" disabled={readonly}>
-                      <Plus size={16} /> Add Team Member
-                    </Button>
+                    <button
+                      type="button"
+                      className={`${actionSecondary} h-8 px-2.5`}
+                      disabled={readonly}
+                      data-testid="add-team-member"
+                    >
+                      <Plus size={14} aria-hidden="true" />
+                      Add
+                    </button>
                   }
                 />
-                <div className="space-y-4">
-                  {teamMembers.map(member => (
-                    <Card key={member.team_member_id} className="cursor-pointer hover:shadow-lg transition-all duration-200 border-line bg-surface">
-                      <CardContent className="p-4">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="w-10 h-10 bg-bright-soft rounded-full flex items-center justify-center flex-shrink-0">
-                            <User size={20} className="text-bright" />
+              </div>
+
+              {teamMembers.length === 0 ? (
+                <div className="flex flex-col items-center rounded-xl border border-dashed border-line px-4 py-8 text-center">
+                  <span className="grid h-10 w-10 place-items-center rounded-full bg-surface-2 text-faint">
+                    <Users size={18} aria-hidden="true" />
+                  </span>
+                  <p className="mt-3 text-[13.5px] font-medium text-ink">No team members yet</p>
+                  <p className="mt-1 text-[12.5px] text-muted">
+                    Add the people who will work on this schedule.
+                  </p>
+                </div>
+              ) : (
+                <ul className="divide-y divide-line-2">
+                  {teamMembers.map(member => {
+                    const name = personName(member.user);
+                    const workload = Number(member.workload) || 0;
+                    return (
+                      <li
+                        key={member.team_member_id}
+                        className="py-3.5 first:pt-0 last:pb-0"
+                        data-testid={`team-member-${member.team_member_id}`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <UserAvatar name={name} className="h-9 w-9 text-[12px]" />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="truncate text-[13.5px] font-semibold text-ink" title={member.user.email}>
+                                {name}
+                              </span>
+                              {member.is_lead && <StatusBadge label="Lead" tone="brand" />}
+                            </div>
+                            <div className="truncate text-[12px] text-muted">
+                              {[member.role, member.department].filter(Boolean).join(" · ")}
+                            </div>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-ink truncate">
-                              {member.user.account.first_name} {member.user.account.last_name}
-                            </h3>
-                            <p className="text-sm text-muted truncate">{member.role}</p>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            {member.is_lead && (
-                              <Badge variant="secondary" className="text-xs bg-success-soft text-success">
-                                Lead
-                              </Badge>
-                            )}
-                            {/* Delete Button */}
-                            <button
-                              onClick={!readonly ? (e) => {
-                                e.stopPropagation();
+                          {!readonly && (
+                            <RowAction
+                              icon={Trash2}
+                              label="Remove team member"
+                              tone="danger"
+                              onClick={() =>
                                 handleDeleteClick({
                                   id: member.team_member_id.toString(),
                                   type: 'team-member',
-                                  name: `${member.user.account.first_name} ${member.user.account.last_name}`
-                                });
-                              } : undefined}
-                              className={`p-1 rounded-full bg-surface-2 hover:bg-danger-soft hover:text-danger transition-colors${readonly ? ' opacity-50 cursor-not-allowed' : ''}`}
-                              title="Remove Team Member"
-                              disabled={readonly}
-                            >
-                              <Trash2 size={14} className="text-muted" />
-                            </button>
-                          </div>
+                                  name,
+                                })
+                              }
+                            />
+                          )}
                         </div>
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-muted">Workload</span>
-                            <span className="text-sm font-semibold text-ink">{member.workload}%</span>
+                        <div className="mt-2.5 flex items-center gap-3 pl-12">
+                          <div
+                            className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2"
+                            role="progressbar"
+                            aria-label={`${name} workload`}
+                            aria-valuenow={workload}
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                          >
+                            <div
+                              className={`h-full rounded-full ${workload > 100 ? 'bg-danger' : 'bg-bright'}`}
+                              style={{ width: `${Math.min(workload, 100)}%` }}
+                            />
                           </div>
-                          <Progress value={member.workload} className="h-2" />
-                          <div className="flex flex-wrap gap-1">
-                            <Badge variant="secondary" className="text-xs bg-surface-2 text-ink-3">
-                              {member.department}
-                            </Badge>
-                            <Badge variant="secondary" className="text-xs bg-surface-2 text-ink-3">
-                              @{member.user.username}
-                            </Badge>
-                          </div>
+                          <span className="w-10 text-right text-[12px] font-medium tabular-nums text-ink-3">
+                            {workload}%
+                          </span>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </FormSection>
           </div>
         </div>
 

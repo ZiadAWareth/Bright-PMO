@@ -33,10 +33,9 @@ const API_ROLES: Record<string, string[]> = {
   '/api/vendors': ['PROC', 'PJM', 'PMO', 'ADMIN', 'DIR'],
   '/api/rfq-responses': ['PROC', 'PJM', 'PMO', 'ADMIN', 'DIR'],
   '/api/schedules': ['PMO', 'PJM', 'ADMIN', 'DIR'],
-  // Administrative surfaces. These are not feature endpoints scoped to the
-  // caller — they read and write arbitrary tables, so ADMIN only.
+  // Maintenance endpoints. They act across every project rather than being
+  // scoped to the caller, so ADMIN only.
   '/api/admin': ['ADMIN'],
-  '/api/entities': ['ADMIN'],
   // Read to populate the role dropdown on the user edit form, so this
   // matches who may open /users rather than being ADMIN-only.
   '/api/roles': ['PMO', 'ADMIN', 'HR', 'DIR'],
@@ -60,20 +59,14 @@ function rolesForApiPath(pathname: string): string[] | undefined {
  * Role requirements for *page* routes outside the `(app)` route group.
  *
  * Screens inside `(app)` are gated by `RouteGuard` in its layout, which reads
- * `lib/route-access.ts`. These three cannot rely on that:
+ * `lib/route-access.ts`. `/api-docs` cannot rely on that: it renders outside
+ * the shell entirely.
  *
- *  - `/admin/[entity]` is a *server* component. It calls the entity API during
- *    render, so by the time any client guard could run the data has already
- *    been read. It has to be stopped before the request reaches the page.
- *  - `/api-docs` and `/report-generator` render outside the shell entirely.
- *
- * Gating them here also means a signed-out visitor is bounced by the same code
+ * Gating it here also means a signed-out visitor is bounced by the same code
  * path as everything else, rather than rendering a shell-less error.
  */
 const PAGE_ROLES: Record<string, string[]> = {
-  '/admin': ['ADMIN'],
   '/api-docs': ['ADMIN'],
-  '/report-generator': ['ADMIN'],
 };
 
 /** The role list governing a page path, matching the longest registered prefix. */
@@ -91,8 +84,6 @@ function rolesForPagePath(pathname: string): string[] | undefined {
 const PUBLIC_PATHS = [
   '/auth/signin',
   '/auth/login',
-  '/auth/callback',
-  '/auth/callback/complete',
   '/auth/logout',
   '/api/auth/login',
   '/api/auth/register',
@@ -281,7 +272,6 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/api/analytics/:path*',          // Protect all analytics/dashboard routes
-    '/api/reporting/:path*',          // Protect the reporting-engine proxy (exposes schema)
     '/api/tasks/:path*',              // Protect all task routes
     '/api/auth/me',                   // Protect user info endpoint
     '/api/auth/refresh',              // Protect token refresh endpoint
@@ -307,11 +297,8 @@ export const config = {
     '/api/recent-activities/:path*', // Protect all recent activity routes
     '/api/wbs/:path*',                // Protect all WBS routes
     '/api/admin/:path*',              // Admin-only maintenance endpoints
-    '/api/entities/:path*',           // Generic table reader — unauthenticated before this
     '/api/roles/:path*',              // Role definitions
     '/api/swagger',                   // The OpenAPI spec for the whole API
-    '/admin/:path*',                  // Generic entity browser (server component)
     '/api-docs/:path*',               // Swagger UI
-    '/report-generator/:path*',       // Cross-module report builder
   ]
 }; 

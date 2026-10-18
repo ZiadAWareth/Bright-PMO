@@ -1,43 +1,5 @@
 import { prisma } from "@/legacy-server/prisma";
-import { entityConfig } from "@/lib/entities";
 import { PrismaClient, TaskStatus } from "@prisma/client";
-
-type PrismaModel = {
-  findMany: (args: any) => Promise<any>;
-  findUnique: (args: any) => Promise<any>;
-};
-
-export const getEntityConfig = (entityKey: string) => {
-  const config = entityConfig[entityKey];
-  if (!config) {
-    throw new Error(`Entity configuration not found for ${entityKey}`);
-  }
-
-  const model = prisma[entityKey as keyof typeof prisma] as PrismaModel;
-  if (!model || typeof model.findMany !== 'function') {
-    throw new Error(`Invalid model for entity ${entityKey}`);
-  }
-
-  return {
-    ...config,
-    model,
-  };
-};
-
-export const getEntityList = async (entityKey: string) => {
-  const config = getEntityConfig(entityKey);
-  return config.model.findMany({
-    include: config.include,
-  });
-};
-
-export const getEntityById = async (entityKey: string, id: number) => {
-  const config = getEntityConfig(entityKey);
-  return config.model.findUnique({
-    where: { [`${entityKey}_id`]: id },
-    include: config.include,
-  });
-};
 
 // Function to check milestone completion and trigger EVM calculations
 export async function checkMilestoneCompletion() {

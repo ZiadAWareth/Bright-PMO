@@ -6,34 +6,34 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { ArrowLeft, DollarSign } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
-import CreateTaskModal from "@/components/scheduler/taskmodal";
-import ResourceAssignmentEditModal from "@/components/scheduler/ResourceAssignmentEditModal";
-import CriticalPathManagementModal from "@/components/scheduler/CriticalPathModal";
-import ScheduleCalendarTab from "@/components/scheduler/ScheduleCalendarTab";
-import PhasesTab from "@/components/scheduler/PhasesTab";
-import MilestonesTab from "@/components/scheduler/MilestonesTab";
-import CriticalPathTab from "@/components/scheduler/CriticalPathTab";
-import ProjectScheduleHeader from "@/components/scheduler/ProjectScheduleHeader";
-import StatCards from "@/components/scheduler/StatCards";
-import ViewTabs from "@/components/scheduler/ViewTabs";
-import ScheduleFilters from "@/components/scheduler/ScheduleFilters";
-import ResourceAssignmentCard from "@/components/scheduler/ResourceAssignmentCard";
+import CreateTaskModal from "@/features/waterfall/schedule/components/taskmodal";
+import ResourceAssignmentEditModal from "@/features/waterfall/schedule/components/ResourceAssignmentEditModal";
+import CriticalPathManagementModal from "@/features/waterfall/schedule/components/CriticalPathModal";
+import ScheduleCalendarTab from "@/features/waterfall/schedule/components/ScheduleCalendarTab";
+import PhasesTab from "@/features/waterfall/schedule/components/PhasesTab";
+import MilestonesTab from "@/features/waterfall/schedule/components/MilestonesTab";
+import CriticalPathTab from "@/features/waterfall/schedule/components/CriticalPathTab";
+import ProjectScheduleHeader from "@/features/waterfall/schedule/components/ProjectScheduleHeader";
+import StatCards from "@/features/waterfall/schedule/components/StatCards";
+import ViewTabs from "@/features/waterfall/schedule/components/ViewTabs";
+import ScheduleFilters from "@/features/waterfall/schedule/components/ScheduleFilters";
+import ResourceAssignmentCard from "@/features/waterfall/schedule/components/ResourceAssignmentCard";
 
 // Hooks
-import { useProjectSchedule } from "@/hooks/useProjectSchedule";
-import { useTaskManagement } from "@/hooks/useTaskManagement";
-import { useResourceAssignments } from "@/hooks/useResourceAssignments";
-import { useWBSProgress } from "@/hooks/useWBSProgress";
-import { usePermissions } from "@/hooks/usePermissions";
+import { useProjectSchedule } from "@/features/waterfall/schedule/hooks/useProjectSchedule";
+import { useTaskManagement } from "@/features/waterfall/schedule/hooks/useTaskManagement";
+import { useResourceAssignments } from "@/features/waterfall/schedule/hooks/useResourceAssignments";
+import { useWBSProgress } from "@/features/waterfall/schedule/hooks/useWBSProgress";
+import { usePermissions } from "@/features/auth/hooks/usePermissions";
 
 // Utils
-import { filterTasks } from "@/components/scheduler/taskHelpers";
+import { filterTasks } from "@/features/waterfall/schedule/components/taskHelpers";
 import {
     formatDate,
     getDaysUntilDeadline,
     getStatusColor,
     getPriorityColor,
-} from "@/components/scheduler/taskHelpers";
+} from "@/features/waterfall/schedule/components/taskHelpers";
 import { Spinner } from "@/components/ui/spinner";
 import { useConfirm } from "@/components/ui/confirm-provider";
 

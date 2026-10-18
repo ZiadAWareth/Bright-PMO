@@ -55,8 +55,8 @@ import {
   Save,
 } from "lucide-react";
 import axios from "axios";
-import WBSTemplateManager from "@/components/WBSTemplateManager";
-import CreateWBSForm from "@/components/wbs/CreateWBSForm";
+import WBSTemplateManager from "@/features/waterfall/wbs/components/WBSTemplateManager";
+import CreateWBSForm from "@/features/waterfall/wbs/components/CreateWBSForm";
 import { Dropdown } from "@/components/ui/dropdown";
 import { StatGrid, StatTile } from "@/components/ui/entity-card";
 import { StatusBadge, ListCard, ListHead, ListRow, ListMessage } from "@/components/ui/form-shell";

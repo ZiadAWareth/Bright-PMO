@@ -46,10 +46,10 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import { format } from "date-fns";
 // Removed EpsEditForm import since we're using dedicated edit page
-import ProjectsTab from "@/components/ProjectsTab";
+import ProjectsTab from "@/features/projects/components/ProjectsTab";
 import { Spinner } from "@/components/ui/spinner";
 import { TabRow } from "@/components/ui/tab-row";
 

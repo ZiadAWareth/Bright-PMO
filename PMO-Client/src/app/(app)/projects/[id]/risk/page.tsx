@@ -21,8 +21,8 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
-import AddRiskModal from "@/components/AddRiskModal";
-import AssignMitigationModal from "@/components/AssignMitigationModal";
+import AddRiskModal from "@/features/risks/components/AddRiskModal";
+import AssignMitigationModal from "@/features/risks/components/AssignMitigationModal";
 import { Spinner } from "@/components/ui/spinner";
 import { Dropdown } from "@/components/ui/dropdown";
 import { FormSection, StatusBadge } from "@/components/ui/form-shell";

@@ -17,9 +17,9 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
-import ProjectsTab from "@/components/ProjectsTab";
-import { Project } from "@/types/project";
-import AssignMitigationModal from "@/components/AssignMitigationModal";
+import ProjectsTab from "@/features/projects/components/ProjectsTab";
+import { Project } from "@/features/projects/types";
+import AssignMitigationModal from "@/features/risks/components/AssignMitigationModal";
 import { Spinner } from "@/components/ui/spinner";
 import { useConfirm } from "@/components/ui/confirm-provider";
 import { Dropdown } from "@/components/ui/dropdown";

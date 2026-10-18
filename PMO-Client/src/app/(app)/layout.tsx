@@ -1,5 +1,5 @@
 import AppShell from "@/components/layout/AppShell";
-import RouteGuard from "@/components/auth/RouteGuard";
+import RouteGuard from "@/features/auth/components/RouteGuard";
 
 /**
  * Layout for every signed-in screen.

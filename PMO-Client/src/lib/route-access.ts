@@ -27,15 +27,6 @@ export const ROUTE_ROLES: Record<string, string[]> = {
     "HR",
     "LEGAL",
   ],
-  "/analytics/reporting-engine": [
-    "PJM",
-    "PMO",
-    "ADMIN",
-    "FIN",
-    "QAQC",
-    "IT",
-    "DIR",
-  ],
   "/analytics/reports": ["PJM", "PMO", "ADMIN", "FIN", "QAQC", "IT", "DIR"],
   "/eps": ["PJM", "PMO", "ADMIN", "FIN", "DIR"],
   "/portfolios": ["PMO", "PJM", "ADMIN", "IT", "DIR"],
@@ -48,14 +39,10 @@ export const ROUTE_ROLES: Record<string, string[]> = {
   /** Mirrors the page's own `canManageSchedules`, so gate and controls agree. */
   "/scheduler": ["PMO", "PJM", "ADMIN", "DIR"],
   /**
-   * Administrative tooling. These reach past the feature screens: the generic
-   * entity browser reads and writes any table in `lib/entities.ts`, the Swagger
-   * page publishes the whole API surface, and the report generator queries
-   * across modules. None of them scope output to the caller, so ADMIN only.
+   * The Swagger page publishes the whole API surface rather than anything
+   * scoped to the caller, so ADMIN only.
    */
-  "/admin": ["ADMIN"],
   "/api-docs": ["ADMIN"],
-  "/report-generator": ["ADMIN"],
   /** Role-switcher landing page; same audience as the dashboard it links to. */
   "/analytics": ["PMO", "PJM", "ADMIN", "FIN", "QAQC", "IT", "DIR", "HR", "LEGAL"],
   /** Per-user drilldown — the same audience that may open User Management. */
@@ -121,10 +108,8 @@ export function matchRoute(pathname: string): string | undefined {
  * still looks intact rather than showing a bare error on a blank page.
  */
 export const ROUTE_TITLES: Record<string, string> = {
-  "/admin": "Admin",
   "/analytics": "Analytics",
   "/analytics/dashboard": "Dashboard",
-  "/analytics/reporting-engine": "Reporting Engine",
   "/analytics/reports": "Reports",
   "/analytics/users": "User Analytics",
   "/api-docs": "API Documentation",
@@ -132,7 +117,6 @@ export const ROUTE_TITLES: Record<string, string> = {
   "/eps": "Enterprise Project Structure",
   "/portfolios": "Portfolios",
   "/projects": "Projects",
-  "/report-generator": "Report Generator",
   "/resources": "Resources",
   "/rfq-management": "RFQ Management",
   "/risk": "Risk Management",

@@ -16,7 +16,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import { FilterBar, FilterSelect } from "@/components/ui/filter-bar";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ViewToggle, type ListViewMode } from "@/components/ui/view-toggle";
@@ -44,8 +44,8 @@ import {
   EntityStats,
 } from "@/components/ui/entity-card";
 import { useDebounce } from "@/hooks/useDebounce";
-import { DeleteEpsDialog } from "./_components/DeleteEpsDialog";
-import useCurrentUser from "@/hooks/useCurrentUser";
+import { DeleteEpsDialog } from "@/features/eps/components/DeleteEpsDialog";
+import useCurrentUser from "@/features/auth/hooks/useCurrentUser";
 
 interface CurrentUser {
   user_id: number;

@@ -22,10 +22,10 @@ import {
     CalendarClock,
     ShoppingCart,
 } from "lucide-react";
-import NotificationModal from "../NotificationModal";
+import NotificationModal from "@/features/notifications/components/NotificationModal";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useNotifications } from "@/hooks/useNotifications";
+import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
+import { useNotifications } from "@/features/notifications/hooks/useNotifications";
 import { useOutsideClick } from "@/hooks/useOutsideClick";
 import { BrightLogo } from "@/components/brand/bright-logo";
 import { clearCachedUser } from "@/lib/current-user-cache";

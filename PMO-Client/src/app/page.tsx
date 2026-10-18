@@ -1,4 +1,4 @@
-import { LandingPage } from "@/components/marketing/LandingPage";
+import { LandingPage } from "@/features/marketing/components/LandingPage";
 
 /**
  * Application entry point — the public marketing landing page.

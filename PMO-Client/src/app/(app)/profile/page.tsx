@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { User } from "@/types/user";
+import { User } from "@/features/users/types";
 import { Spinner } from "@/components/ui/spinner";
 
 export default function ProfilePage() {

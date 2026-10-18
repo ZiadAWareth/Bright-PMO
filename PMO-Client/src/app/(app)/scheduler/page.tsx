@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Modal } from "@/components/ui/modal";
 import { FilterBar, FilterSelect } from "@/components/ui/filter-bar";
-import RoleGuard from "@/components/auth/RoleGuard";
-import useCurrentUser from "@/hooks/useCurrentUser";
+import RoleGuard from "@/features/auth/components/RoleGuard";
+import useCurrentUser from "@/features/auth/hooks/useCurrentUser";
 import { canAccessRoute } from "@/lib/route-access";
 import {
     Plus,

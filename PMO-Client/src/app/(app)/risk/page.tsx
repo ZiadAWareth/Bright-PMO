@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { FilterBar, FilterSelect } from "@/components/ui/filter-bar";
-import ProjectCalendarView from "@/components/calendar-component";
+import ProjectCalendarView from "@/features/risks/components/calendar-component";
 import { LoadingState, Spinner } from "@/components/ui/spinner";
 import { Dropdown } from "@/components/ui/dropdown";
 import { TabRow } from "@/components/ui/tab-row";

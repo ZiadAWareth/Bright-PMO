@@ -15,13 +15,13 @@ import {
   Users,
 } from "lucide-react";
 import axios from "axios";
-import { ProjectSetup, ProjectWithRelations } from "@/types/project";
+import { ProjectSetup, ProjectWithRelations } from "@/features/projects/types";
 import { ProjectStatus, ProjectPriority } from "@/types/enums";
 import { toast } from "sonner";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import { FilterBar, FilterSelect } from "@/components/ui/filter-bar";
-import MassUpdateModal from "@/components/MassUpdateModal";
-import ArchivedProjectsModal from "@/components/ArchivedProjectsModal";
+import MassUpdateModal from "@/features/projects/components/MassUpdateModal";
+import ArchivedProjectsModal from "@/features/projects/components/ArchivedProjectsModal";
 import { Spinner } from "@/components/ui/spinner";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ViewToggle, type ListViewMode } from "@/components/ui/view-toggle";

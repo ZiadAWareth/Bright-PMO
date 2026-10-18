@@ -19,12 +19,12 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
-import { ProjectWithRelations, ProjectSetup } from "@/types/project";
-import { AddEntityModal } from "@/components/AddEntityModal";
-import { TeamUserSelect } from "@/components/TeamUserSelect";
-import ResourceAssignmentModal from "@/components/scheduler/ResourceAssignmentModal";
-import { useDepartments } from "@/hooks/useDepartments";
-import { useEmployees } from "@/hooks/useEmployees";
+import { ProjectWithRelations, ProjectSetup } from "@/features/projects/types";
+import { AddEntityModal } from "@/components/form/AddEntityModal";
+import { TeamUserSelect } from "@/features/team/components/TeamUserSelect";
+import ResourceAssignmentModal from "@/features/waterfall/schedule/components/ResourceAssignmentModal";
+import { useDepartments } from "@/features/team/hooks/useDepartments";
+import { useEmployees } from "@/features/team/hooks/useEmployees";
 import { Spinner } from "@/components/ui/spinner";
 import { useConfirm } from "@/components/ui/confirm-provider";
 import { Dropdown } from "@/components/ui/dropdown";

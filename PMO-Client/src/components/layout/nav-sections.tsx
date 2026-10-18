@@ -6,7 +6,6 @@ import {
     Briefcase,
     CalendarClock,
     Clock,
-    Database,
     FileText,
     FolderOpen,
     Home,
@@ -55,12 +54,6 @@ export const NAV_SECTIONS: NavSection[] = [
                 href: "/analytics/dashboard",
                 icon: <Home size={20} />,
                 allowedRoles: ROUTE_ROLES["/analytics/dashboard"],
-            },
-            {
-                label: "Reporting Engine",
-                href: "/analytics/reporting-engine",
-                icon: <Database size={20} />,
-                allowedRoles: ROUTE_ROLES["/analytics/reporting-engine"],
             },
             {
                 label: "Reports",

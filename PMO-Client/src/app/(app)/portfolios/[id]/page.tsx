@@ -42,8 +42,8 @@ import {
     Plus,
     X,
 } from "lucide-react";
-import { ProjectWithRelations } from "@/types/project";
-import { PortfolioWithRelations } from "@/types/portfolio";
+import { ProjectWithRelations } from "@/features/projects/types";
+import { PortfolioWithRelations } from "@/features/portfolios/types";
 import { FormSection, InfoGrid, StatusBadge } from "@/components/ui/form-shell";
 import {
   humanize,
@@ -52,11 +52,11 @@ import {
 } from "@/lib/status-tone";
 import axios from "axios";
 import { set } from "date-fns";
-import { AddEntityModal } from "@/components/AddEntityModal";
-import { UserWithAccount } from "@/types/user";
+import { AddEntityModal } from "@/components/form/AddEntityModal";
+import { UserWithAccount } from "@/features/users/types";
 import { toast } from "sonner";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import ProjectsTab from "@/components/ProjectsTab";
+import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
+import ProjectsTab from "@/features/projects/components/ProjectsTab";
 import { Spinner } from "@/components/ui/spinner";
 import { TabRow } from "@/components/ui/tab-row";
 // import ProjectsTab from '@/components/portfolio/ProjectsTab';

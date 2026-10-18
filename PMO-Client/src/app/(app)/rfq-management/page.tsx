@@ -43,7 +43,7 @@ import {
 } from "@/components/ui/tooltip";
 import { LoadingState, Spinner } from "@/components/ui/spinner";
 import { TabRow } from "@/components/ui/tab-row";
-import RoleGuard from "@/components/auth/RoleGuard";
+import RoleGuard from "@/features/auth/components/RoleGuard";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ViewToggle, type ListViewMode } from "@/components/ui/view-toggle";
 import { PersonCell } from "@/components/ui/person-cell";

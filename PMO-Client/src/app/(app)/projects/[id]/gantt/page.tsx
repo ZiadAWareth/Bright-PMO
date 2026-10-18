@@ -50,11 +50,11 @@ import type {
   ResourceWorkloadResponse,
   TimelineColumn,
   UserRole,
-} from "./_components/types";
-import CriticalPathManagementModal from "./_components/CriticalPathManagementModal";
-import ResourceDetailModal from "./_components/ResourceDetailModal";
-import CreateTaskModal from "./_components/CreateTaskModal";
-import ResourceAssignmentModal from "./_components/GanttResourceAssignmentModal";
+} from "@/features/waterfall/schedule/components/gantt/types";
+import CriticalPathManagementModal from "@/features/waterfall/schedule/components/gantt/CriticalPathManagementModal";
+import ResourceDetailModal from "@/features/waterfall/schedule/components/gantt/ResourceDetailModal";
+import CreateTaskModal from "@/features/waterfall/schedule/components/gantt/CreateTaskModal";
+import ResourceAssignmentModal from "@/features/waterfall/schedule/components/gantt/GanttResourceAssignmentModal";
 import { Spinner } from "@/components/ui/spinner";
 import { Dropdown } from "@/components/ui/dropdown";
 

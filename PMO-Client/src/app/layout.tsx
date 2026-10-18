@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
-import Sidebar from "./components/Sidebar";
 import { Toaster } from "@/components/ui/sonner";
-import TokenRefresh from "./components/TokenRefresh";
+import TokenRefresh from "@/features/auth/components/TokenRefresh";
 import { ConfirmProvider } from "@/components/ui/confirm-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { themeInitScript } from "@/lib/theme-script";

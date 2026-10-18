@@ -40,11 +40,11 @@ import {
   X,
   UserPlus,
 } from "lucide-react";
-import { ProjectType } from "@/types/project";
+import { ProjectType } from "@/features/projects/types";
 import axios from "axios";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import { useDepartments } from "@/hooks/useDepartments";
-import { useEmployees } from "@/hooks/useEmployees";
+import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
+import { useDepartments } from "@/features/team/hooks/useDepartments";
+import { useEmployees } from "@/features/team/hooks/useEmployees";
 import { SearchableDropdown } from "@/components/form/SearchableDropdown";
 import { Spinner } from "@/components/ui/spinner";
 import { UserAvatar, personName } from "@/components/ui/person-cell";

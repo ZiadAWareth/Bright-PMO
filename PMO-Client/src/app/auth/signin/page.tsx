@@ -1,8 +1,8 @@
 "use client";
 
-import { SignInForm } from "./_components/SignInForm";
-import { IdpRedirect } from "./_components/IdpRedirect";
-import { USE_IDP_AUTH } from "./_components/constants";
+import { SignInForm } from "@/features/auth/components/signin/SignInForm";
+import { IdpRedirect } from "@/features/auth/components/signin/IdpRedirect";
+import { USE_IDP_AUTH } from "@/features/auth/components/signin/constants";
 
 /**
  * Sign-in route. Thin orchestrator — the screen itself lives in

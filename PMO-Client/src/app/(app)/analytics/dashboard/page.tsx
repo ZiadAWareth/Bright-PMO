@@ -1,13 +1,13 @@
 "use client";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { DashboardHeader } from "./_components/DashboardHeader";
-import { DeliveryPulse } from "./_components/DeliveryPulse";
-import { KpiBand } from "./_components/KpiBand";
-import { DashboardCharts } from "./_components/DashboardCharts";
-import { QuickActions } from "./_components/QuickActions";
-import { RecentActivity } from "./_components/RecentActivity";
-import { useAnalyticsDashboard } from "./_hooks/useAnalyticsDashboard";
+import { DashboardHeader } from "@/features/analytics/dashboard/components/DashboardHeader";
+import { DeliveryPulse } from "@/features/analytics/dashboard/components/DeliveryPulse";
+import { KpiBand } from "@/features/analytics/dashboard/components/KpiBand";
+import { DashboardCharts } from "@/features/analytics/dashboard/components/DashboardCharts";
+import { QuickActions } from "@/features/analytics/dashboard/components/QuickActions";
+import { RecentActivity } from "@/features/analytics/dashboard/components/RecentActivity";
+import { useAnalyticsDashboard } from "@/features/analytics/dashboard/hooks/useAnalyticsDashboard";
 
 /**
  * Analytics dashboard — a thin orchestrator over `/api/analytics/dashboard/*`.

@@ -6,20 +6,20 @@ import { DollarSign, Edit, Eye, FolderOpen, Shield, Trash2 } from "lucide-react"
 import axios from "axios";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import { FilterBar, FilterSelect } from "@/components/ui/filter-bar";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ViewToggle, type ListViewMode } from "@/components/ui/view-toggle";
 import { PersonCell } from "@/components/ui/person-cell";
 import { Spinner } from "@/components/ui/spinner";
 import { useDebounce } from "@/hooks/useDebounce";
-import { PortfolioWithRelations } from "@/types/portfolio";
-import useCurrentUser from "@/hooks/useCurrentUser";
+import { PortfolioWithRelations } from "@/features/portfolios/types";
+import useCurrentUser from "@/features/auth/hooks/useCurrentUser";
 import { PortfolioStatus, PortfolioPriority } from "@/types/enums";
 import {
   DeletePortfolioDialog,
   type ProjectInfo,
-} from "./_components/DeletePortfolioDialog";
+} from "@/features/portfolios/components/DeletePortfolioDialog";
 import {
   EntityCard,
   EntityCardFooter,

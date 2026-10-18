@@ -24,22 +24,22 @@ import {
   X,
   Info,
 } from "lucide-react";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import { StatCard } from "@/components/ui/form-shell";
-import MentionTextarea from "@/components/MentionTextarea";
-import ResourceAssignmentModal from "@/components/scheduler/ResourceAssignmentModal";
-import type { Task } from "./_components/types";
+import MentionTextarea from "@/features/work-items/components/MentionTextarea";
+import ResourceAssignmentModal from "@/features/waterfall/schedule/components/ResourceAssignmentModal";
+import type { Task } from "@/features/work-items/components/details/types";
 import {
   getStatusBadge,
   getPriorityBadge,
   getStatusIcon,
   formatFileSize,
   getFileIcon,
-} from "./_components/constants";
-import EditAssignmentModal from "./_components/EditAssignmentModal";
-import FieldDataModal from "./_components/FieldDataModal";
-import CommentThread from "./_components/CommentThread";
-import { useTaskData } from "./_hooks/useTaskData";
+} from "@/features/work-items/components/details/constants";
+import EditAssignmentModal from "@/features/work-items/components/details/EditAssignmentModal";
+import FieldDataModal from "@/features/work-items/components/details/FieldDataModal";
+import CommentThread from "@/features/work-items/components/details/CommentThread";
+import { useTaskData } from "@/features/work-items/hooks/useTaskData";
 import { Spinner } from "@/components/ui/spinner";
 import { Dropdown } from "@/components/ui/dropdown";
 

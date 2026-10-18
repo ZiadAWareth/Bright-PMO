@@ -6,10 +6,9 @@ import { ShieldOff } from "lucide-react";
  *
  * Screens inside the `(app)` group show their denial through `RouteGuard`, so
  * the sidebar stays mounted and the user keeps their bearings. The routes gated
- * in middleware — `/admin`, `/api-docs`, `/report-generator` — render outside
- * the shell, and `/admin/[entity]` is a server component whose data fetch has to
- * be stopped before render. Middleware rewrites to this page instead, which
- * keeps the URL the user typed while serving a readable answer.
+ * in middleware (`/api-docs`) render outside the shell, so middleware rewrites
+ * to this page instead, which keeps the URL the user typed while serving a
+ * readable answer.
  */
 export default async function UnauthorizedPage({
   searchParams,

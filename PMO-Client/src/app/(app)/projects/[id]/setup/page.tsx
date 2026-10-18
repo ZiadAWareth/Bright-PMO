@@ -18,7 +18,7 @@ import {
   GitBranch,
 } from 'lucide-react';
 import axios from 'axios';
-import { ProjectSetup } from '@/types/project';
+import { ProjectSetup } from '@/features/projects/types';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/ui/spinner';
 import { TabRow } from '@/components/ui/tab-row';
@@ -28,8 +28,8 @@ import {
   ProjectSetupRail,
   type SetupStep,
   type SetupStepStatus,
-} from '@/components/projects/ProjectSetupRail';
-import { ProjectSetupStepPanel } from '@/components/projects/ProjectSetupStepPanel';
+} from '@/features/projects/components/setup/ProjectSetupRail';
+import { ProjectSetupStepPanel } from '@/features/projects/components/setup/ProjectSetupStepPanel';
 
 interface Project {
   project_id: number;
