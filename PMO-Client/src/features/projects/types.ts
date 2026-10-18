@@ -1,4 +1,4 @@
-import type { ProjectStatus, ProjectPriority, projectCompliance, ProjectStrategicValue, TaskPriority, ClosureDocumentType } from '@prisma/client';
+import type { ProjectStatus, ProjectPriority, projectCompliance, ProjectStrategicValue, TaskPriority, ClosureDocumentType } from '@/types/enums';
 
 export interface WBSItem {
   wbs_id: number;

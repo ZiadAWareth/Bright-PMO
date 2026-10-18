@@ -1,68 +1,81 @@
-# Screen Decomposition Conventions
+# Frontend Conventions (PMO-Client)
+
+How screens are structured and split. The day-to-day rules (theme tokens,
+`data-testid`, which backend to call) are in `PMO-Client/AGENTS.md`.
 
 ## File Size Guardrails
 
 | File Type | Soft Cap | Hard Cap |
 |-----------|----------|----------|
-| Route `page.tsx` | 300 lines | 500 lines |
-| Feature section component | 250 lines | 400 lines |
+| Route `page.tsx` | 150 lines | 300 lines |
+| Feature view / section component | 250 lines | 400 lines |
 | Modal component | 200 lines | 350 lines |
-| Custom hook | 150 lines | 250 lines |
+| Hook | 150 lines | 250 lines |
+| `api.ts` | 200 lines | 350 lines |
 | Types / constants file | No limit | -- |
 
-## Folder Structure for Route Screens
+Many pages written before the restructure exceed these caps. Bring each one
+under the cap when it is rewired to the new backend.
 
-Each route screen that exceeds the soft cap should be decomposed into co-located modules
-using underscore-prefixed directories (Next.js App Router ignores these for routing):
+## Folder Structure
+
+Routes live in `src/app`; everything a screen is made of lives in its feature:
 
 ```
-app/projects/[id]/
-  page.tsx                    # Thin orchestrator: imports, composes, passes props
-  _components/
-    types.ts                  # All interfaces/types for this screen
-    constants.ts              # Enums, option arrays, color maps, config
-    OverviewSection.tsx       # One file per logical tab/section
-    TasksSection.tsx
-    BudgetSection.tsx
-    ...
-  _hooks/
-    useProjectData.ts         # Data fetching, state management
-    useProjectPermissions.ts  # Role/access logic
-    ...
-  _modals/
-    EditProjectModal.tsx      # One file per dialog/modal
-    ApprovalModal.tsx
-    ...
+src/app/(app)/projects/[id]/page.tsx     # thin: params -> <ProjectDetailsView />
+
+src/features/projects/
+  types.ts                  # the domain's types (what the UI works with)
+  api.ts                    # backend calls; maps responses into types.ts
+  constants.ts              # option arrays, status -> tone maps, config
+  components/
+    details/
+      ProjectDetailsView.tsx  # composes the sections below
+      OverviewSection.tsx     # one file per tab/section
+      BudgetSection.tsx
+    EditProjectModal.tsx      # one file per dialog
+  hooks/
+    useProjectData.ts         # data loading and state
+    useProjectPermissions.ts  # role/access logic
 ```
+
+Sub-domains nest the same way: `features/waterfall/wbs/`,
+`features/waterfall/schedule/`, and later `features/agile/board/`, etc.
+
+Do not create `_components` or `_hooks` folders under `src/app`.
 
 ## Naming Conventions
 
-- Section components: `{TabName}Section.tsx` (e.g., `OverviewSection.tsx`)
-- Modal components: `{Feature}Modal.tsx` (e.g., `EditProjectModal.tsx`)
-- Hooks: `use{Domain}{Action}.ts` (e.g., `useProjectData.ts`)
-- Types: `types.ts` (one per screen, or shared in `@/types/`)
-- Constants: `constants.ts` (one per screen)
+- Views: `{Screen}View.tsx` (e.g. `ProjectDetailsView.tsx`)
+- Sections: `{TabName}Section.tsx` (e.g. `OverviewSection.tsx`)
+- Modals: `{Action}{Entity}Modal.tsx` (e.g. `EditProjectModal.tsx`)
+- Hooks: `use{Domain}{Purpose}.ts` (e.g. `useProjectData.ts`)
+- Types: `types.ts`, one per feature (sub-folders may have their own)
+- Constants: `constants.ts`, one per feature
 
-## Extraction Rules
+## Splitting a Large Screen
 
-1. **Types first**: Move all interfaces/types to `_components/types.ts`.
-2. **Constants next**: Move enum option arrays, color maps, static config to `_components/constants.ts`.
-3. **Hooks**: Extract `useEffect` chains and related state into domain hooks under `_hooks/`.
-4. **Modals**: Move each inline modal component to its own file under `_modals/`.
-5. **Sections**: Move each tab/section render block to its own component under `_components/`.
-6. **Page last**: Rewrite `page.tsx` as a thin orchestrator that imports and composes.
+1. **Types first**: move interfaces into the feature's `types.ts`.
+2. **Constants next**: option arrays, status maps and static config into
+   `constants.ts`.
+3. **API calls**: move fetches into `api.ts`, returning the feature's types.
+4. **Hooks**: move `useEffect` chains and related state into `hooks/`.
+5. **Modals**: one file each under `components/`.
+6. **Sections**: one component per tab or section.
+7. **Page last**: `page.tsx` becomes a thin route that renders the view.
 
-## Shared Component Reuse
+## Reuse Before You Build
 
-Before creating new UI:
-- Check `components/ui/` for Shadcn primitives (Dialog, Table, Tabs, Form, etc.)
-- Check `components/form/` for form abstractions (FormFieldWrapper, DynamicInput, SearchableDropdown)
-- Check `hooks/` for existing data hooks (useTaskManagement, usePermissions, etc.)
-- Check `lib/services/` for business logic (critical-path, project-health, etc.)
+Before creating new UI or logic, check:
+- `components/ui/` for primitives (the list is in `PMO-Client/AGENTS.md`)
+- `components/form/` for generic form helpers (`AddEntityModal`,
+  `SearchableDropdown`, `DynamicInput`)
+- the feature's own `hooks/` and other features' public pieces
+- `lib/` for framework helpers (`route-access`, `status-tone`, `working-days`)
 
 ## Duplicate Prevention
 
-When building a new component that resembles an existing one:
-- Create a shared base with configuration props instead of copying
-- Use the adapter pattern: base component + domain-specific wrapper
-- Example: `TemplateManagerBase` + `TaskTemplateManager` wrapper
+When a new component resembles an existing one:
+- Make a shared base with configuration props instead of copying it.
+- Use the adapter pattern: base component plus a domain-specific wrapper
+  (e.g. `TemplateManagerBase` + `WBSTemplateManager`).
