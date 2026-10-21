@@ -8,6 +8,7 @@ import { AuthLayout } from "@/features/auth/components/AuthLayout";
 import { BRAND } from "@/lib/brand";
 import { loginErrorMessage, safeReturnTo, DEFAULT_HOME_PATH } from "./constants";
 import { Spinner } from "@/components/ui/spinner";
+import { signInToBackend } from "@/lib/backend";
 
 const REMEMBER_EMAIL_KEY = "bright-remember-email";
 
@@ -85,6 +86,9 @@ export function SignInForm() {
       if (data.user?.user_id != null) {
         localStorage.setItem("userId", String(data.user.user_id));
       }
+
+      // Same credentials on the new backend, for screens already moved there.
+      await signInToBackend(formData.email, formData.password);
 
       toast.success(`Welcome back, ${data.user?.email ?? "there"}!`);
 

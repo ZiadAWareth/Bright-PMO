@@ -29,6 +29,7 @@ import { useNotifications } from "@/features/notifications/hooks/useNotification
 import { useOutsideClick } from "@/hooks/useOutsideClick";
 import { BrightLogo } from "@/components/brand/bright-logo";
 import { clearCachedUser } from "@/lib/current-user-cache";
+import { signOutOfBackend } from "@/lib/backend";
 import { BRAND } from "@/lib/brand";
 
 import {
@@ -163,6 +164,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 credentials: "same-origin",
             });
             localStorage.removeItem('token');
+            await signOutOfBackend();
             // Drop the cached identity so the next sign-in re-fetches it.
             clearCachedUser();
             const useIdp =

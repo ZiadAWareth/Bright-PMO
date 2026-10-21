@@ -4,8 +4,8 @@ The old Bright PMO backend: Next.js API routes and Prisma on PostgreSQL, on
 port **7061**. It has no pages; `PMO-Client` forwards `/api/...` here.
 
 It stays in place until every screen has moved to the new backend
-(`PMO-Backend`), and is then deleted. Fix bugs and security issues here, but do
-not add features: new endpoints belong in `PMO-Backend`.
+(`PMO-Soul-Backend`), and is then deleted. Fix bugs and security issues here, but do
+not add features: new endpoints belong in `PMO-Soul-Backend`.
 
 ```
 npm run dev                 # http://localhost:7061

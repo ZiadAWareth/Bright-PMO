@@ -1,0 +1,141 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Brand-driven theme: --primary / --brand come from the project's colors;
+   neutrals stay slate. Full light + dark parity via HSL CSS variables. */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 175 77% 26%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 175 70% 95%;
+    --accent-foreground: 175 77% 22%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 175 77% 26%;
+
+    --radius: 0.625rem;
+
+    --brand: 175 77% 26%;
+    --brand-foreground: 0 0% 100%;
+    --brand-2: 161 94% 30%;
+    --brand-2-foreground: 0 0% 100%;
+
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-accent: 175 70% 95%;
+    --sidebar-border: 214 32% 91%;
+  }
+
+  .dark {
+    --background: 222 47% 8%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 175 77% 52%;
+    --primary-foreground: 222 47% 11%;
+
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 175 40% 18%;
+    --accent-foreground: 175 77% 60%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 33% 20%;
+    --input: 217 33% 20%;
+    --ring: 175 77% 52%;
+
+    --brand: 175 77% 52%;
+    --brand-foreground: 222 47% 11%;
+    --brand-2: 161 94% 42%;
+    --brand-2-foreground: 222 47% 11%;
+
+    --sidebar: 222 47% 10%;
+    --sidebar-foreground: 210 40% 90%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-border: 217 33% 18%;
+  }
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Slim, subtle scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--muted-foreground) / 0.25);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover { background-color: hsl(var(--muted-foreground) / 0.45); }
+
+/* ── Auth motion (self-contained utilities; reduced-motion safe) ── */
+@keyframes soul-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes soul-aurora-a {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(24px, 18px, 0) scale(1.12); }
+}
+@keyframes soul-aurora-b {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.05); }
+  50%      { transform: translate3d(-28px, -16px, 0) scale(1); }
+}
+@keyframes soul-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+.animate-rise { animation: soul-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-aurora-a { animation: soul-aurora-a 18s ease-in-out infinite; }
+.animate-aurora-b { animation: soul-aurora-b 22s ease-in-out infinite; }
+.animate-float { animation: soul-float 6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-aurora-a,
+  .animate-aurora-b,
+  .animate-float { animation: none !important; }
+}

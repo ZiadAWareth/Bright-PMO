@@ -1,0 +1,3209 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ApprovalType {
+  project_creation
+  budget_change
+  schedule_change
+  scope_change
+  phase_gate
+  checklist
+  project_closure
+}
+
+enum LessonType {
+  lesson
+  retro_went_well
+  retro_to_improve
+  retro_action
+}
+
+enum MaintenanceType {
+  routine
+  repair
+  inspection
+  compliance
+  emergency
+}
+
+enum MaintenanceTrigger {
+  time_based
+  usage_based
+  condition_based
+  regulatory
+}
+
+enum MaintenanceStatus {
+  scheduled
+  in_progress
+  completed
+  overdue
+  cancelled
+}
+
+enum Priority {
+  low
+  medium
+  high
+  critical
+}
+
+enum InspectionStatus {
+  scheduled
+  in_progress
+  passed
+  failed
+}
+
+enum WorkItemLinkType {
+  blocks
+  relates_to
+  duplicates
+}
+
+enum AlertType {
+  budget_threshold
+  schedule_slip
+  critical_path_change
+  risk_escalation
+  wip_limit_exceeded
+  sprint_at_risk
+  overdue_items
+}
+
+enum AlertSeverity {
+  info
+  warning
+  critical
+}
+
+enum WorkItemType {
+  epic
+  feature
+  story
+  task
+  subtask
+  bug
+  milestone
+}
+
+enum ConstraintType {
+  asap
+  alap
+  must_start_on
+  must_finish_on
+  start_no_earlier_than
+  start_no_later_than
+  finish_no_earlier_than
+  finish_no_later_than
+}
+
+enum IntegrationProvider {
+  idp
+  hr
+  inventory
+  finance
+  metabase
+}
+
+enum OrganizationStatus {
+  trial
+  active
+  suspended
+}
+
+enum ProjectRole {
+  manager
+  product_owner
+  scrum_master
+  member
+  stakeholder
+  viewer
+}
+
+enum ClosureStatus {
+  in_progress
+  pending_approval
+  approved
+}
+
+enum CostType {
+  labor
+  material
+  equipment
+  subcontract
+  overhead
+  other
+}
+
+enum TransactionSource {
+  manual
+  finance_sync
+  timesheet
+  procurement
+}
+
+enum ContractStatus {
+  draft
+  active
+  completed
+  terminated
+  expired
+}
+
+enum InboxStatus {
+  received
+  processing
+  processed
+  failed
+}
+
+enum StatusCategory {
+  todo
+  in_progress
+  done
+}
+
+enum LifecycleGating {
+  sequential
+  free
+}
+
+enum LifecycleStepStatus {
+  locked
+  available
+  in_progress
+  completed
+  skipped
+}
+
+enum TimeEntryStatus {
+  draft
+  submitted
+  approved
+  rejected
+}
+
+enum RfqResponseStatus {
+  submitted
+  under_review
+  shortlisted
+  awarded
+  rejected
+}
+
+enum TimesheetStatus {
+  draft
+  submitted
+  approved
+  rejected
+}
+
+enum ChecklistCategory {
+  document_verification
+  financial_closure
+  stakeholder_signoff
+  resource_release
+  lessons_learned
+  final_report
+  contract_closure
+  custom
+}
+
+enum ChecklistStatus {
+  draft
+  submitted
+  approved
+  rejected
+  needs_revision
+}
+
+enum HandoverStatus {
+  scheduled
+  in_progress
+  completed
+}
+
+enum Methodology {
+  waterfall
+  agile
+  hybrid
+}
+
+enum AgileFramework {
+  scrum
+  kanban
+}
+
+enum ClosureItemType {
+  document
+  checklist
+  inspection
+  punch_list
+  handover
+  approval
+  retrospective
+  release_notes
+  custom
+}
+
+enum RiskCategory {
+  technical
+  schedule
+  cost
+  resource
+  quality
+  communication
+  external
+  regulatory
+  environmental
+  security
+  other
+}
+
+enum RiskRating {
+  low
+  medium
+  high
+  critical
+}
+
+enum RiskStatus {
+  identified
+  assessed
+  monitoring
+  mitigated
+  escalated
+  closed
+}
+
+enum RiskApprovalStatus {
+  not_submitted
+  pending
+  approved
+  rejected
+}
+
+enum RecurrenceFrequency {
+  daily
+  weekly
+  monthly
+  quarterly
+  yearly
+}
+
+enum ResourceType {
+  labor
+  equipment
+  material
+}
+
+enum ResourceAvailability {
+  available
+  on_leave
+  inactive
+}
+
+enum ReleaseStatus {
+  planned
+  in_progress
+  released
+  cancelled
+}
+
+enum UserStatus {
+  active
+  inactive
+  suspended
+}
+
+enum BaselineType {
+  initial
+  revised
+  re_baseline
+}
+
+enum DependencyType {
+  finish_to_start
+  start_to_start
+  finish_to_finish
+  start_to_finish
+}
+
+enum PortfolioStatus {
+  active
+  on_hold
+  completed
+  archived
+}
+
+enum WorkflowTrigger {
+  status_category_changed
+  dependency_completed
+  sprint_started
+  sprint_completed
+}
+
+enum WorkflowAction {
+  start_item
+  move_to_status
+  send_notification
+  assign_resource
+  create_recurring_item
+  escalate_item
+  update_project_status
+}
+
+enum SprintState {
+  planned
+  active
+  closed
+}
+
+enum PunchItemStatus {
+  open
+  in_progress
+  resolved
+}
+
+enum EstimationUnit {
+  hours
+  story_points
+}
+
+enum ProgressMethod {
+  duration_weighted
+  wbs_weighted
+  story_points
+  item_count
+  manual
+}
+
+enum ProjectStatus {
+  draft
+  pending_approval
+  rejected
+  planning
+  active
+  on_hold
+  closing
+  closed
+  cancelled
+}
+
+enum StrategicValue {
+  low
+  medium
+  high
+}
+
+enum ComplianceStatus {
+  pending
+  compliant
+  non_compliant
+}
+
+enum ApprovalStatus {
+  waiting
+  pending
+  approved
+  rejected
+  revision_requested
+  cancelled
+}
+
+enum ProcurementType {
+  material
+  service
+  equipment
+}
+
+enum ProcurementStatus {
+  planned
+  rfq_open
+  evaluating
+  awarded
+  ordered
+  delivered
+  closed
+  cancelled
+}
+
+enum ClosureItemStatus {
+  pending
+  complete
+  waived
+}
+
+enum MitigationType {
+  avoid
+  transfer
+  mitigate
+  accept
+  contingency
+}
+
+enum MitigationStatus {
+  planned
+  in_progress
+  completed
+  on_hold
+  cancelled
+  overdue
+}
+
+enum ConflictType {
+  resource_overallocation
+  skill_mismatch
+  dependency_violation
+  timeline_conflict
+  budget_exceeded
+  resource_unavailable
+  team_conflict
+}
+
+enum ConflictSeverity {
+  low
+  medium
+  high
+  critical
+}
+
+enum EscalationStatus {
+  open
+  acknowledged
+  resolved
+}
+
+model ApprovalPolicy {
+  id Int @id @default(autoincrement())
+  organizationId Int
+  type ApprovalType
+  name String
+  isActive Boolean
+  organization Organization? @relation(name: "ApprovalPolicyToOrganization_organizationIdToid", fields: [organizationId], references: [id])
+  approvalpolicysteps ApprovalPolicyStep[] @relation(name: "ApprovalPolicyStepToApprovalPolicy_policyIdToid")
+
+  @@index([organizationId])
+  @@index([organizationId, type])
+}
+
+model SprintSnapshot {
+  id Int @id @default(autoincrement())
+  sprintId Int
+  date DateTime
+  scopePoints Decimal /// @money
+  completedPoints Decimal /// @money
+  scopeHours Decimal /// @money
+  remainingHours Decimal /// @money
+  itemCount Int
+  doneCount Int
+  sprint Sprint? @relation(name: "SprintSnapshotToSprint_sprintIdToid", fields: [sprintId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([organizationId, sprintId])
+  @@index([organizationId, date])
+}
+
+model Lesson {
+  id Int @id @default(autoincrement())
+  projectId Int
+  sprintId Int?
+  type LessonType
+  title String
+  description String
+  category String?
+  impact String?
+  recommendations String?
+  submittedById Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  project Project? @relation(name: "LessonToProject_projectIdToid", fields: [projectId], references: [id])
+  sprint Sprint? @relation(name: "LessonToSprint_sprintIdToid", fields: [sprintId], references: [id])
+  user User? @relation(name: "LessonToUser_submittedByIdToid", fields: [submittedById], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, projectId])
+  @@index([organizationId, sprintId])
+  @@index([organizationId, type])
+  @@index([organizationId, submittedById])
+}
+
+model CommentMention {
+  id Int @id @default(autoincrement())
+  commentId Int
+  userId Int
+  comment Comment? @relation(name: "CommentMentionToComment_commentIdToid", fields: [commentId], references: [id])
+  user User? @relation(name: "CommentMentionToUser_userIdToid", fields: [userId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([organizationId, commentId])
+  @@index([organizationId, userId])
+}
+
+model MaintenanceSchedule {
+  id Int @id @default(autoincrement())
+  resourceId Int
+  type MaintenanceType
+  triggerType MaintenanceTrigger
+  triggerValue String
+  nextDueDate DateTime
+  status MaintenanceStatus
+  priority Priority
+  description String?
+  estimatedHours Decimal? /// @money
+  estimatedCost Decimal? /// @money
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  resource Resource? @relation(name: "MaintenanceScheduleToResource_resourceIdToid", fields: [resourceId], references: [id])
+  maintenancelogs MaintenanceLog[] @relation(name: "MaintenanceLogToMaintenanceSchedule_scheduleIdToid")
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, resourceId])
+  @@index([organizationId, type])
+  @@index([organizationId, triggerType])
+  @@index([organizationId, nextDueDate])
+  @@index([organizationId, status])
+  @@index([organizationId, priority])
+}
+
+model ResourceAssignment {
+  id Int @id @default(autoincrement())
+  resourceId Int
+  workItemId Int
+  allocationPct Decimal /// @money
+  startDate DateTime
+  endDate DateTime
+  plannedHours Decimal /// @money
+  actualHours Decimal /// @money
+  plannedQuantity Decimal? /// @money
+  progressPct Decimal /// @money
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  resource Resource? @relation(name: "ResourceAssignmentToResource_resourceIdToid", fields: [resourceId], references: [id])
+  workitem WorkItem? @relation(name: "ResourceAssignmentToWorkItem_workItemIdToid", fields: [workItemId], references: [id])
+  progressreports ProgressReport[] @relation(name: "ProgressReportToResourceAssignment_resourceAssignmentIdToid")
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, resourceId])
+  @@index([organizationId, workItemId])
+  @@index([organizationId, startDate])
+  @@index([organizationId, endDate])
+}
+
+model Eps {
+  id Int @id @default(autoincrement())
+  organizationId Int
+  code String
+  name String
+  description String?
+  level Int
+  parentId Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  eps Eps? @relation(name: "EpsToEps_parentIdToid", fields: [parentId], references: [id])
+  epss Eps[] @relation(name: "EpsToEps_parentIdToid")
+  organization Organization? @relation(name: "EpsToOrganization_organizationIdToid", fields: [organizationId], references: [id])
+  projects Project[] @relation(name: "ProjectToEps_epsIdToid")
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, parentId])
+}
+
+model Organization {
+  id Int @id @default(autoincrement())
+  name String
+  slug String @unique
+  primaryColor String? /// @color
+  secondaryColor String? /// @color
+  isActive Boolean
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organizationsettings OrganizationSettings? @relation(name: "OrganizationSettingsToOrganization_organizationIdToid")
+  apikeys ApiKey[] @relation(name: "ApiKeyToOrganization_organizationIdToid")
+  integrationconnections IntegrationConnection[] @relation(name: "IntegrationConnectionToOrganization_organizationIdToid")
+  epss Eps[] @relation(name: "EpsToOrganization_organizationIdToid")
+  portfolios Portfolio[] @relation(name: "PortfolioToOrganization_organizationIdToid")
+  projectcategorys ProjectCategory[] @relation(name: "ProjectCategoryToOrganization_organizationIdToid")
+  workcalendars WorkCalendar[] @relation(name: "WorkCalendarToOrganization_organizationIdToid")
+  projects Project[] @relation(name: "ProjectToOrganization_organizationIdToid")
+  lifecycletemplates LifecycleTemplate[] @relation(name: "LifecycleTemplateToOrganization_organizationIdToid")
+  resources Resource[] @relation(name: "ResourceToOrganization_organizationIdToid")
+  vendors Vendor[] @relation(name: "VendorToOrganization_organizationIdToid")
+  documents Document[] @relation(name: "DocumentToOrganization_organizationIdToid")
+  approvalpolicys ApprovalPolicy[] @relation(name: "ApprovalPolicyToOrganization_organizationIdToid")
+  closuretemplates ClosureTemplate[] @relation(name: "ClosureTemplateToOrganization_organizationIdToid")
+  activitylogs ActivityLog[] @relation(name: "ActivityLogToOrganization_organizationIdToid")
+  businessunits BusinessUnit[] @relation(name: "BusinessUnitToOrganization_organizationIdToid")
+  notifications Notification[]
+  sprintSnapshots SprintSnapshot[]
+  lessons Lesson[]
+  commentMentions CommentMention[]
+  maintenanceSchedules MaintenanceSchedule[]
+  resourceAssignments ResourceAssignment[]
+  inspections Inspection[]
+  workItemLinks WorkItemLink[]
+  calendarExceptions CalendarException[]
+  alerts Alert[]
+  evmSnapshots EvmSnapshot[]
+  workItems WorkItem[]
+  projectMembers ProjectMember[]
+  projectClosures ProjectClosure[]
+  checklistItems ChecklistItem[]
+  approvalPolicySteps ApprovalPolicyStep[]
+  costTransactions CostTransaction[]
+  contracts Contract[]
+  workflows Workflow[]
+  idpInboxEvents IdpInboxEvent[]
+  workItemStatuses WorkItemStatus[]
+  projectLifecycleSteps ProjectLifecycleStep[]
+  progressReports ProgressReport[]
+  timeEntries TimeEntry[]
+  lifecycleTemplateSteps LifecycleTemplateStep[]
+  rfqResponses RfqResponse[]
+  timesheets Timesheet[]
+  equipmentSiteLogs EquipmentSiteLog[]
+  sites Site[]
+  checklists Checklist[]
+  handovers Handover[]
+  closureTemplateItems ClosureTemplateItem[]
+  sprintCapacities SprintCapacity[]
+  risks Risk[]
+  comments Comment[]
+  wbsNodes WbsNode[]
+  recurringWorkItems RecurringWorkItem[]
+  releases Release[]
+  savedReports SavedReport[]
+  refreshTokens RefreshToken[]
+  userProfiles UserProfile[]
+  budgetLines BudgetLine[]
+  baselines Baseline[]
+  workItemDependencies WorkItemDependency[]
+  rolesAndPermissionses RolesAndPermissions[]
+  workflowRules WorkflowRule[]
+  maintenanceLogs MaintenanceLog[]
+  sprints Sprint[]
+  punchListItems PunchListItem[]
+  approvalSteps ApprovalStep[]
+  procurements Procurement[]
+  closureItems ClosureItem[]
+  riskMitigations RiskMitigation[]
+  projectConflicts ProjectConflict[]
+  statusTransitions StatusTransition[]
+  benchmarks Benchmark[]
+  approvalRequests ApprovalRequest[]
+  workItemAssignees WorkItemAssignee[]
+  users User[]
+  baselineItems BaselineItem[]
+  escalations Escalation[]
+  workflowVersions WorkflowVersion[]
+  workflowRuns WorkflowRun[]
+  workflowRunSteps WorkflowRunStep[]
+  workflowTasks WorkflowTask[]
+  workflowTimers WorkflowTimer[]
+  workflowSchedules WorkflowSchedule[]
+  agentRuns AgentRun[]
+  agentRunSteps AgentRunStep[]
+  agentConversations AgentConversation[]
+  agentMessages AgentMessage[]
+  agents Agent[]
+}
+
+model Inspection {
+  id Int @id @default(autoincrement())
+  projectId Int
+  kind String
+  scheduledAt DateTime
+  inspectorId Int?
+  status InspectionStatus
+  notes String?
+  completedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  project Project? @relation(name: "InspectionToProject_projectIdToid", fields: [projectId], references: [id])
+  user User? @relation(name: "InspectionToUser_inspectorIdToid", fields: [inspectorId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, projectId])
+  @@index([organizationId, scheduledAt])
+  @@index([organizationId, inspectorId])
+  @@index([organizationId, status])
+  @@index([organizationId, completedAt])
+}
+
+model WorkItemLink {
+  id Int @id @default(autoincrement())
+  sourceId Int
+  targetId Int
+  type WorkItemLinkType
+  createdAt DateTime @default(now())
+  workitem WorkItem? @relation(name: "WorkItemLinkToWorkItem_sourceIdToid", fields: [sourceId], references: [id])
+  workitemTarget WorkItem? @relation(name: "WorkItemLinkToWorkItem_targetIdToid", fields: [targetId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, sourceId])
+  @@index([organizationId, targetId])
+  @@index([organizationId, type])
+}
+
+model ActivityLog {
+  id Int @id @default(autoincrement())
+  organizationId Int?
+  userId Int
+  action String
+  entityType String
+  entityId Int?
+  projectId Int?
+  title String
+  metadata Json?
+  createdAt DateTime @default(now())
+  user User? @relation(name: "ActivityLogToUser_userIdToid", fields: [userId], references: [id])
+  organization Organization? @relation(name: "ActivityLogToOrganization_organizationIdToid", fields: [organizationId], references: [id])
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, userId])
+}
+
+model CalendarException {
+  id Int @id @default(autoincrement())
+  calendarId Int
+  date DateTime
+  isWorking Boolean
+  name String?
+  workcalendar WorkCalendar? @relation(name: "CalendarExceptionToWorkCalendar_calendarIdToid", fields: [calendarId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([organizationId, calendarId])
+  @@index([organizationId, date])
+}
+
+model Alert {
+  id Int @id @default(autoincrement())
+  projectId Int
+  type AlertType
+  severity AlertSeverity
+  message String
+  metadata Json?
+  escalated Boolean
+  triggeredAt DateTime
+  resolvedAt DateTime?
+  project Project? @relation(name: "AlertToProject_projectIdToid", fields: [projectId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([organizationId, projectId])
+  @@index([organizationId, type])
+  @@index([organizationId, severity])
+  @@index([organizationId, triggeredAt])
+  @@index([organizationId, resolvedAt])
+}
+
+model EvmSnapshot {
+  id Int @id @default(autoincrement())
+  projectId Int
+  fiscalPeriod String
+  reportingDate DateTime
+  plannedValue Decimal /// @money
+  earnedValue Decimal /// @money
+  actualCost Decimal /// @money
+  cpi Decimal /// @money
+  spi Decimal /// @money
+  eac Decimal /// @money
+  etc Decimal /// @money
+  vac Decimal /// @money
+  createdAt DateTime @default(now())
+  project Project? @relation(name: "EvmSnapshotToProject_projectIdToid", fields: [projectId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, projectId])
+  @@index([organizationId, reportingDate])
+}
+
+model WorkItem {
+  id Int @id @default(autoincrement())
+  projectId Int
+  key String
+  type WorkItemType
+  title String
+  description String?
+  acceptanceCriteria String?
+  parentId Int?
+  wbsNodeId Int?
+  sprintId Int?
+  releaseId Int?
+  statusId Int
+  priority Priority
+  rank String
+  tags String[]
+  reporterId Int?
+  createdById Int
+  startDate DateTime?
+  endDate DateTime?
+  durationDays Int?
+  constraintType ConstraintType?
+  constraintDate DateTime?
+  actualStartDate DateTime?
+  actualEndDate DateTime?
+  earlyStart DateTime?
+  earlyFinish DateTime?
+  lateStart DateTime?
+  lateFinish DateTime?
+  totalFloatDays Int?
+  freeFloatDays Int?
+  isCritical Boolean
+  progressWeight Decimal? /// @money
+  workPackage String?
+  storyPoints Decimal? /// @money
+  estimatedHours Decimal /// @money
+  remainingHours Decimal? /// @money
+  actualHours Decimal /// @money
+  progressPct Decimal /// @money
+  addedAfterSprintStart Boolean
+  completedAt DateTime?
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  project Project? @relation(name: "WorkItemToProject_projectIdToid", fields: [projectId], references: [id])
+  workitem WorkItem? @relation(name: "WorkItemToWorkItem_parentIdToid", fields: [parentId], references: [id])
+  workitems WorkItem[] @relation(name: "WorkItemToWorkItem_parentIdToid")
+  wbsnode WbsNode? @relation(name: "WorkItemToWbsNode_wbsNodeIdToid", fields: [wbsNodeId], references: [id])
+  sprint Sprint? @relation(name: "WorkItemToSprint_sprintIdToid", fields: [sprintId], references: [id])
+  release Release? @relation(name: "WorkItemToRelease_releaseIdToid", fields: [releaseId], references: [id])
+  workitemstatus WorkItemStatus? @relation(name: "WorkItemToWorkItemStatus_statusIdToid", fields: [statusId], references: [id])
+  user User? @relation(name: "WorkItemToUser_reporterIdToid", fields: [reporterId], references: [id])
+  userCreatedBy User? @relation(name: "WorkItemToUser_createdByIdToid", fields: [createdById], references: [id])
+  workitemassignees WorkItemAssignee[] @relation(name: "WorkItemAssigneeToWorkItem_workItemIdToid")
+  workitemdependencys WorkItemDependency[] @relation(name: "WorkItemDependencyToWorkItem_predecessorIdToid")
+  workitemdependencysSuccessor WorkItemDependency[] @relation(name: "WorkItemDependencyToWorkItem_successorIdToid")
+  workitemlinks WorkItemLink[] @relation(name: "WorkItemLinkToWorkItem_sourceIdToid")
+  workitemlinksTarget WorkItemLink[] @relation(name: "WorkItemLinkToWorkItem_targetIdToid")
+  statustransitions StatusTransition[] @relation(name: "StatusTransitionToWorkItem_workItemIdToid")
+  comments Comment[] @relation(name: "CommentToWorkItem_workItemIdToid")
+  workflowrules WorkflowRule[] @relation(name: "WorkflowRuleToWorkItem_triggerItemIdToid")
+  workflowrulesActionItem WorkflowRule[] @relation(name: "WorkflowRuleToWorkItem_actionItemIdToid")
+  baselineitems BaselineItem[] @relation(name: "BaselineItemToWorkItem_workItemIdToid")
+  releases Release[] @relation(name: "ReleaseToWorkItem_milestoneWorkItemIdToid")
+  resourceassignments ResourceAssignment[] @relation(name: "ResourceAssignmentToWorkItem_workItemIdToid")
+  progressreports ProgressReport[] @relation(name: "ProgressReportToWorkItem_workItemIdToid")
+  budgetlines BudgetLine[] @relation(name: "BudgetLineToWorkItem_workItemIdToid")
+  riskmitigations RiskMitigation[] @relation(name: "RiskMitigationToWorkItem_workItemIdToid")
+  documents Document[] @relation(name: "DocumentToWorkItem_workItemIdToid")
+  timeentrys TimeEntry[] @relation(name: "TimeEntryToWorkItem_workItemIdToid")
+  escalations Escalation[] @relation(name: "EscalationToWorkItem_workItemIdToid")
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, projectId])
+  @@index([organizationId, type])
+  @@index([organizationId, parentId])
+  @@index([organizationId, wbsNodeId])
+  @@index([organizationId, sprintId])
+  @@index([organizationId, releaseId])
+  @@index([organizationId, statusId])
+  @@index([organizationId, priority])
+  @@index([organizationId, reporterId])
+  @@index([organizationId, createdById])
+  @@index([organizationId, startDate])
+  @@index([organizationId, endDate])
+  @@index([organizationId, constraintType])
+  @@index([organizationId, constraintDate])
+  @@index([organizationId, actualStartDate])
+  @@index([organizationId, actualEndDate])
+  @@index([organizationId, earlyStart])
+  @@index([organizationId, earlyFinish])
+  @@index([organizationId, lateStart])
+  @@index([organizationId, lateFinish])
+  @@index([organizationId, completedAt])
+  @@index([organizationId, deletedAt])
+}
+
+model IntegrationConnection {
+  id Int @id @default(autoincrement())
+  organizationId Int
+  provider IntegrationProvider
+  baseUrl String?
+  config Json
+  isEnabled Boolean
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organization Organization? @relation(name: "IntegrationConnectionToOrganization_organizationIdToid", fields: [organizationId], references: [id])
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, provider])
+}
+
+model Document {
+  id Int @id @default(autoincrement())
+  organizationId Int
+  name String
+  description String?
+  storageKey String
+  mimeType String
+  sizeBytes Int
+  version Int
+  previousVersionId Int? @unique
+  projectId Int?
+  wbsNodeId Int?
+  workItemId Int?
+  uploadedById Int
+  createdAt DateTime @default(now())
+  document Document? @relation(name: "DocumentToDocument_previousVersionIdToid", fields: [previousVersionId], references: [id])
+  documentPreviousVersion Document? @relation(name: "DocumentToDocument_previousVersionIdToid")
+  project Project? @relation(name: "DocumentToProject_projectIdToid", fields: [projectId], references: [id])
+  wbsnode WbsNode? @relation(name: "DocumentToWbsNode_wbsNodeIdToid", fields: [wbsNodeId], references: [id])
+  workitem WorkItem? @relation(name: "DocumentToWorkItem_workItemIdToid", fields: [workItemId], references: [id])
+  user User? @relation(name: "DocumentToUser_uploadedByIdToid", fields: [uploadedById], references: [id])
+  organization Organization? @relation(name: "DocumentToOrganization_organizationIdToid", fields: [organizationId], references: [id])
+  closureitems ClosureItem[] @relation(name: "ClosureItemToDocument_documentIdToid")
+  handovers Handover[] @relation(name: "HandoverToDocument_receiptDocumentIdToid")
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, projectId])
+  @@index([organizationId, wbsNodeId])
+  @@index([organizationId, workItemId])
+  @@index([organizationId, uploadedById])
+}
+
+model OrganizationSettings {
+  id Int @id @default(autoincrement())
+  organizationId Int @unique
+  status OrganizationStatus
+  idpOrganizationId String? @unique
+  timezone String
+  defaultCurrency String
+  logoStorageKey String?
+  settings Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organization Organization? @relation(name: "OrganizationSettingsToOrganization_organizationIdToid", fields: [organizationId], references: [id])
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, status])
+}
+
+model ProjectMember {
+  id Int @id @default(autoincrement())
+  projectId Int
+  userId Int
+  projectRole ProjectRole
+  title String?
+  department String?
+  isLead Boolean
+  allocationPct Decimal /// @money
+  joinedAt DateTime
+  leftAt DateTime?
+  project Project? @relation(name: "ProjectMemberToProject_projectIdToid", fields: [projectId], references: [id])
+  user User? @relation(name: "ProjectMemberToUser_userIdToid", fields: [userId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([organizationId, projectId])
+  @@index([organizationId, userId])
+  @@index([organizationId, projectRole])
+  @@index([organizationId, joinedAt])
+  @@index([organizationId, leftAt])
+}
+
+model ProjectClosure {
+  id Int @id @default(autoincrement())
+  projectId Int @unique
+  status ClosureStatus
+  startedAt DateTime
+  approvedAt DateTime?
+  finalNotes String?
+  project Project? @relation(name: "ProjectClosureToProject_projectIdToid", fields: [projectId], references: [id])
+  closureitems ClosureItem[] @relation(name: "ClosureItemToProjectClosure_closureIdToid")
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, startedAt])
+  @@index([organizationId, approvedAt])
+}
+
+model ChecklistItem {
+  id Int @id @default(autoincrement())
+  checklistId Int
+  label String
+  isDone Boolean
+  doneAt DateTime?
+  doneById Int?
+  sortOrder Int
+  checklist Checklist? @relation(name: "ChecklistItemToChecklist_checklistIdToid", fields: [checklistId], references: [id])
+  user User? @relation(name: "ChecklistItemToUser_doneByIdToid", fields: [doneById], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([organizationId, checklistId])
+  @@index([organizationId, doneAt])
+  @@index([organizationId, doneById])
+}
+
+model ApprovalPolicyStep {
+  id Int @id @default(autoincrement())
+  policyId Int
+  stepOrder Int
+  approverRoleId Int?
+  useProjectManager Boolean
+  approvalpolicy ApprovalPolicy? @relation(name: "ApprovalPolicyStepToApprovalPolicy_policyIdToid", fields: [policyId], references: [id])
+  rolesandpermissions RolesAndPermissions? @relation(name: "ApprovalPolicyStepToRolesAndPermissions_approverRoleIdToid", fields: [approverRoleId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([organizationId, policyId])
+  @@index([organizationId, approverRoleId])
+}
+
+model CostTransaction {
+  id Int @id @default(autoincrement())
+  projectId Int
+  budgetLineId Int?
+  amount Decimal /// @money
+  costType CostType
+  source TransactionSource
+  externalRef String?
+  occurredOn DateTime
+  description String?
+  createdAt DateTime @default(now())
+  project Project? @relation(name: "CostTransactionToProject_projectIdToid", fields: [projectId], references: [id])
+  budgetline BudgetLine? @relation(name: "CostTransactionToBudgetLine_budgetLineIdToid", fields: [budgetLineId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, projectId])
+  @@index([organizationId, budgetLineId])
+  @@index([organizationId, costType])
+  @@index([organizationId, source])
+  @@index([organizationId, occurredOn])
+}
+
+model Contract {
+  id Int @id @default(autoincrement())
+  procurementId Int
+  vendorId Int
+  contractNumber String
+  name String
+  description String?
+  startDate DateTime
+  endDate DateTime
+  value Decimal /// @money
+  status ContractStatus
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  procurement Procurement? @relation(name: "ContractToProcurement_procurementIdToid", fields: [procurementId], references: [id])
+  vendor Vendor? @relation(name: "ContractToVendor_vendorIdToid", fields: [vendorId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, procurementId])
+  @@index([organizationId, vendorId])
+  @@index([organizationId, startDate])
+  @@index([organizationId, endDate])
+  @@index([organizationId, status])
+}
+
+model Workflow {
+  id          String         @id @default(cuid())
+  name        String
+  description String?
+  entityId    String
+  entityName  String
+  status      WorkflowStatus @default(DRAFT)
+  version     Int            @default(1)
+  definition  Json
+  // The designer's last Test run (each step's output), so a reopened workflow's Input and Output
+  // panes show it again. Written only by a test; never read by a run.
+  lastTest    Json?
+  createdBy   String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  versions    WorkflowVersion[]
+  runs        WorkflowRun[]
+
+  @@index([entityId])
+  @@index([status])
+  /// Provided by the platform to every organization (read-only for them). Server-owned: set
+  /// when a platform administrator creates the row, never by a form or API.
+  isPlatform Boolean @default(false)
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, status])
+}
+
+model IdpInboxEvent {
+  id Int @id @default(autoincrement())
+  idempotencyKey String @unique
+  event String
+  payload Json
+  status InboxStatus
+  lastError String?
+  createdAt DateTime @default(now())
+  processedAt DateTime?
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, status])
+  @@index([organizationId, processedAt])
+}
+
+model WorkItemStatus {
+  id Int @id @default(autoincrement())
+  projectId Int
+  name String
+  category StatusCategory
+  sortOrder Int
+  wipLimit Int?
+  isDefault Boolean
+  colorToken String?
+  archivedAt DateTime?
+  project Project? @relation(name: "WorkItemStatusToProject_projectIdToid", fields: [projectId], references: [id])
+  workitems WorkItem[] @relation(name: "WorkItemToWorkItemStatus_statusIdToid")
+  statustransitions StatusTransition[] @relation(name: "StatusTransitionToWorkItemStatus_fromStatusIdToid")
+  statustransitionsToStatus StatusTransition[] @relation(name: "StatusTransitionToWorkItemStatus_toStatusIdToid")
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([organizationId, projectId])
+  @@index([organizationId, category])
+  @@index([organizationId, archivedAt])
+}
+
+model ProjectLifecycleStep {
+  id Int @id @default(autoincrement())
+  projectId Int
+  key String
+  title String
+  sortOrder Int
+  gating LifecycleGating
+  isRequired Boolean
+  status LifecycleStepStatus
+  completedAt DateTime?
+  completedById Int?
+  project Project? @relation(name: "ProjectLifecycleStepToProject_projectIdToid", fields: [projectId], references: [id])
+  user User? @relation(name: "ProjectLifecycleStepToUser_completedByIdToid", fields: [completedById], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([organizationId, projectId])
+  @@index([organizationId, gating])
+  @@index([organizationId, status])
+  @@index([organizationId, completedAt])
+  @@index([organizationId, completedById])
+}
+
+model ProgressReport {
+  id Int @id @default(autoincrement())
+  workItemId Int
+  resourceAssignmentId Int?
+  reportedById Int
+  actualProgressPct Decimal /// @money
+  actualHours Decimal /// @money
+  isOnPlan Boolean
+  notes String?
+  reportedAt DateTime
+  workitem WorkItem? @relation(name: "ProgressReportToWorkItem_workItemIdToid", fields: [workItemId], references: [id])
+  resourceassignment ResourceAssignment? @relation(name: "ProgressReportToResourceAssignment_resourceAssignmentIdToid", fields: [resourceAssignmentId], references: [id])
+  user User? @relation(name: "ProgressReportToUser_reportedByIdToid", fields: [reportedById], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([organizationId, workItemId])
+  @@index([organizationId, resourceAssignmentId])
+  @@index([organizationId, reportedById])
+  @@index([organizationId, reportedAt])
+}
+
+model TimeEntry {
+  id Int @id @default(autoincrement())
+  userId Int
+  projectId Int
+  workItemId Int
+  timesheetId Int?
+  date DateTime
+  startTime DateTime?
+  endTime DateTime?
+  hours Decimal /// @money
+  description String?
+  status TimeEntryStatus
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User? @relation(name: "TimeEntryToUser_userIdToid", fields: [userId], references: [id])
+  project Project? @relation(name: "TimeEntryToProject_projectIdToid", fields: [projectId], references: [id])
+  workitem WorkItem? @relation(name: "TimeEntryToWorkItem_workItemIdToid", fields: [workItemId], references: [id])
+  timesheet Timesheet? @relation(name: "TimeEntryToTimesheet_timesheetIdToid", fields: [timesheetId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, userId])
+  @@index([organizationId, projectId])
+  @@index([organizationId, workItemId])
+  @@index([organizationId, timesheetId])
+  @@index([organizationId, date])
+  @@index([organizationId, startTime])
+  @@index([organizationId, endTime])
+  @@index([organizationId, status])
+}
+
+model Vendor {
+  id Int @id @default(autoincrement())
+  organizationId Int
+  name String
+  category String
+  contactPerson String?
+  email String?
+  phone String?
+  address String?
+  performanceRating Decimal /// @money
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organization Organization? @relation(name: "VendorToOrganization_organizationIdToid", fields: [organizationId], references: [id])
+  rfqresponses RfqResponse[] @relation(name: "RfqResponseToVendor_vendorIdToid")
+  contracts Contract[] @relation(name: "ContractToVendor_vendorIdToid")
+
+  @@index([organizationId, createdAt])
+}
+
+model LifecycleTemplateStep {
+  id Int @id @default(autoincrement())
+  templateId Int
+  key String
+  title String
+  description String?
+  sortOrder Int
+  isRequired Boolean
+  lifecycletemplate LifecycleTemplate? @relation(name: "LifecycleTemplateStepToLifecycleTemplate_templateIdToid", fields: [templateId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([organizationId, templateId])
+}
+
+model RfqResponse {
+  id Int @id @default(autoincrement())
+  procurementId Int
+  vendorId Int
+  quoteAmount Decimal /// @money
+  deliveryDays Int?
+  technicalScore Int
+  commercialScore Int
+  totalScore Int
+  status RfqResponseStatus
+  submittedAt DateTime
+  notes String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  procurement Procurement? @relation(name: "RfqResponseToProcurement_procurementIdToid", fields: [procurementId], references: [id])
+  vendor Vendor? @relation(name: "RfqResponseToVendor_vendorIdToid", fields: [vendorId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, procurementId])
+  @@index([organizationId, vendorId])
+  @@index([organizationId, status])
+  @@index([organizationId, submittedAt])
+}
+
+model Timesheet {
+  id Int @id @default(autoincrement())
+  userId Int
+  projectId Int
+  periodStart DateTime
+  periodEnd DateTime
+  status TimesheetStatus
+  totalHours Decimal /// @money
+  comments String?
+  submittedAt DateTime?
+  approvedById Int?
+  decidedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User? @relation(name: "TimesheetToUser_userIdToid", fields: [userId], references: [id])
+  project Project? @relation(name: "TimesheetToProject_projectIdToid", fields: [projectId], references: [id])
+  userApprovedBy User? @relation(name: "TimesheetToUser_approvedByIdToid", fields: [approvedById], references: [id])
+  timeentrys TimeEntry[] @relation(name: "TimeEntryToTimesheet_timesheetIdToid")
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, userId])
+  @@index([organizationId, projectId])
+  @@index([organizationId, periodStart])
+  @@index([organizationId, periodEnd])
+  @@index([organizationId, status])
+  @@index([organizationId, submittedAt])
+  @@index([organizationId, approvedById])
+  @@index([organizationId, decidedAt])
+}
+
+model EquipmentSiteLog {
+  id Int @id @default(autoincrement())
+  resourceId Int
+  siteId Int
+  loggedById Int
+  checkedInAt DateTime
+  checkedOutAt DateTime?
+  usageHours Decimal? /// @money
+  conditionBefore String?
+  conditionAfter String?
+  notes String?
+  createdAt DateTime @default(now())
+  resource Resource? @relation(name: "EquipmentSiteLogToResource_resourceIdToid", fields: [resourceId], references: [id])
+  site Site? @relation(name: "EquipmentSiteLogToSite_siteIdToid", fields: [siteId], references: [id])
+  user User? @relation(name: "EquipmentSiteLogToUser_loggedByIdToid", fields: [loggedById], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, resourceId])
+  @@index([organizationId, siteId])
+  @@index([organizationId, loggedById])
+  @@index([organizationId, checkedInAt])
+  @@index([organizationId, checkedOutAt])
+}
+
+model Site {
+  id Int @id @default(autoincrement())
+  code String
+  projectId Int
+  name String
+  description String?
+  address String?
+  coordinates String?
+  siteType String?
+  managerId Int?
+  isActive Boolean
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  project Project? @relation(name: "SiteToProject_projectIdToid", fields: [projectId], references: [id])
+  user User? @relation(name: "SiteToUser_managerIdToid", fields: [managerId], references: [id])
+  equipmentsitelogs EquipmentSiteLog[] @relation(name: "EquipmentSiteLogToSite_siteIdToid")
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, projectId])
+  @@index([organizationId, managerId])
+}
+
+model Checklist {
+  id Int @id @default(autoincrement())
+  projectId Int
+  title String
+  description String?
+  category ChecklistCategory
+  status ChecklistStatus
+  completedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  project Project? @relation(name: "ChecklistToProject_projectIdToid", fields: [projectId], references: [id])
+  checklistitems ChecklistItem[] @relation(name: "ChecklistItemToChecklist_checklistIdToid")
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, projectId])
+  @@index([organizationId, category])
+  @@index([organizationId, status])
+  @@index([organizationId, completedAt])
+}
+
+model Handover {
+  id Int @id @default(autoincrement())
+  projectId Int
+  scheduledAt DateTime
+  responsibleId Int
+  recipient String?
+  receiptDocumentId Int?
+  status HandoverStatus
+  notes String?
+  completedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  project Project? @relation(name: "HandoverToProject_projectIdToid", fields: [projectId], references: [id])
+  user User? @relation(name: "HandoverToUser_responsibleIdToid", fields: [responsibleId], references: [id])
+  document Document? @relation(name: "HandoverToDocument_receiptDocumentIdToid", fields: [receiptDocumentId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, projectId])
+  @@index([organizationId, scheduledAt])
+  @@index([organizationId, responsibleId])
+  @@index([organizationId, receiptDocumentId])
+  @@index([organizationId, status])
+  @@index([organizationId, completedAt])
+}
+
+model ProjectCategory {
+  id Int @id @default(autoincrement())
+  organizationId Int
+  code String
+  name String
+  industry String?
+  description String?
+  defaultMethodology Methodology
+  defaultAgileFramework AgileFramework?
+  lifecycleTemplateId Int?
+  closureTemplateId Int?
+  isActive Boolean
+  sortOrder Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lifecycletemplate LifecycleTemplate? @relation(name: "ProjectCategoryToLifecycleTemplate_lifecycleTemplateIdToid", fields: [lifecycleTemplateId], references: [id])
+  closuretemplate ClosureTemplate? @relation(name: "ProjectCategoryToClosureTemplate_closureTemplateIdToid", fields: [closureTemplateId], references: [id])
+  organization Organization? @relation(name: "ProjectCategoryToOrganization_organizationIdToid", fields: [organizationId], references: [id])
+  benchmark Benchmark? @relation(name: "BenchmarkToProjectCategory_categoryIdToid")
+  projects Project[] @relation(name: "ProjectToProjectCategory_categoryIdToid")
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, defaultMethodology])
+  @@index([organizationId, defaultAgileFramework])
+  @@index([organizationId, lifecycleTemplateId])
+  @@index([organizationId, closureTemplateId])
+}
+
+model ClosureTemplateItem {
+  id Int @id @default(autoincrement())
+  templateId Int
+  type ClosureItemType
+  title String
+  documentType String?
+  isRequired Boolean
+  sortOrder Int
+  closuretemplate ClosureTemplate? @relation(name: "ClosureTemplateItemToClosureTemplate_templateIdToid", fields: [templateId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([organizationId, templateId])
+  @@index([organizationId, type])
+}
+
+model SprintCapacity {
+  id Int @id @default(autoincrement())
+  sprintId Int
+  userId Int
+  availableHours Decimal /// @money
+  availablePoints Decimal? /// @money
+  daysOff Int
+  sprint Sprint? @relation(name: "SprintCapacityToSprint_sprintIdToid", fields: [sprintId], references: [id])
+  user User? @relation(name: "SprintCapacityToUser_userIdToid", fields: [userId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([organizationId, sprintId])
+  @@index([organizationId, userId])
+}
+
+model Risk {
+  id Int @id @default(autoincrement())
+  projectId Int
+  ownerId Int
+  name String
+  description String?
+  category RiskCategory
+  impact RiskRating
+  probability RiskRating
+  level RiskRating
+  score Int
+  likelihoodScore Decimal? /// @money
+  impactScore Decimal? /// @money
+  status RiskStatus
+  approvalStatus RiskApprovalStatus
+  identifiedOn DateTime
+  lastReviewedAt DateTime?
+  nextReviewOn DateTime?
+  reviewFrequencyDays Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  project Project? @relation(name: "RiskToProject_projectIdToid", fields: [projectId], references: [id])
+  user User? @relation(name: "RiskToUser_ownerIdToid", fields: [ownerId], references: [id])
+  riskmitigations RiskMitigation[] @relation(name: "RiskMitigationToRisk_riskIdToid")
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, projectId])
+  @@index([organizationId, ownerId])
+  @@index([organizationId, category])
+  @@index([organizationId, impact])
+  @@index([organizationId, probability])
+  @@index([organizationId, level])
+  @@index([organizationId, status])
+  @@index([organizationId, approvalStatus])
+  @@index([organizationId, identifiedOn])
+  @@index([organizationId, lastReviewedAt])
+  @@index([organizationId, nextReviewOn])
+}
+
+model Comment {
+  id Int @id @default(autoincrement())
+  workItemId Int
+  authorId Int
+  parentId Int?
+  body String
+  editedAt DateTime?
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  workitem WorkItem? @relation(name: "CommentToWorkItem_workItemIdToid", fields: [workItemId], references: [id])
+  user User? @relation(name: "CommentToUser_authorIdToid", fields: [authorId], references: [id])
+  comment Comment? @relation(name: "CommentToComment_parentIdToid", fields: [parentId], references: [id])
+  comments Comment[] @relation(name: "CommentToComment_parentIdToid")
+  commentmentions CommentMention[] @relation(name: "CommentMentionToComment_commentIdToid")
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, workItemId])
+  @@index([organizationId, authorId])
+  @@index([organizationId, parentId])
+  @@index([organizationId, editedAt])
+  @@index([organizationId, deletedAt])
+}
+
+model WorkCalendar {
+  id Int @id @default(autoincrement())
+  organizationId Int
+  name String
+  workingWeekdays Int[]
+  hoursPerDay Decimal /// @money
+  isDefault Boolean
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organization Organization? @relation(name: "WorkCalendarToOrganization_organizationIdToid", fields: [organizationId], references: [id])
+  calendarexceptions CalendarException[] @relation(name: "CalendarExceptionToWorkCalendar_calendarIdToid")
+  projects Project[] @relation(name: "ProjectToWorkCalendar_calendarIdToid")
+
+  @@index([organizationId, createdAt])
+}
+
+model WbsNode {
+  id Int @id @default(autoincrement())
+  projectId Int
+  parentId Int?
+  code String
+  name String
+  description String?
+  level Int
+  sortOrder Int
+  isPhase Boolean
+  progressWeight Decimal? /// @money
+  startDate DateTime?
+  endDate DateTime?
+  progressPct Decimal /// @money
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  workitems WorkItem[] @relation(name: "WorkItemToWbsNode_wbsNodeIdToid")
+  recurringworkitems RecurringWorkItem[] @relation(name: "RecurringWorkItemToWbsNode_wbsNodeIdToid")
+  project Project? @relation(name: "WbsNodeToProject_projectIdToid", fields: [projectId], references: [id])
+  wbsnode WbsNode? @relation(name: "WbsNodeToWbsNode_parentIdToid", fields: [parentId], references: [id])
+  wbsnodes WbsNode[] @relation(name: "WbsNodeToWbsNode_parentIdToid")
+  sprints Sprint[] @relation(name: "SprintToWbsNode_phaseWbsNodeIdToid")
+  budgetlines BudgetLine[] @relation(name: "BudgetLineToWbsNode_wbsNodeIdToid")
+  procurements Procurement[] @relation(name: "ProcurementToWbsNode_wbsNodeIdToid")
+  documents Document[] @relation(name: "DocumentToWbsNode_wbsNodeIdToid")
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, projectId])
+  @@index([organizationId, parentId])
+  @@index([organizationId, startDate])
+  @@index([organizationId, endDate])
+}
+
+model RecurringWorkItem {
+  id Int @id @default(autoincrement())
+  projectId Int
+  wbsNodeId Int?
+  title String
+  description String?
+  type WorkItemType
+  frequency RecurrenceFrequency
+  startDate DateTime
+  endDate DateTime?
+  lastCreatedAt DateTime?
+  isActive Boolean
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  project Project? @relation(name: "RecurringWorkItemToProject_projectIdToid", fields: [projectId], references: [id])
+  wbsnode WbsNode? @relation(name: "RecurringWorkItemToWbsNode_wbsNodeIdToid", fields: [wbsNodeId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, projectId])
+  @@index([organizationId, wbsNodeId])
+  @@index([organizationId, type])
+  @@index([organizationId, frequency])
+  @@index([organizationId, startDate])
+  @@index([organizationId, endDate])
+  @@index([organizationId, lastCreatedAt])
+}
+
+model LifecycleTemplate {
+  id Int @id @default(autoincrement())
+  organizationId Int
+  name String
+  methodology Methodology
+  gating LifecycleGating
+  isDefault Boolean
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  projectcategorys ProjectCategory[] @relation(name: "ProjectCategoryToLifecycleTemplate_lifecycleTemplateIdToid")
+  organization Organization? @relation(name: "LifecycleTemplateToOrganization_organizationIdToid", fields: [organizationId], references: [id])
+  lifecycletemplatesteps LifecycleTemplateStep[] @relation(name: "LifecycleTemplateStepToLifecycleTemplate_templateIdToid")
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, methodology])
+  @@index([organizationId, gating])
+}
+
+model Resource {
+  id Int @id @default(autoincrement())
+  organizationId Int
+  name String
+  type ResourceType
+  role String?
+  userId Int? @unique
+  department String?
+  skills String[]
+  rating Int
+  rate Decimal /// @money
+  capacityHoursPerDay Decimal /// @money
+  availability ResourceAvailability
+  unit String?
+  quantity Decimal? /// @money
+  email String?
+  phoneNumber String?
+  location String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User? @relation(name: "ResourceToUser_userIdToid", fields: [userId], references: [id])
+  organization Organization? @relation(name: "ResourceToOrganization_organizationIdToid", fields: [organizationId], references: [id])
+  resourceassignments ResourceAssignment[] @relation(name: "ResourceAssignmentToResource_resourceIdToid")
+  equipmentsitelogs EquipmentSiteLog[] @relation(name: "EquipmentSiteLogToResource_resourceIdToid")
+  maintenanceschedules MaintenanceSchedule[] @relation(name: "MaintenanceScheduleToResource_resourceIdToid")
+  maintenancelogs MaintenanceLog[] @relation(name: "MaintenanceLogToResource_resourceIdToid")
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, type])
+  @@index([organizationId, availability])
+}
+
+model Release {
+  id Int @id @default(autoincrement())
+  projectId Int
+  name String
+  description String?
+  status ReleaseStatus
+  targetDate DateTime?
+  releasedAt DateTime?
+  milestoneWorkItemId Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  workitems WorkItem[] @relation(name: "WorkItemToRelease_releaseIdToid")
+  project Project? @relation(name: "ReleaseToProject_projectIdToid", fields: [projectId], references: [id])
+  workitem WorkItem? @relation(name: "ReleaseToWorkItem_milestoneWorkItemIdToid", fields: [milestoneWorkItemId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, projectId])
+  @@index([organizationId, status])
+  @@index([organizationId, targetDate])
+  @@index([organizationId, releasedAt])
+  @@index([organizationId, milestoneWorkItemId])
+}
+
+model SavedReport {
+  id Int @id @default(autoincrement())
+  name String
+  description String?
+  definition Json
+  allowedRoleIds Json
+  isActive Boolean
+  createdById String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+}
+
+model RefreshToken {
+  id Int @id @default(autoincrement())
+  userId Int
+  tokenHash String @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  userAgent String?
+  createdAt DateTime @default(now())
+  user User? @relation(name: "RefreshTokenToUser_userIdToid", fields: [userId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, userId])
+  @@index([organizationId, expiresAt])
+  @@index([organizationId, revokedAt])
+}
+
+model UserProfile {
+  id Int @id @default(autoincrement())
+  userId Int @unique
+  username String @unique
+  idpUserId String? @unique
+  phoneNumber String?
+  status UserStatus
+  lastLoginAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User? @relation(name: "UserProfileToUser_userIdToid", fields: [userId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, status])
+  @@index([organizationId, lastLoginAt])
+}
+
+model ClosureTemplate {
+  id Int @id @default(autoincrement())
+  organizationId Int
+  name String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  projectcategorys ProjectCategory[] @relation(name: "ProjectCategoryToClosureTemplate_closureTemplateIdToid")
+  organization Organization? @relation(name: "ClosureTemplateToOrganization_organizationIdToid", fields: [organizationId], references: [id])
+  closuretemplateitems ClosureTemplateItem[] @relation(name: "ClosureTemplateItemToClosureTemplate_templateIdToid")
+
+  @@index([organizationId, createdAt])
+}
+
+model BudgetLine {
+  id Int @id @default(autoincrement())
+  projectId Int
+  wbsNodeId Int?
+  workItemId Int?
+  costType CostType
+  description String?
+  plannedAmount Decimal /// @money
+  actualAmount Decimal /// @money
+  thresholdPct Decimal /// @money
+  fiscalYear Int
+  fiscalPeriod String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  project Project? @relation(name: "BudgetLineToProject_projectIdToid", fields: [projectId], references: [id])
+  wbsnode WbsNode? @relation(name: "BudgetLineToWbsNode_wbsNodeIdToid", fields: [wbsNodeId], references: [id])
+  workitem WorkItem? @relation(name: "BudgetLineToWorkItem_workItemIdToid", fields: [workItemId], references: [id])
+  costtransactions CostTransaction[] @relation(name: "CostTransactionToBudgetLine_budgetLineIdToid")
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, projectId])
+  @@index([organizationId, wbsNodeId])
+  @@index([organizationId, workItemId])
+  @@index([organizationId, costType])
+}
+
+model Baseline {
+  id Int @id @default(autoincrement())
+  projectId Int
+  name String
+  description String?
+  type BaselineType
+  isActive Boolean
+  capturedAt DateTime
+  totalBudget Decimal /// @money
+  plannedEnd DateTime?
+  createdById Int
+  project Project? @relation(name: "BaselineToProject_projectIdToid", fields: [projectId], references: [id])
+  user User? @relation(name: "BaselineToUser_createdByIdToid", fields: [createdById], references: [id])
+  baselineitems BaselineItem[] @relation(name: "BaselineItemToBaseline_baselineIdToid")
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([organizationId, projectId])
+  @@index([organizationId, type])
+  @@index([organizationId, capturedAt])
+  @@index([organizationId, plannedEnd])
+  @@index([organizationId, createdById])
+}
+
+model WorkItemDependency {
+  id Int @id @default(autoincrement())
+  predecessorId Int
+  successorId Int
+  type DependencyType
+  lagDays Int
+  createdAt DateTime @default(now())
+  workitem WorkItem? @relation(name: "WorkItemDependencyToWorkItem_predecessorIdToid", fields: [predecessorId], references: [id])
+  workitemSuccessor WorkItem? @relation(name: "WorkItemDependencyToWorkItem_successorIdToid", fields: [successorId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, predecessorId])
+  @@index([organizationId, successorId])
+  @@index([organizationId, type])
+}
+
+model Portfolio {
+  id Int @id @default(autoincrement())
+  organizationId Int
+  name String
+  description String?
+  strategicObjective String?
+  status PortfolioStatus
+  priority Priority
+  tags String[]
+  budgetCapacity Decimal? /// @money
+  managerId Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User? @relation(name: "PortfolioToUser_managerIdToid", fields: [managerId], references: [id])
+  organization Organization? @relation(name: "PortfolioToOrganization_organizationIdToid", fields: [organizationId], references: [id])
+  projects Project[] @relation(name: "ProjectToPortfolio_portfolioIdToid")
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, status])
+  @@index([organizationId, priority])
+  @@index([organizationId, managerId])
+}
+
+model RolesAndPermissions {
+  id Int @id @default(autoincrement())
+  role String @unique
+  entityPermissions Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  approvalpolicysteps ApprovalPolicyStep[] @relation(name: "ApprovalPolicyStepToRolesAndPermissions_approverRoleIdToid")
+  users User[] @relation(name: "UserToRolesAndPermissions_roleIdToid")
+  /// Provided by the platform to every organization (read-only for them). Server-owned: set
+  /// when a platform administrator creates the row, never by a form or API.
+  isPlatform Boolean @default(false)
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+}
+
+model WorkflowRule {
+  id Int @id @default(autoincrement())
+  projectId Int
+  name String
+  description String?
+  trigger WorkflowTrigger
+  triggerItemId Int?
+  triggerCategory StatusCategory?
+  action WorkflowAction
+  actionItemId Int?
+  actionConfig Json?
+  isActive Boolean
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  project Project? @relation(name: "WorkflowRuleToProject_projectIdToid", fields: [projectId], references: [id])
+  workitem WorkItem? @relation(name: "WorkflowRuleToWorkItem_triggerItemIdToid", fields: [triggerItemId], references: [id])
+  workitemActionItem WorkItem? @relation(name: "WorkflowRuleToWorkItem_actionItemIdToid", fields: [actionItemId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, projectId])
+  @@index([organizationId, trigger])
+  @@index([organizationId, triggerItemId])
+  @@index([organizationId, triggerCategory])
+  @@index([organizationId, action])
+  @@index([organizationId, actionItemId])
+}
+
+model MaintenanceLog {
+  id Int @id @default(autoincrement())
+  scheduleId Int?
+  resourceId Int
+  type MaintenanceType
+  performedAt DateTime
+  performedById Int
+  workDescription String
+  partsUsed String?
+  laborHours Decimal? /// @money
+  partsCost Decimal? /// @money
+  laborCost Decimal? /// @money
+  totalCost Decimal? /// @money
+  conditionBefore String?
+  conditionAfter String?
+  nextServiceDate DateTime?
+  notes String?
+  createdAt DateTime @default(now())
+  maintenanceschedule MaintenanceSchedule? @relation(name: "MaintenanceLogToMaintenanceSchedule_scheduleIdToid", fields: [scheduleId], references: [id])
+  resource Resource? @relation(name: "MaintenanceLogToResource_resourceIdToid", fields: [resourceId], references: [id])
+  user User? @relation(name: "MaintenanceLogToUser_performedByIdToid", fields: [performedById], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, scheduleId])
+  @@index([organizationId, resourceId])
+  @@index([organizationId, type])
+  @@index([organizationId, performedAt])
+  @@index([organizationId, performedById])
+  @@index([organizationId, nextServiceDate])
+}
+
+model Sprint {
+  id Int @id @default(autoincrement())
+  projectId Int
+  phaseWbsNodeId Int?
+  name String
+  goal String?
+  state SprintState
+  startDate DateTime
+  endDate DateTime
+  committedPoints Decimal? /// @money
+  committedHours Decimal? /// @money
+  completedPoints Decimal? /// @money
+  completedHours Decimal? /// @money
+  startedAt DateTime?
+  closedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  workitems WorkItem[] @relation(name: "WorkItemToSprint_sprintIdToid")
+  project Project? @relation(name: "SprintToProject_projectIdToid", fields: [projectId], references: [id])
+  wbsnode WbsNode? @relation(name: "SprintToWbsNode_phaseWbsNodeIdToid", fields: [phaseWbsNodeId], references: [id])
+  sprintcapacitys SprintCapacity[] @relation(name: "SprintCapacityToSprint_sprintIdToid")
+  sprintsnapshots SprintSnapshot[] @relation(name: "SprintSnapshotToSprint_sprintIdToid")
+  lessons Lesson[] @relation(name: "LessonToSprint_sprintIdToid")
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, projectId])
+  @@index([organizationId, phaseWbsNodeId])
+  @@index([organizationId, state])
+  @@index([organizationId, startDate])
+  @@index([organizationId, endDate])
+  @@index([organizationId, startedAt])
+  @@index([organizationId, closedAt])
+}
+
+model PunchListItem {
+  id Int @id @default(autoincrement())
+  projectId Int
+  title String
+  description String?
+  location String?
+  status PunchItemStatus
+  assigneeId Int?
+  dueOn DateTime?
+  resolvedAt DateTime?
+  createdAt DateTime @default(now())
+  project Project? @relation(name: "PunchListItemToProject_projectIdToid", fields: [projectId], references: [id])
+  user User? @relation(name: "PunchListItemToUser_assigneeIdToid", fields: [assigneeId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, projectId])
+  @@index([organizationId, status])
+  @@index([organizationId, assigneeId])
+  @@index([organizationId, dueOn])
+  @@index([organizationId, resolvedAt])
+}
+
+model Project {
+  id Int @id @default(autoincrement())
+  organizationId Int
+  code String
+  keyPrefix String
+  workItemSeq Int
+  name String
+  description String?
+  categoryId Int
+  methodology Methodology
+  agileFramework AgileFramework?
+  estimationUnit EstimationUnit
+  progressMethod ProgressMethod
+  status ProjectStatus
+  priority Priority
+  strategicValue StrategicValue
+  compliance ComplianceStatus
+  epsId Int
+  portfolioId Int
+  managerId Int
+  createdById Int
+  calendarId Int?
+  startDate DateTime
+  plannedEndDate DateTime?
+  mustFinishBy DateTime?
+  actualEndDate DateTime?
+  sprintLengthDays Int?
+  enforceDependencies Boolean
+  budgetAmount Decimal /// @money
+  pendingBudgetAmount Decimal? /// @money
+  expectedRoi Decimal? /// @money
+  location String?
+  client String?
+  contractor String?
+  size Decimal? /// @money
+  tags String[]
+  feasibilityScore Decimal? /// @money
+  lastAnalyzedAt DateTime?
+  progressPct Decimal /// @money
+  actualCost Decimal /// @money
+  allocatedCost Decimal /// @money
+  roi Decimal? /// @money
+  healthScore Decimal /// @money
+  riskScore Decimal /// @money
+  qualityScore Decimal /// @money
+  archivedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  projectcategory ProjectCategory? @relation(name: "ProjectToProjectCategory_categoryIdToid", fields: [categoryId], references: [id])
+  eps Eps? @relation(name: "ProjectToEps_epsIdToid", fields: [epsId], references: [id])
+  portfolio Portfolio? @relation(name: "ProjectToPortfolio_portfolioIdToid", fields: [portfolioId], references: [id])
+  user User? @relation(name: "ProjectToUser_managerIdToid", fields: [managerId], references: [id])
+  userCreatedBy User? @relation(name: "ProjectToUser_createdByIdToid", fields: [createdById], references: [id])
+  workcalendar WorkCalendar? @relation(name: "ProjectToWorkCalendar_calendarIdToid", fields: [calendarId], references: [id])
+  organization Organization? @relation(name: "ProjectToOrganization_organizationIdToid", fields: [organizationId], references: [id])
+  projectmembers ProjectMember[] @relation(name: "ProjectMemberToProject_projectIdToid")
+  projectlifecyclesteps ProjectLifecycleStep[] @relation(name: "ProjectLifecycleStepToProject_projectIdToid")
+  projectconflicts ProjectConflict[] @relation(name: "ProjectConflictToProject_projectIdToid")
+  workitemstatuss WorkItemStatus[] @relation(name: "WorkItemStatusToProject_projectIdToid")
+  workitems WorkItem[] @relation(name: "WorkItemToProject_projectIdToid")
+  workflowrules WorkflowRule[] @relation(name: "WorkflowRuleToProject_projectIdToid")
+  recurringworkitems RecurringWorkItem[] @relation(name: "RecurringWorkItemToProject_projectIdToid")
+  wbsnodes WbsNode[] @relation(name: "WbsNodeToProject_projectIdToid")
+  baselines Baseline[] @relation(name: "BaselineToProject_projectIdToid")
+  evmsnapshots EvmSnapshot[] @relation(name: "EvmSnapshotToProject_projectIdToid")
+  sprints Sprint[] @relation(name: "SprintToProject_projectIdToid")
+  releases Release[] @relation(name: "ReleaseToProject_projectIdToid")
+  sites Site[] @relation(name: "SiteToProject_projectIdToid")
+  budgetlines BudgetLine[] @relation(name: "BudgetLineToProject_projectIdToid")
+  costtransactions CostTransaction[] @relation(name: "CostTransactionToProject_projectIdToid")
+  risks Risk[] @relation(name: "RiskToProject_projectIdToid")
+  procurements Procurement[] @relation(name: "ProcurementToProject_projectIdToid")
+  documents Document[] @relation(name: "DocumentToProject_projectIdToid")
+  timesheets Timesheet[] @relation(name: "TimesheetToProject_projectIdToid")
+  timeentrys TimeEntry[] @relation(name: "TimeEntryToProject_projectIdToid")
+  approvalrequests ApprovalRequest[] @relation(name: "ApprovalRequestToProject_projectIdToid")
+  projectclosure ProjectClosure? @relation(name: "ProjectClosureToProject_projectIdToid")
+  checklists Checklist[] @relation(name: "ChecklistToProject_projectIdToid")
+  punchlistitems PunchListItem[] @relation(name: "PunchListItemToProject_projectIdToid")
+  inspections Inspection[] @relation(name: "InspectionToProject_projectIdToid")
+  handovers Handover[] @relation(name: "HandoverToProject_projectIdToid")
+  alerts Alert[] @relation(name: "AlertToProject_projectIdToid")
+  lessons Lesson[] @relation(name: "LessonToProject_projectIdToid")
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, categoryId])
+  @@index([organizationId, methodology])
+  @@index([organizationId, agileFramework])
+  @@index([organizationId, estimationUnit])
+  @@index([organizationId, progressMethod])
+  @@index([organizationId, status])
+  @@index([organizationId, priority])
+  @@index([organizationId, strategicValue])
+  @@index([organizationId, compliance])
+  @@index([organizationId, epsId])
+  @@index([organizationId, portfolioId])
+  @@index([organizationId, managerId])
+  @@index([organizationId, createdById])
+  @@index([organizationId, calendarId])
+  @@index([organizationId, startDate])
+  @@index([organizationId, plannedEndDate])
+  @@index([organizationId, mustFinishBy])
+  @@index([organizationId, actualEndDate])
+  @@index([organizationId, lastAnalyzedAt])
+  @@index([organizationId, archivedAt])
+}
+
+model ApprovalStep {
+  id Int @id @default(autoincrement())
+  requestId Int
+  stepOrder Int
+  assigneeId Int?
+  approverRoleId Int?
+  status ApprovalStatus
+  decidedById Int?
+  decidedAt DateTime?
+  comments String?
+  approvalrequest ApprovalRequest? @relation(name: "ApprovalStepToApprovalRequest_requestIdToid", fields: [requestId], references: [id])
+  user User? @relation(name: "ApprovalStepToUser_assigneeIdToid", fields: [assigneeId], references: [id])
+  userDecidedBy User? @relation(name: "ApprovalStepToUser_decidedByIdToid", fields: [decidedById], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([organizationId, requestId])
+  @@index([organizationId, assigneeId])
+  @@index([organizationId, status])
+  @@index([organizationId, decidedById])
+  @@index([organizationId, decidedAt])
+}
+
+model Procurement {
+  id Int @id @default(autoincrement())
+  projectId Int
+  wbsNodeId Int?
+  type ProcurementType
+  description String
+  estimatedCost Decimal /// @money
+  actualCost Decimal /// @money
+  status ProcurementStatus
+  neededBy DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  project Project? @relation(name: "ProcurementToProject_projectIdToid", fields: [projectId], references: [id])
+  wbsnode WbsNode? @relation(name: "ProcurementToWbsNode_wbsNodeIdToid", fields: [wbsNodeId], references: [id])
+  rfqresponses RfqResponse[] @relation(name: "RfqResponseToProcurement_procurementIdToid")
+  contracts Contract[] @relation(name: "ContractToProcurement_procurementIdToid")
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, projectId])
+  @@index([organizationId, wbsNodeId])
+  @@index([organizationId, type])
+  @@index([organizationId, status])
+  @@index([organizationId, neededBy])
+}
+
+model ClosureItem {
+  id Int @id @default(autoincrement())
+  closureId Int
+  type ClosureItemType
+  title String
+  documentType String?
+  isRequired Boolean
+  status ClosureItemStatus
+  autoChecked Boolean
+  documentId Int?
+  notes String?
+  sortOrder Int
+  completedAt DateTime?
+  completedById Int?
+  projectclosure ProjectClosure? @relation(name: "ClosureItemToProjectClosure_closureIdToid", fields: [closureId], references: [id])
+  document Document? @relation(name: "ClosureItemToDocument_documentIdToid", fields: [documentId], references: [id])
+  user User? @relation(name: "ClosureItemToUser_completedByIdToid", fields: [completedById], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([organizationId, closureId])
+  @@index([organizationId, type])
+  @@index([organizationId, status])
+  @@index([organizationId, documentId])
+  @@index([organizationId, completedAt])
+  @@index([organizationId, completedById])
+}
+
+model BusinessUnit {
+  id Int @id @default(autoincrement())
+  organizationId Int
+  name String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organization Organization? @relation(name: "BusinessUnitToOrganization_organizationIdToid", fields: [organizationId], references: [id])
+  users User[] @relation(name: "UserToBusinessUnit_businessUnitIdToid")
+
+  @@index([organizationId, createdAt])
+}
+
+model RiskMitigation {
+  id Int @id @default(autoincrement())
+  riskId Int
+  workItemId Int?
+  ownerId Int
+  assigneeId Int
+  description String
+  actionPlan String
+  type MitigationType
+  status MitigationStatus
+  startDate DateTime
+  dueDate DateTime
+  progressPct Decimal /// @money
+  completedAt DateTime?
+  notes String?
+  lastReminderAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  risk Risk? @relation(name: "RiskMitigationToRisk_riskIdToid", fields: [riskId], references: [id])
+  workitem WorkItem? @relation(name: "RiskMitigationToWorkItem_workItemIdToid", fields: [workItemId], references: [id])
+  user User? @relation(name: "RiskMitigationToUser_ownerIdToid", fields: [ownerId], references: [id])
+  userAssignee User? @relation(name: "RiskMitigationToUser_assigneeIdToid", fields: [assigneeId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, riskId])
+  @@index([organizationId, workItemId])
+  @@index([organizationId, ownerId])
+  @@index([organizationId, assigneeId])
+  @@index([organizationId, type])
+  @@index([organizationId, status])
+  @@index([organizationId, startDate])
+  @@index([organizationId, dueDate])
+  @@index([organizationId, completedAt])
+  @@index([organizationId, lastReminderAt])
+}
+
+model ProjectConflict {
+  id Int @id @default(autoincrement())
+  projectId Int
+  type ConflictType
+  severity ConflictSeverity
+  description String
+  affectedWorkItemIds Int[]
+  affectedResourceIds Int[]
+  suggestedResolution String?
+  resolvedAt DateTime?
+  createdAt DateTime @default(now())
+  project Project? @relation(name: "ProjectConflictToProject_projectIdToid", fields: [projectId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, projectId])
+  @@index([organizationId, type])
+  @@index([organizationId, severity])
+  @@index([organizationId, resolvedAt])
+}
+
+model StatusTransition {
+  id Int @id @default(autoincrement())
+  workItemId Int
+  fromStatusId Int?
+  toStatusId Int
+  changedById Int
+  changedAt DateTime
+  workitem WorkItem? @relation(name: "StatusTransitionToWorkItem_workItemIdToid", fields: [workItemId], references: [id])
+  workitemstatus WorkItemStatus? @relation(name: "StatusTransitionToWorkItemStatus_fromStatusIdToid", fields: [fromStatusId], references: [id])
+  workitemstatusToStatus WorkItemStatus? @relation(name: "StatusTransitionToWorkItemStatus_toStatusIdToid", fields: [toStatusId], references: [id])
+  user User? @relation(name: "StatusTransitionToUser_changedByIdToid", fields: [changedById], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([organizationId, workItemId])
+  @@index([organizationId, fromStatusId])
+  @@index([organizationId, toStatusId])
+  @@index([organizationId, changedById])
+  @@index([organizationId, changedAt])
+}
+
+// ─── In-App Notifications (PG-09) ────────────────────────────
+// Generated by the Soul engine. Delivery is queued (BullMQ) so a slow or failing
+// transport never blocks the workflow that raised the notification.
+
+model Notification {
+  // String cuid ids — the notification engine (queue worker + inbox controller)
+  // addresses notifications and the recipient by string id.
+  id             String    @id @default(cuid())
+  userId         String
+  // Tenant discriminator — Int to match the numeric organization key (PG-11).
+  organizationId Int?
+  title          String
+  message        String?
+  channel        String    @default("in_app")
+  level          String    @default("info")
+  isRead         Boolean   @default(false)
+  readAt         DateTime?
+  // What the notification is about, so the UI can deep-link to the record.
+  entityName     String?
+  entityRecordId String?
+  processType    String?
+  metadata       Json?
+  createdAt      DateTime  @default(now())
+
+  @@index([userId, isRead])
+  @@index([organizationId])
+  @@index([createdAt])
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, readAt])
+}
+
+model Benchmark {
+  id Int @id @default(autoincrement())
+  categoryId Int @unique
+  costPerM2 Decimal? /// @money
+  durationPerM2 Decimal? /// @money
+  expectedRoi Decimal? /// @money
+  costOverrunMax Decimal? /// @money
+  scheduleSlipMax Decimal? /// @money
+  cpiThreshold Decimal? /// @money
+  spiThreshold Decimal? /// @money
+  efficiencyRatio Decimal? /// @money
+  avgTaskDelayMax Decimal? /// @money
+  criticalPathDelayMax Int?
+  expectedTaskCompletionRate Decimal? /// @money
+  maxBudgetThresholdViolation Int?
+  velocityStabilityMin Decimal? /// @money
+  sprintCompletionRateMin Decimal? /// @money
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  projectcategory ProjectCategory? @relation(name: "BenchmarkToProjectCategory_categoryIdToid", fields: [categoryId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+}
+
+model ApprovalRequest {
+  id Int @id @default(autoincrement())
+  type ApprovalType
+  status ApprovalStatus
+  projectId Int
+  entityType String
+  entityId Int
+  payload Json?
+  requestedById Int
+  requestedAt DateTime
+  resolvedAt DateTime?
+  project Project? @relation(name: "ApprovalRequestToProject_projectIdToid", fields: [projectId], references: [id])
+  user User? @relation(name: "ApprovalRequestToUser_requestedByIdToid", fields: [requestedById], references: [id])
+  approvalsteps ApprovalStep[] @relation(name: "ApprovalStepToApprovalRequest_requestIdToid")
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([organizationId, type])
+  @@index([organizationId, status])
+  @@index([organizationId, projectId])
+  @@index([organizationId, requestedById])
+  @@index([organizationId, requestedAt])
+  @@index([organizationId, resolvedAt])
+}
+
+model WorkItemAssignee {
+  id Int @id @default(autoincrement())
+  workItemId Int
+  userId Int
+  assignedAt DateTime
+  workitem WorkItem? @relation(name: "WorkItemAssigneeToWorkItem_workItemIdToid", fields: [workItemId], references: [id])
+  user User? @relation(name: "WorkItemAssigneeToUser_userIdToid", fields: [userId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([organizationId, workItemId])
+  @@index([organizationId, userId])
+  @@index([organizationId, assignedAt])
+}
+
+model ApiKey {
+  id Int @id @default(autoincrement())
+  organizationId Int
+  name String
+  keyPrefix String
+  keyHash String @unique
+  scopes String[]
+  lastUsedAt DateTime?
+  expiresAt DateTime?
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  organization Organization? @relation(name: "ApiKeyToOrganization_organizationIdToid", fields: [organizationId], references: [id])
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, lastUsedAt])
+  @@index([organizationId, expiresAt])
+  @@index([organizationId, revokedAt])
+}
+
+model User {
+  id Int @id @default(autoincrement())
+  firstName String
+  lastName String
+  email String @unique
+  password String?
+  roleId Int?
+  businessUnitId Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userprofile UserProfile? @relation(name: "UserProfileToUser_userIdToid")
+  refreshtokens RefreshToken[] @relation(name: "RefreshTokenToUser_userIdToid")
+  portfolios Portfolio[] @relation(name: "PortfolioToUser_managerIdToid")
+  projects Project[] @relation(name: "ProjectToUser_managerIdToid")
+  projectsCreatedBy Project[] @relation(name: "ProjectToUser_createdByIdToid")
+  projectmembers ProjectMember[] @relation(name: "ProjectMemberToUser_userIdToid")
+  projectlifecyclesteps ProjectLifecycleStep[] @relation(name: "ProjectLifecycleStepToUser_completedByIdToid")
+  workitems WorkItem[] @relation(name: "WorkItemToUser_reporterIdToid")
+  workitemsCreatedBy WorkItem[] @relation(name: "WorkItemToUser_createdByIdToid")
+  workitemassignees WorkItemAssignee[] @relation(name: "WorkItemAssigneeToUser_userIdToid")
+  statustransitions StatusTransition[] @relation(name: "StatusTransitionToUser_changedByIdToid")
+  comments Comment[] @relation(name: "CommentToUser_authorIdToid")
+  commentmentions CommentMention[] @relation(name: "CommentMentionToUser_userIdToid")
+  baselines Baseline[] @relation(name: "BaselineToUser_createdByIdToid")
+  sprintcapacitys SprintCapacity[] @relation(name: "SprintCapacityToUser_userIdToid")
+  resource Resource? @relation(name: "ResourceToUser_userIdToid")
+  progressreports ProgressReport[] @relation(name: "ProgressReportToUser_reportedByIdToid")
+  sites Site[] @relation(name: "SiteToUser_managerIdToid")
+  equipmentsitelogs EquipmentSiteLog[] @relation(name: "EquipmentSiteLogToUser_loggedByIdToid")
+  maintenancelogs MaintenanceLog[] @relation(name: "MaintenanceLogToUser_performedByIdToid")
+  risks Risk[] @relation(name: "RiskToUser_ownerIdToid")
+  riskmitigations RiskMitigation[] @relation(name: "RiskMitigationToUser_ownerIdToid")
+  riskmitigationsAssignee RiskMitigation[] @relation(name: "RiskMitigationToUser_assigneeIdToid")
+  documents Document[] @relation(name: "DocumentToUser_uploadedByIdToid")
+  timesheets Timesheet[] @relation(name: "TimesheetToUser_userIdToid")
+  timesheetsApprovedBy Timesheet[] @relation(name: "TimesheetToUser_approvedByIdToid")
+  timeentrys TimeEntry[] @relation(name: "TimeEntryToUser_userIdToid")
+  approvalrequests ApprovalRequest[] @relation(name: "ApprovalRequestToUser_requestedByIdToid")
+  approvalsteps ApprovalStep[] @relation(name: "ApprovalStepToUser_assigneeIdToid")
+  approvalstepsDecidedBy ApprovalStep[] @relation(name: "ApprovalStepToUser_decidedByIdToid")
+  closureitems ClosureItem[] @relation(name: "ClosureItemToUser_completedByIdToid")
+  checklistitems ChecklistItem[] @relation(name: "ChecklistItemToUser_doneByIdToid")
+  punchlistitems PunchListItem[] @relation(name: "PunchListItemToUser_assigneeIdToid")
+  inspections Inspection[] @relation(name: "InspectionToUser_inspectorIdToid")
+  handovers Handover[] @relation(name: "HandoverToUser_responsibleIdToid")
+  activitylogs ActivityLog[] @relation(name: "ActivityLogToUser_userIdToid")
+  lessons Lesson[] @relation(name: "LessonToUser_submittedByIdToid")
+  rolesandpermissions RolesAndPermissions? @relation(name: "UserToRolesAndPermissions_roleIdToid", fields: [roleId], references: [id])
+  businessunit BusinessUnit? @relation(name: "UserToBusinessUnit_businessUnitIdToid", fields: [businessUnitId], references: [id])
+  /// Platform (cross-tenant) Super Admin. Server-owned: set by the seed, never by a form or API.
+  isPlatformAdmin Boolean @default(false)
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, roleId])
+  @@index([organizationId, businessUnitId])
+}
+
+model BaselineItem {
+  id Int @id @default(autoincrement())
+  baselineId Int
+  workItemId Int
+  startDate DateTime?
+  endDate DateTime?
+  durationDays Int?
+  plannedCost Decimal /// @money
+  plannedHours Decimal /// @money
+  baseline Baseline? @relation(name: "BaselineItemToBaseline_baselineIdToid", fields: [baselineId], references: [id])
+  workitem WorkItem? @relation(name: "BaselineItemToWorkItem_workItemIdToid", fields: [workItemId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([organizationId, baselineId])
+  @@index([organizationId, workItemId])
+  @@index([organizationId, startDate])
+  @@index([organizationId, endDate])
+}
+
+model Escalation {
+  id Int @id @default(autoincrement())
+  workItemId Int
+  escalatedTo String
+  reason String
+  status EscalationStatus
+  triggeredAt DateTime
+  resolvedAt DateTime?
+  workitem WorkItem? @relation(name: "EscalationToWorkItem_workItemIdToid", fields: [workItemId], references: [id])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([organizationId, workItemId])
+  @@index([organizationId, status])
+  @@index([organizationId, triggeredAt])
+  @@index([organizationId, resolvedAt])
+}
+
+// ─── Workflow Engine ────────────────────────────────────────
+
+enum WorkflowStatus {
+  ACTIVE
+  INACTIVE
+  DRAFT
+}
+
+enum WorkflowRunStatus {
+  QUEUED
+  RUNNING
+  PAUSED
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum WorkflowStepStatus {
+  PENDING
+  RUNNING
+  WAITING
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
+model WorkflowVersion {
+  id          String   @id @default(cuid())
+  workflowId  String
+  version     Int
+  definition  Json
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  workflow    Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowId, version])
+  @@index([workflowId])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+}
+
+model WorkflowRun {
+  id            String            @id @default(cuid())
+  workflowId    String
+  triggerEvent  String
+  triggerData   Json?
+  status        WorkflowRunStatus @default(QUEUED)
+  context       Json?
+  error         String?
+  definitionVersion Int?
+  startedAt     DateTime          @default(now())
+  completedAt   DateTime?
+  workflow      Workflow          @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  steps         WorkflowRunStep[]
+  tasks         WorkflowTask[]
+
+  @@index([workflowId])
+  @@index([status])
+  @@index([startedAt])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+}
+
+model WorkflowRunStep {
+  id         String             @id @default(cuid())
+  runId      String
+  nodeId     String
+  nodeKind   String
+  nodeType   String?
+  status     WorkflowStepStatus @default(PENDING)
+  input      Json?
+  output     Json?
+  error      String?
+  executedAt DateTime           @default(now())
+  durationMs Int?
+  run        WorkflowRun        @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+  @@index([nodeId])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+}
+
+model WorkflowTask {
+  id              String             @id @default(cuid())
+  runId           String
+  workflowId      String
+  nodeId          String
+  title           String
+  instructions    String?
+  assigneeSpec    String
+  assigneeUserIds Int[]
+  form            Json?
+  status          WorkflowTaskStatus @default(OPEN)
+  dueAt           DateTime?
+  onOverdue       String             @default("continue")
+  formData        Json?
+  completedById   Int?
+  completedAt     DateTime?
+  createdAt       DateTime           @default(now())
+  run             WorkflowRun        @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([status, dueAt])
+  @@index([runId])
+  @@index([assigneeUserIds], type: Gin)
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+}
+
+enum WorkflowTaskStatus {
+  OPEN
+  COMPLETED
+  ESCALATED
+  CANCELLED
+}
+
+model WorkflowTimer {
+  id         String              @id @default(cuid())
+  runId      String
+  workflowId String
+  nodeId     String
+  kind       String
+  dueAt      DateTime?
+  condition  String?
+  timeoutAt  DateTime?
+  branch     String?
+  status     WorkflowTimerStatus @default(PENDING)
+  firedAt    DateTime?
+  createdAt  DateTime            @default(now())
+
+  @@index([status, dueAt])
+  @@index([status, kind])
+  @@index([runId])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+}
+
+enum WorkflowTimerStatus {
+  PENDING
+  FIRED
+  CANCELLED
+}
+
+model WorkflowSchedule {
+  id         String    @id @default(cuid())
+  workflowId String    @unique
+  cron       String
+  timezone   String?
+  nextRunAt  DateTime
+  lastRunAt  DateTime?
+  enabled    Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([enabled, nextRunAt])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+}
+
+// ─── In-App Agent ────────────────────────────────────────────
+// Generated by the Soul engine.
+
+/// Single-row provider configuration for this app's assistant.
+///
+/// NOT tenant-scoped: the key is the app owner's, billed to them, and shared by
+/// every organization in the app. Per-tenant keys would need per-tenant billing
+/// to mean anything, which this product does not have yet.
+model AgentSetting {
+  id             Int      @id @default(autoincrement())
+  // Always "default". Exists purely so the row can be upserted by a stable
+  // unique key instead of by a guessed id.
+  scope          String   @unique @default("default")
+
+  provider       String?
+  // Not named `model`: that word opens a block in the Prisma grammar, and a
+  // field sharing it is a needless bet on parser lookahead.
+  modelName      String?
+  baseUrl        String?
+
+  // AES-256-GCM ciphertext, never the raw key. Format and key derivation live
+  // in src/agent/settings-crypto.ts.
+  apiKeyCipher   String?
+  // Last four characters of the key in clear, so the UI can show which key is
+  // saved without the server ever having to hand the key back.
+  apiKeyLast4    String?
+
+  // Lets the generic assistant (the Assistant page) use the provider's own web
+  // search. Named agents carry their own switch on the Agent row; this one is
+  // app-wide and only honoured on providers that ship a native search.
+  assistantWebSearch Boolean @default(false)
+
+  updatedAt      DateTime @updatedAt
+  updatedByEmail String?
+}
+
+/// One answered (or failed) question. The audit trail and the token bill.
+model AgentRun {
+  id           String         @id @default(cuid())
+
+  // Plain scalars, not a User relation: an audit record has to survive the
+  // deletion of the person it refers to.
+  userId       Int?
+  userEmail    String?
+
+  /// Which surface asked — assistant page, inline panel, workflow pulse.
+  /// Present from the start so per-surface cost never needs a backfill.
+  surface      String         @default("assistant")
+
+  question     String
+  answer       String?
+  status       AgentRunStatus @default(RUNNING)
+  error        String?
+
+  // Denormalised on purpose. AgentSetting is a single mutable row, so reading
+  // history through it would re-attribute every past run to whatever model is
+  // configured today.
+  provider     String?
+  modelName    String?
+
+  /// The Agent row as it stood when this run started — a COPY, not a foreign key.
+  ///
+  /// Agents are edited in place. Pointing at the live row would mean that widening an agent's
+  /// allowedEntities today silently rewrites what last month's audit says it was permitted to
+  /// read, which is the one thing an audit trail must never do. Null for runs from the assistant
+  /// page, which has no Agent row behind it.
+  ///
+  /// A snapshot column rather than an AgentVersion table on purpose (decision D6): versioning
+  /// buys history nobody asked to browse, and costs a join on every read of the audit log.
+  definitionSnapshot Json?
+  /// Which agent ran. A plain scalar with NO relation, like userId above: the run is a billing
+  /// record and must outlive the agent being deleted. Indexed because "what has this agent cost
+  /// us" is the question the spend page exists to answer, and digging it out of the snapshot
+  /// JSON would mean a table scan.
+  agentId      String?
+
+  iterations   Int            @default(0)
+  /// True when the iteration cap was hit before the model produced an answer —
+  /// the signal that a question was too hard, distinct from an outright failure.
+  stoppedEarly Boolean        @default(false)
+
+  inputTokens  Int            @default(0)
+  outputTokens Int            @default(0)
+
+  startedAt    DateTime       @default(now())
+  completedAt  DateTime?
+  durationMs   Int?
+
+  steps        AgentRunStep[]
+
+  @@index([userId])
+  @@index([startedAt])
+  @@index([status])
+  @@index([agentId])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+}
+
+/// One tool call inside a run, in the order it happened.
+model AgentRunStep {
+  id         String   @id @default(cuid())
+  runId      String
+  /// Position in the run, from 1. Ordering by createdAt is unsafe: several calls
+  /// in one iteration can land inside the same millisecond.
+  seq        Int
+  toolName   String
+  args       Json?
+  ok         Boolean  @default(true)
+  /// The tool's one-line summary, or its error when it failed.
+  summary    String?
+  durationMs Int?
+  createdAt  DateTime @default(now())
+
+  run        AgentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+}
+
+enum AgentRunStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+/// One thread of questions and answers with the assistant.
+model AgentConversation {
+  id        String   @id @default(cuid())
+
+  // Plain scalars for the same reason as AgentRun: the thread is content, and content
+  // should not disappear the instant an account is removed.
+  userId    Int?
+  userEmail String?
+
+  /// Which surface started the thread.
+  surface   String   @default("assistant")
+  /// Taken from the first question, truncated. Naming a thread is not worth a model call.
+  title     String?
+
+  createdAt DateTime @default(now())
+  /// Bumped on every turn. This, not createdAt, is what a "recent conversations" list orders by.
+  updatedAt DateTime @updatedAt
+
+  messages  AgentMessage[]
+
+  @@index([userId, updatedAt])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+}
+
+/// One turn. Either the person's question or the assistant's answer — never a tool call.
+model AgentMessage {
+  id             String   @id @default(cuid())
+  conversationId String
+  /// Position in the thread, from 1. Two turns can share a millisecond, so createdAt
+  /// cannot be trusted to order them.
+  seq            Int
+  /// "user" or "assistant". Not an enum: the wire formats already disagree about role
+  /// names, and a Prisma enum would have to be migrated to admit a third one.
+  role           String
+  content        String
+
+  /// The AgentRun that produced this answer, for "show me how you worked that out".
+  /// A plain scalar with NO relation, deliberately: a run is an audit and billing record
+  /// and must outlive the thread, so deleting a conversation must not cascade into it.
+  runId          String?
+
+  /// What the answer was read from, e.g. "Ticket (7 rows) · User (2 rows)". Folded from what
+  /// the TOOLS reported, never from the answer text — a model asked to cite itself will
+  /// eventually cite a record it never read, and a confident wrong citation is worse than none.
+  ///
+  /// A String rather than Json: it is a finished display line with exactly one rendering, and a
+  /// Json column would invite callers to re-format it differently on each surface, which is how
+  /// the same answer starts claiming two different sets of sources. Null on a user turn, and on
+  /// answers from before this existed.
+  sources        String?
+
+  createdAt      DateTime @default(now())
+
+  conversation   AgentConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, seq])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+}
+
+/// One configured agent: a job description plus the limits it works inside.
+model Agent {
+  id              String   @id @default(cuid())
+
+  name            String
+  /// One line, shown in pickers and used by orchestrators to choose between agents.
+  role            String?
+  /// The agent's own system instructions, appended to the runtime's grounding prompt.
+  instructions    String
+
+  /// Entity names this agent may read. Empty means none. Never widens the caller's permissions.
+  allowedEntities String[]
+  /// Tool names this agent may call. Empty means none, for the same reason.
+  allowedTools    String[]
+  /// May this agent search the web? Uses the provider's own search on the app's key; off by
+  /// default because an enterprise agent's whole value is that it answers from THIS app's data.
+  webSearch       Boolean  @default(false)
+
+  /// Overrides AgentSetting.modelName for this agent only. Null means use the app default.
+  modelOverride   String?
+  /// Null means use the runtime default rather than zero: a stored 0 would be a silent
+  /// "never call a tool", which is not a configuration anybody would choose on purpose.
+  maxIterations   Int?
+  /// JSON Schema the answer must match, so a gateway can branch on a typed field instead of
+  /// on free prose.
+  outputSchema    Json?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([name])
+  /// Tenant discriminator (PG-11) — filtered by the Prisma layer.
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+}
+
+/// How this app sends email. One row, written by an administrator.
+///
+/// The password is AES-256-GCM ciphertext (src/agent/settings-crypto.ts, the same helper the AI
+/// provider key uses) and never leaves the server; `passwordLast4` exists so the UI can show
+/// WHICH password is saved without the server handing it back.
+model MailSetting {
+  id             Int      @id @default(autoincrement())
+  // Always "default". Exists so the row can be upserted by a stable unique key.
+  scope          String   @unique @default("default")
+
+  host           String?
+  port           Int?
+  secure         Boolean  @default(false)
+  username       String?
+  passwordCipher String?
+  passwordLast4  String?
+  // The envelope sender. Split into address and display name so the UI can ask for them
+  // separately instead of teaching an admin the "Name <addr>" syntax.
+  fromAddress    String?
+  fromName       String?
+
+  updatedAt      DateTime @updatedAt
+  updatedByEmail String?
+}
+
+/// How people sign in to this app. One row, written by an administrator.
+///
+/// `methods` is a comma-separated list drawn from "password" and "otp" — stored as text rather
+/// than as an enum because an enum would need a migration to add a third method, and the parser
+/// (src/auth/auth-methods.ts) already refuses anything it does not recognise.
+model AuthSetting {
+  id             Int      @id @default(autoincrement())
+  scope          String   @unique @default("default")
+
+  methods        String   @default("password")
+
+  // Public sign-up: off until an administrator turns it on. The role and organisation a new
+  // account gets are chosen HERE, never by the person signing up. The role is stored by NAME,
+  // as the roles page shows it, and checked again on every sign-up (it may have been widened since).
+  signUpEnabled        Boolean @default(false)
+  signUpRole           String?
+  signUpOrganizationId Int?
+
+  updatedAt      DateTime @updatedAt
+  updatedByEmail String?
+}
+
+/// The single-use link an invited person follows to set their own password.
+///
+/// STORED HASHED (SHA-256 of the token). A leaked dump of this table is then a list of digests,
+/// not a set of working links. SHA-256 and not bcrypt on purpose: the token is 32 random bytes
+/// from the CSPRNG, so there is no low-entropy secret to stretch, and a digest can carry a UNIQUE
+/// index — which is what makes "find the row for this link" one indexed lookup instead of a scan
+/// over every outstanding invite comparing bcrypt hashes.
+///
+/// `userId` is a plain scalar with NO relation, so this appender never has to stamp a
+/// back-relation field onto the customer's own user model.
+model AuthSetupToken {
+  id        String    @id @default(cuid())
+  userId    Int
+  // Denormalised so the email a link was sent to is knowable even after the address is changed.
+  email     String
+  tokenHash String    @unique
+  // 'invite' (an administrator created the account) or 'reset' (the owner forgot the password).
+  // One table, one hashing and single-use rule; the purpose only changes the wording, the lifetime
+  // and what happens after the password is set.
+  purpose   String    @default("invite")
+  expiresAt DateTime
+  // Set the moment the token is spent. A used token is kept, not deleted, so a second click can
+  // be answered with "this link has already been used" instead of "no such link".
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+/// A one-time sign-in code sent by email.
+///
+/// Hashed for the same reason as the setup token, and bound to the address it was issued for: the
+/// digest covers "email:code", so a code harvested for one mailbox cannot be replayed against
+/// another. `attempts` is what makes a 6-digit code safe — the row locks itself long before
+/// a million guesses are possible.
+model AuthLoginCode {
+  id        String    @id @default(cuid())
+  email     String
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int       @default(0)
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([email])
+  @@index([expiresAt])
+}
+
+/// "Sign this person out everywhere": access tokens issued before `revokedBefore` stop working.
+///
+/// Sessions are stateless JWTs, so ending them needs a record of WHEN they stopped being trusted.
+/// Written when a password is reset; read once at startup into memory (src/auth/session-revocations
+/// .ts), so AuthGuard checks it without a database query per request. One row per user, overwritten.
+/// `userId` is a plain scalar with no relation, like AuthSetupToken's.
+model AuthSessionRevocation {
+  userId        Int      @id
+  revokedBefore DateTime
+  updatedAt     DateTime @updatedAt
+}
+
+/// A UI Builder's connection to this app: a long-lived, READ-ONLY credential that can do exactly one
+/// thing — be exchanged (POST /api/frontend-design/builder-token) for a 10-minute token that only the
+/// app-contract route accepts. It acts as the person who connected, with their CURRENT role, so a
+/// role change or a removed user takes effect at once; revoking the row ends the connection.
+///
+/// Stored HASHED (SHA-256), like the setup token: a leaked dump is a list of digests, not keys.
+model BuilderKey {
+  id         String    @id @default(cuid())
+  userId     Int
+  // The person's sign-in address when the key was issued; the exchange signs THIS person in.
+  email      String
+  keyHash    String    @unique
+  label      String    @default("UI Builder")
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+
+  @@index([userId])
+}
+
+// ─── Dynamic Dashboards (Dashboard Engine) ──────────────────
+// Generated by the Soul engine.
+
+/// This app's connection to the Dashboard Engine. One row, written by the app owner.
+model DashboardEngineConnection {
+  id                    Int       @id @default(autoincrement())
+  scope                 String    @unique @default("default")
+  /// disconnected | pending | connected | revoked
+  status                String    @default("disconnected")
+  /// The engine's web address (approval page, embed pages) and its API address.
+  engineUrl             String?
+  engineApiUrl          String?
+  /// The engine's name for this app, and the ID of the key it verifies this app with.
+  clientId              String?
+  keyId                 String?
+  /// AES-256-GCM ciphertext of the app's ES256 private key. Never leaves the server.
+  privateKeyCipher      String?
+  pendingState          String?
+  pendingVerifierCipher String?
+  pendingRedirectUri    String?
+  pendingStartedAt      DateTime?
+  workspaceName         String?
+  workspaceCreated      Boolean   @default(false)
+  sharedProjectName     String?
+  /// self_service | owner_only | automatic
+  orgPolicy             String    @default("self_service")
+  lockOrgOptOut         Boolean   @default(false)
+  connectedAt           DateTime?
+  connectedByEmail      String?
+  lastError             String?
+  updatedAt             DateTime  @updatedAt
+  updatedByEmail        String?
+}
+
+/// Whether an organization uses Dynamic Dashboards. One row per organization that has decided.
+model DashboardEngineOrg {
+  id               Int       @id @default(autoincrement())
+  orgId            Int       @unique
+  /// active | inactive | requested
+  status           String    @default("inactive")
+  changedByEmail   String?
+  changedAt        DateTime?
+  requestedByEmail String?
+  updatedAt        DateTime  @updatedAt
+}
+
+/// A Dashboard Engine dashboard in this app's Dynamic Dashboards list.
+model EmbeddedDashboard {
+  id           Int      @id @default(autoincrement())
+  /// dashboard | widget
+  kind         String   @default("dashboard")
+  engineId     String
+  engineOrigin String
+  /// The organization it is shown to; null = every organization (added by the app owner).
+  orgId        Int?
+  title        String
+  description  String?
+  /// Display options read from the pasted code (theme, hidden title/filters, refresh, height).
+  options      Json?
+  /// AES-256-GCM ciphertext of the engine embed token pasted with the code, if any.
+  tokenCipher  String?
+  sortOrder    Int      @default(0)
+  addedByEmail String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([orgId])
+}
