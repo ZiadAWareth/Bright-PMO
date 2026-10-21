@@ -24,7 +24,6 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Calendar, Plus, Download, Eye, Users, Search } from "lucide-react";
-import axios from "axios";
 import { toast } from "sonner";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ViewToggle, type ListViewMode } from "@/components/ui/view-toggle";
@@ -122,8 +121,10 @@ interface User {
 
 export default function TimesheetPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
+  // notConnected: the signed-in user's timesheets, the whole team's (All Team
+  // tab) and their active projects would be loaded here.
+  const loading = false;
+  const [timesheets] = useState<Timesheet[]>([]);
   const [timesheetSearch, setTimesheetSearch] = useState("");
   const [timesheetStatusFilter, setTimesheetStatusFilter] = useState("all");
 
@@ -138,7 +139,7 @@ export default function TimesheetPage() {
       timesheetStatusFilter === "all" || timesheet.status === timesheetStatusFilter;
     return matchesSearch && matchesStatus;
   });
-  const [allTimesheets, setAllTimesheets] = useState<Timesheet[]>([]);
+  const [allTimesheets] = useState<Timesheet[]>([]);
 
   // The team tab reads from a different endpoint and was previously unfiltered
   // and unpaginated, so it kept its own search/status state rather than sharing
@@ -170,142 +171,13 @@ export default function TimesheetPage() {
       teamStatusFilter === "all" || timesheet.status === teamStatusFilter;
     return matchesSearch && matchesStatus;
   });
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects] = useState<Project[]>([]);
   const [activeTab, setActiveTab] = useState("current");
 
-  const [users, setUsers] = useState<User[]>([]);
-  const [allTeamLoading, setAllTeamLoading] = useState(false);
+  const allTeamLoading = false;
 
-  useEffect(() => {
-    fetchCurrentUser();
-    fetchUserTimesheets();
-  }, []);
-
-  // Fetch user projects after currentUser is set
-  useEffect(() => {
-    if (currentUser) {
-      fetchUserProjects();
-    }
-  }, [currentUser]);
-
-  const fetchCurrentUser = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        router.push("/auth/login");
-        return;
-      }
-
-      const response = await axios.get("/api/auth/me", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      console.log("API response:", response.data);
-      // The API returns user data in a nested 'user' object
-      setCurrentUser(response.data.user || response.data);
-    } catch (error) {
-      console.error("Failed to fetch current user:", error);
-      router.push("/auth/login");
-    }
-  };
-
-  // Helper function to check if user can view all timesheets
-  const canViewAllTimesheets = () => {
-    console.log("Current user data:", currentUser);
-    console.log("Role name:", currentUser?.role?.name);
-    console.log(
-      "Can view all timesheets:",
-      currentUser?.role?.name &&
-        ["ADMIN", "PMO", "PJM"].includes(currentUser.role.name)
-    );
-    return (
-      currentUser?.role?.name &&
-      ["ADMIN", "PMO", "PJM"].includes(currentUser.role.name)
-    );
-  };
-
-  const fetchUserTimesheets = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        router.push("/auth/login");
-        return;
-      }
-
-      const response = await axios.get("/api/timesheets", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      setTimesheets(response.data);
-    } catch (error) {
-      console.error("Failed to fetch timesheets:", error);
-      toast.error("Failed to load timesheets");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchAllTimesheets = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-    try {
-      const response = await axios.get("/api/timesheets?view_all=true", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setAllTimesheets(response.data);
-    } catch (error) {
-      console.error("Failed to fetch all timesheets:", error);
-      toast.error("Failed to load all timesheets");
-    }
-  };
-
-  // Fetch all timesheets when user switches to the "All Team Timesheets" tab
-  useEffect(() => {
-    if (activeTab === "all-team" && canViewAllTimesheets()) {
-      setAllTeamLoading(true);
-      fetchAllTimesheets()
-        .then(() => {})
-        .finally(() => setAllTeamLoading(false));
-    }
-  }, [activeTab, currentUser]);
-
-  const fetchUserProjects = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      const response = await axios.get("/api/projects", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      // Filter active projects where user is involved (team member, creator, or manager)
-      const activeProjects = response.data.filter((project: any) => {
-        const isActiveProject =
-          project.status === "execution" || project.status === "planning";
-        const userId = currentUser?.user_id;
-        if (!userId) return false;
-        const isTeamMember = project.team_members?.some(
-          (member: any) => member.user?.user_id === userId
-        );
-        const isCreator = project.created_by === userId;
-        const isManager = project.manager_id === userId;
-        return isActiveProject && (isTeamMember || isCreator || isManager);
-      });
-
-      setProjects(activeProjects);
-    } catch (error) {
-      console.error("Failed to fetch projects:", error);
-    }
-  };
+  // Every view is open until roles come from the backend.
+  const canViewAllTimesheets = () => true;
 
   const getStatusColor = (status: string) => {
     switch (status) {

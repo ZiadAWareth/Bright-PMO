@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Dropdown } from '@/components/ui/dropdown';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import axios from '@/lib/axios';
+import { notConnected } from "@/lib/not-connected";
 import { Spinner } from "@/components/ui/spinner";
 
 interface ScheduleTaskDependencyModalProps {
@@ -35,18 +35,15 @@ const ScheduleTaskDependencyModal: React.FC<ScheduleTaskDependencyModalProps> = 
   onClose,
   onSave
 }) => {
-  const [dependencies, setDependencies] = useState<Dependency[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  // notConnected: the task's dependencies would be loaded here. Until then
+  // there are none; candidate predecessors come from allTasks.
+  const [dependencies] = useState<Dependency[]>([]);
+  const loading = false;
+  const saving = false;
   const [selectedPredecessor, setSelectedPredecessor] = useState<string>('');
   const [dependencyType, setDependencyType] = useState<'finish_to_start' | 'start_to_start' | 'finish_to_finish' | 'start_to_finish'>('finish_to_start');
   const [lagTime, setLagTime] = useState<number>(0);
   const [availableTasks, setAvailableTasks] = useState<any[]>([]);
-
-  useEffect(() => {
-    fetchDependencies();
-    fetchTasks();
-  }, []);
 
   // Update available tasks when dependencies change
   useEffect(() => {
@@ -70,84 +67,16 @@ const ScheduleTaskDependencyModal: React.FC<ScheduleTaskDependencyModalProps> = 
     }
   }, [availableTasks.length, allTasks, task.task_id, dependencies]);
 
-  const fetchTasks = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`/api/schedules/${scheduleId}/tasks`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (response.data) {
-        // Filter out the current task and tasks that are already dependencies
-        const filteredTasks = response.data.filter((t: any) => 
-          t.task_id !== task.task_id && 
-          !dependencies.some(dep => dep.predecessor_task_id === t.task_id)
-        );
-        setAvailableTasks(filteredTasks);
-      }
-    } catch (error) {
-      console.error('Failed to fetch tasks:', error);
-      toast.error('Failed to load tasks');
-    }
-  };
-
-  const fetchDependencies = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`/api/schedules/${scheduleId}/tasks/${task.task_id}/dependencies`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setDependencies(response.data);
-    } catch (error) {
-      console.error('Failed to fetch dependencies:', error);
-      toast.error('Failed to load dependencies');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const addDependency = async () => {
+  const addDependency = () => {
     if (!selectedPredecessor || selectedPredecessor === "no-tasks") {
       toast.error('Please select a predecessor task');
       return;
     }
 
-    setSaving(true);
-    try {
-      const token = localStorage.getItem('token');
-      await axios.post(`/api/schedules/${scheduleId}/tasks/${task.task_id}/dependencies`, {
-        predecessor_task_id: parseInt(selectedPredecessor),
-        dependency_type: dependencyType,
-        lag_time: lagTime
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      toast.success('Dependency added successfully');
-      setSelectedPredecessor('');
-      setDependencyType('finish_to_start');
-      setLagTime(0);
-      await fetchDependencies();
-      onSave();
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to add dependency');
-    } finally {
-      setSaving(false);
-    }
+    notConnected('Adding a dependency');
   };
 
-  const removeDependency = async (dependencyId: number) => {
-    try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`/api/schedules/${scheduleId}/tasks/${task.task_id}/dependencies/${dependencyId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      toast.success('Dependency removed successfully');
-      await fetchDependencies();
-      onSave();
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to remove dependency');
-    }
-  };
+  const removeDependency = (_dependencyId: number) => notConnected('Removing a dependency');
 
   const getDependencyTypeLabel = (type: string) => {
     const labels = {

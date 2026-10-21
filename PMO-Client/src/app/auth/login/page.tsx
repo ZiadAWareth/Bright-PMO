@@ -5,9 +5,8 @@ import { useEffect } from "react";
 import { Spinner } from "@/components/ui/spinner";
 
 /**
- * Legacy sign-in route. The screen now lives at `/auth/signin`; this stays as a
- * redirect because `/auth/login` is referenced in a lot of places — the axios
- * 401 handlers, the app shell's logout, and any bookmarks users already have.
+ * Old sign-in route. The screen now lives at `/auth/signin`; this stays as a
+ * redirect for bookmarks users already have.
  *
  * Query params are carried across so `?error=` and `?returnTo=` still work.
  */

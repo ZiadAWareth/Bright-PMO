@@ -3,10 +3,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AlertCircle, Save } from "lucide-react";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import {
   CancelButton,
   Field,
@@ -50,11 +49,13 @@ export default function EditProjectContractPage() {
   const projectId = params?.id as string;
   const contractId = params?.contractId as string;
 
-  const [procurements, setProcurements] = useState<Procurement[]>([]);
-  const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const [procurements] = useState<Procurement[]>([]);
+  const [vendors] = useState<Vendor[]>([]);
+  // notConnected: the contract, procurements and vendors (to prefill the form) would be loaded here.
+  // Until then the form starts empty.
+  const loading = false;
+  const notFound = false;
+  const submitting = false;
   const [error, setError] = useState<string | null>(null);
 
   const [procurementId, setProcurementId] = useState("");
@@ -69,52 +70,6 @@ export default function EditProjectContractPage() {
 
   const backHref = `/projects/${projectId}/procurement`;
 
-  useEffect(() => {
-    if (!contractId) return;
-    let cancelled = false;
-
-    (async () => {
-      const auth = {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      };
-      try {
-        const [contractRes, procRes, vendorRes] = await Promise.all([
-          axios.get(`/api/contracts/${contractId}`, auth),
-          axios.get(`/api/projects/${projectId}/procurements`, auth),
-          axios.get("/api/vendors", auth),
-        ]);
-        if (cancelled) return;
-
-        setProcurements(Array.isArray(procRes.data) ? procRes.data : []);
-        setVendors(Array.isArray(vendorRes.data) ? vendorRes.data : []);
-
-        const c = contractRes.data;
-        if (!c) {
-          setNotFound(true);
-          return;
-        }
-
-        setProcurementId(String(c.procurement_id ?? ""));
-        setVendorId(String(c.vendor_id ?? ""));
-        setContractNumber(c.contract_number ?? "");
-        setName(c.name ?? "");
-        setDescription(c.description ?? "");
-        setStartDate(c.start_date ? c.start_date.split("T")[0] : "");
-        setEndDate(c.end_date ? c.end_date.split("T")[0] : "");
-        setValue(String(c.value ?? ""));
-        setStatus(c.status ?? "Draft");
-      } catch {
-        if (!cancelled) setNotFound(true);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [contractId, projectId]);
-
   const validate = (): string | null => {
     if (!procurementId) return "Please select a procurement.";
     if (!vendorId) return "Please select a vendor.";
@@ -126,7 +81,7 @@ export default function EditProjectContractPage() {
     return null;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     const problem = validate();
@@ -136,46 +91,12 @@ export default function EditProjectContractPage() {
     }
 
     setError(null);
-    setSubmitting(true);
-    try {
-      await axios.put(
-        `/api/contracts/${contractId}`,
-        {
-          procurement_id: parseInt(procurementId),
-          vendor_id: parseInt(vendorId),
-          contract_number: contractNumber.trim(),
-          name: name.trim(),
-          description: description.trim(),
-          start_date: startDate,
-          end_date: endDate,
-          value: parseFloat(value),
-          status,
-        },
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        },
-      );
-
-      toast.success("Contract updated");
-      router.push(`${backHref}?tab=contracts`);
-    } catch (e) {
-      const err = e as {
-        response?: { data?: { error?: string; message?: string } };
-      };
-      const message =
-        err.response?.data?.error ??
-        err.response?.data?.message ??
-        "Failed to update contract";
-      setError(message);
-      toast.error(message);
-    } finally {
-      setSubmitting(false);
-    }
+    notConnected("Updating the contract");
   };
 
   if (loading) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout hideHeader>
           <div className="space-y-6">
             <PageHeader
@@ -191,13 +112,13 @@ export default function EditProjectContractPage() {
             </div>
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
   if (notFound) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout hideHeader>
           <div className="space-y-6">
             <PageHeader
@@ -227,12 +148,12 @@ export default function EditProjectContractPage() {
             </FormSection>
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
   return (
-    <ProtectedRoute>
+    <>
       <DashboardLayout hideHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <PageHeader
@@ -385,6 +306,6 @@ export default function EditProjectContractPage() {
           </FormFooter>
         </form>
       </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 }

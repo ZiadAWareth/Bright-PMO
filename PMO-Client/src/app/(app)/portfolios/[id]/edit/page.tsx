@@ -3,10 +3,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AlertCircle, Save } from "lucide-react";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import {
   CancelButton,
   Field,
@@ -48,9 +47,11 @@ export default function EditPortfolioPage() {
   const params = useParams();
   const portfolioId = params?.id as string;
 
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  // notConnected: the portfolio (to prefill the form) would be loaded here.
+  // Until then the form starts empty.
+  const loading = false;
+  const notFound = false;
+  const submitting = false;
   const [error, setError] = useState<string | null>(null);
 
   const [name, setName] = useState("");
@@ -65,45 +66,7 @@ export default function EditPortfolioPage() {
   const [budgetCapacity, setBudgetCapacity] = useState("");
   const [tags, setTags] = useState<string[]>([""]);
 
-  useEffect(() => {
-    if (!portfolioId) return;
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const res = await axios.get(`/api/portfolios/${portfolioId}`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        });
-        if (cancelled) return;
-
-        const p = res.data?.portfolio ?? res.data;
-        if (!p) {
-          setNotFound(true);
-          return;
-        }
-
-        setName(p.name ?? "");
-        setDescription(p.description ?? "");
-        setStrategicObjective(p.strategic_objective ?? "");
-        setStatus(p.status ?? "active");
-        setPriority(p.priority ?? "medium");
-        setBudgetCapacity(
-          p.budget_capacity != null ? String(p.budget_capacity) : "",
-        );
-        setTags(p.tags && p.tags.length > 0 ? [...p.tags] : [""]);
-      } catch {
-        if (!cancelled) setNotFound(true);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [portfolioId]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!name.trim()) {
@@ -112,51 +75,12 @@ export default function EditPortfolioPage() {
     }
 
     setError(null);
-    setSubmitting(true);
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        const message = "Authentication token not found. Please log in.";
-        setError(message);
-        toast.error(message);
-        setSubmitting(false);
-        return;
-      }
-
-      await axios.put(
-        `/api/portfolios/${portfolioId}`,
-        {
-          name: name.trim(),
-          description: description.trim() || null,
-          strategic_objective: strategicObjective.trim() || null,
-          status,
-          priority,
-          budget_capacity: budgetCapacity ? parseFloat(budgetCapacity) : 0,
-          tags: tags.filter((tag) => tag.trim() !== ""),
-        },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-
-      toast.success("Portfolio updated");
-      router.push(`/portfolios/${portfolioId}`);
-    } catch (e) {
-      const err = e as {
-        response?: { data?: { error?: string; message?: string } };
-      };
-      const message =
-        err.response?.data?.error ??
-        err.response?.data?.message ??
-        "Failed to update portfolio";
-      setError(message);
-      toast.error(message);
-    } finally {
-      setSubmitting(false);
-    }
+    notConnected("Updating the portfolio");
   };
 
   if (loading) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout hideHeader>
           <div className="space-y-6">
             <PageHeader
@@ -172,13 +96,13 @@ export default function EditPortfolioPage() {
             </div>
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
   if (notFound) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout hideHeader>
           <div className="space-y-6">
             <PageHeader
@@ -208,12 +132,12 @@ export default function EditPortfolioPage() {
             </FormSection>
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
   return (
-    <ProtectedRoute>
+    <>
       <DashboardLayout hideHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <PageHeader
@@ -336,6 +260,6 @@ export default function EditPortfolioPage() {
           </FormFooter>
         </form>
       </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 }

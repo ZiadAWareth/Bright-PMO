@@ -24,7 +24,6 @@ import {
   X,
   Info,
 } from "lucide-react";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import { StatCard } from "@/components/ui/form-shell";
 import MentionTextarea from "@/features/work-items/components/MentionTextarea";
 import ResourceAssignmentModal from "@/features/waterfall/schedule/components/ResourceAssignmentModal";
@@ -135,7 +134,7 @@ const TaskDetailsPage = ({
 
   if (loading) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout
           title="Task Details"
           onViewChange={setActiveView}
@@ -145,13 +144,13 @@ const TaskDetailsPage = ({
             <Spinner size={48} className="text-bright-primary" />
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
   if (!task) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout
           title="Task Details"
           onViewChange={setActiveView}
@@ -173,13 +172,13 @@ const TaskDetailsPage = ({
             </button>
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
   if (hasTaskAccess === false) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout
           title="Access Denied"
           onViewChange={setActiveView}
@@ -217,13 +216,13 @@ const TaskDetailsPage = ({
             </div>
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
   if (hasTaskAccess === null) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout
           title="Task Details"
           onViewChange={setActiveView}
@@ -233,14 +232,14 @@ const TaskDetailsPage = ({
             <Spinner size={48} className="text-bright-primary" />
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
   const overdue = isTaskOverdue();
   const daysUntilDue = getDaysUntilDue();
   return (
-    <ProtectedRoute>
+    <>
       <DashboardLayout
         title={task.name}
         subtitle="Task Details"
@@ -1408,7 +1407,7 @@ const TaskDetailsPage = ({
           />
         )}
       </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 };
 

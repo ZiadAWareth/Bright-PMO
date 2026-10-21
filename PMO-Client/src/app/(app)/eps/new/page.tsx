@@ -4,10 +4,9 @@ import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import {
   Field,
   FormFooter,
@@ -38,36 +37,16 @@ const MAX_LEVEL = 6;
 export default function NewEpsPage() {
   const router = useRouter();
 
-  const [allEps, setAllEps] = useState<ParentEps[]>([]);
-  const [loadingParents, setLoadingParents] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  // notConnected: the existing EPS tree (to pick a parent from) would be loaded here.
+  const [allEps] = useState<ParentEps[]>([]);
+  const loadingParents = false;
+  const submitting = false;
   const [error, setError] = useState<string | null>(null);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [level, setLevel] = useState(1);
   const [parentEpsId, setParentEpsId] = useState<number | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await axios.get("/api/eps", {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        });
-        if (!cancelled) {
-          setAllEps(Array.isArray(res.data) ? res.data : []);
-        }
-      } catch {
-        if (!cancelled) toast.error("Could not load the existing EPS tree");
-      } finally {
-        if (!cancelled) setLoadingParents(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   // A node's parent must sit exactly one level above it.
   const eligibleParents =
@@ -95,7 +74,7 @@ export default function NewEpsPage() {
     return null;
   };
 
-  const handleSubmit = async (event: FormEvent) => {
+  const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
     const problem = validate();
     if (problem) {
@@ -104,32 +83,11 @@ export default function NewEpsPage() {
     }
 
     setError(null);
-    setSubmitting(true);
-    try {
-      await axios.post(
-        "/api/eps",
-        {
-          name: name.trim(),
-          description: description.trim() || null,
-          level: Number(level),
-          parent_eps_id: parentEpsId,
-        },
-        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } },
-      );
-      toast.success("EPS created");
-      router.push("/eps");
-    } catch (e) {
-      const err = e as { response?: { data?: { error?: string } } };
-      const message = err.response?.data?.error ?? "Failed to create EPS";
-      setError(message);
-      toast.error(message);
-    } finally {
-      setSubmitting(false);
-    }
+    notConnected("Creating the EPS");
   };
 
   return (
-    <ProtectedRoute>
+    <>
       <DashboardLayout hideHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <PageHeader
@@ -256,6 +214,6 @@ export default function NewEpsPage() {
           </FormFooter>
         </form>
       </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 }

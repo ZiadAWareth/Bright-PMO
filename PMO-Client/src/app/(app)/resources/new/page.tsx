@@ -1,5 +1,6 @@
 "use client";
 
+import { notConnected } from "@/lib/not-connected";
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -268,38 +269,7 @@ const ResourceCreatePage = () => {
   }, [formData.type]);
 
   // Fetch inventory items when adding a material resource
-  useEffect(() => {
-    if (formData.type !== "material") {
-      setSelectedInventoryItemId(null);
-      return;
-    }
-    let cancelled = false;
-    setInventoryItemsLoading(true);
-    setInventoryItemsError(null);
-    fetch("/api/inventory/items?status=ACTIVE&limit=500")
-      .then((res) => res.json())
-      .then((data) => {
-        if (cancelled) return;
-        if (data?.success && Array.isArray(data?.data)) {
-          setInventoryItems(data.data);
-        } else {
-          setInventoryItems([]);
-          setInventoryItemsError(data?.error ?? "Failed to load inventory");
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setInventoryItems([]);
-          setInventoryItemsError("Failed to load inventory");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setInventoryItemsLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [formData.type]);
+  // notConnected: inventory items (for a material resource) would be loaded here.
 
   // Close material dropdown on click outside
   useEffect(() => {
@@ -466,132 +436,8 @@ const ResourceCreatePage = () => {
         return;
       }
 
-      // Get authentication token
-      const token = localStorage.getItem("token");
-      if (!token) {
-        toast.error("Authentication token not found. Please log in.");
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Check for duplicates before submission
-      try {
-        const checkResponse = await fetch("/api/resources", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (checkResponse.ok) {
-          const resourcesData = await checkResponse.json();
-          const existingResources = resourcesData.allResources || [];
-
-          // Check for duplicate name
-          const duplicateName = existingResources.find(
-            (r: any) => r.name.trim().toLowerCase() === formData.name.trim().toLowerCase()
-          );
-          if (duplicateName) {
-            toast.error(`A resource with the name "${formData.name}" already exists. Please choose a different name.`);
-            setIsSubmitting(false);
-            return;
-          }
-
-          // For labor resources, check for duplicate email and phone
-          if (formData.type === "labor") {
-            if (formData.email) {
-              const duplicateEmail = existingResources.find(
-                (r: any) => r.email && r.email.trim().toLowerCase() === formData.email.trim().toLowerCase() && r.type === "labor"
-              );
-              if (duplicateEmail) {
-                toast.error(`A resource with the email "${formData.email}" already exists. Please use a different email address.`);
-                setIsSubmitting(false);
-                return;
-              }
-            }
-
-            if (formData.phone_number) {
-              // Normalize phone number for comparison
-              const normalizedPhone = formData.phone_number.replace(/[\s\-\(\)\+]/g, '');
-              const duplicatePhone = existingResources.find((r: any) => {
-                if (!r.phone_number || r.type !== "labor") return false;
-                const existingNormalized = r.phone_number.replace(/[\s\-\(\)\+]/g, '');
-                return existingNormalized === normalizedPhone;
-              });
-              if (duplicatePhone) {
-                toast.error(`A resource with the phone number "${formData.phone_number}" already exists. Please use a different phone number.`);
-                setIsSubmitting(false);
-                return;
-              }
-            }
-          }
-        }
-      } catch (checkError) {
-        console.error("Error checking for duplicates:", checkError);
-        // Continue with submission if duplicate check fails (backend will catch it)
-      }
-
-      // Prepare the data for submission
-      const skillsData = formData.type === "material"
-        ? { Skills: [], Languages: [] } // Empty skills for materials
-        : {
-          Skills: formData.skills.filter((skill) => skill.category === "skill"),
-          Languages: formData.skills.filter(
-            (skill) => skill.category === "language"
-          ),
-        };
-
-      const submitData = {
-        ...formData,
-        skills: skillsData, // Send as JSON object, not string
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        // Material: ensure hidden quantity (1000) and stock (available) are sent until inventory sync
-        ...(formData.type === "material"
-          ? {
-              quantity: formData.quantity && formData.quantity > 0 ? formData.quantity : 1000,
-              availability_status: formData.availability_status || "available",
-            }
-          : {}),
-      };
-
-      console.log("Submitting data:", JSON.stringify(submitData, null, 2));
-
-      const response = await fetch("/api/resources", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(submitData),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        setCreatedResource(result);
-        setShowSuccessModal(true);
-        toast.success("Resource created successfully");
-      } else {
-        const errorData = await response.json();
-        console.error("API Error:", errorData);
-        console.error("Submitted data:", submitData);
-        
-        // Handle duplicate errors with specific messages
-        if (response.status === 409) {
-          toast.error(errorData.error || "A duplicate resource already exists");
-        } else {
-          toast.error(
-            `Error creating resource: ${errorData.error || "Unknown error"}`
-          );
-        }
-      }
-    } catch (error) {
-      toast.error(
-        `Error creating resource: ${
-        error instanceof Error ? error.message : "Unknown error"
-        }`
-      );
+      // notConnected: checks for duplicates, then creates the resource.
+      notConnected("Creating the resource");
     } finally {
       setIsSubmitting(false);
     }
@@ -627,115 +473,18 @@ const ResourceCreatePage = () => {
   };
 
   // Check for duplicate name
-  const checkDuplicateName = async (name: string) => {
-    if (!name.trim()) {
-      setNameDuplicateError("");
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      const response = await fetch("/api/resources", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const resourcesData = await response.json();
-        const existingResources = resourcesData.allResources || [];
-        const duplicate = existingResources.find(
-          (r: any) => r.name.trim().toLowerCase() === name.trim().toLowerCase()
-        );
-        if (duplicate) {
-          setNameDuplicateError(`A resource with the name "${name}" already exists`);
-        } else {
-          setNameDuplicateError("");
-        }
-      }
-    } catch (error) {
-      console.error("Error checking duplicate name:", error);
-    }
+  const checkDuplicateName = async (_name: string) => {
+    // notConnected: checks whether another resource already uses this name.
   };
 
   // Check for duplicate email
-  const checkDuplicateEmail = async (email: string) => {
-    if (!email.trim() || formData.type !== "labor") {
-      setEmailDuplicateError("");
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      const response = await fetch("/api/resources", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const resourcesData = await response.json();
-        const existingResources = resourcesData.allResources || [];
-        const duplicate = existingResources.find(
-          (r: any) => r.email && r.email.trim().toLowerCase() === email.trim().toLowerCase() && r.type === "labor"
-        );
-        if (duplicate) {
-          setEmailDuplicateError(`A resource with the email "${email}" already exists`);
-        } else {
-          setEmailDuplicateError("");
-        }
-      }
-    } catch (error) {
-      console.error("Error checking duplicate email:", error);
-    }
+  const checkDuplicateEmail = async (_email: string) => {
+    // notConnected: checks whether another resource already uses this email.
   };
 
   // Check for duplicate phone number
-  const checkDuplicatePhone = async (phone: string) => {
-    if (!phone.trim() || formData.type !== "labor") {
-      setPhoneDuplicateError("");
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      const response = await fetch("/api/resources", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const resourcesData = await response.json();
-        const existingResources = resourcesData.allResources || [];
-        // Normalize phone number for comparison
-        const normalizedPhone = phone.replace(/[\s\-\(\)\+]/g, '');
-        const duplicate = existingResources.find((r: any) => {
-          if (!r.phone_number || r.type !== "labor") return false;
-          const existingNormalized = r.phone_number.replace(/[\s\-\(\)\+]/g, '');
-          return existingNormalized === normalizedPhone;
-        });
-        if (duplicate) {
-          setPhoneDuplicateError(`A resource with the phone number "${phone}" already exists`);
-        } else {
-          setPhoneDuplicateError("");
-        }
-      }
-    } catch (error) {
-      console.error("Error checking duplicate phone:", error);
-    }
+  const checkDuplicatePhone = async (_phone: string) => {
+    // notConnected: checks whether another resource already uses this phone.
   };
 
   // Handle email change with validation and duplicate checking

@@ -8,7 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { TeamUserSelect } from "@/features/team/components/TeamUserSelect";
 import { toast } from "sonner";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { Dropdown } from "@/components/ui/dropdown";
 
 interface UserOption {
@@ -67,7 +67,7 @@ export default function AssignMitigationModal({
     const [startDate, setStartDate] = useState("");
     const [dueDate, setDueDate] = useState("");
     const [status, setStatus] = useState("planned");
-    const [loading, setLoading] = useState(false);
+    const loading = false;
     const [error, setError] = useState<string | null>(null);
 
     React.useEffect(() => {
@@ -90,7 +90,7 @@ export default function AssignMitigationModal({
         }
     }, [mitigation, isOpen]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
         if (
@@ -104,66 +104,7 @@ export default function AssignMitigationModal({
             setError("All fields are required.");
             return;
         }
-        setLoading(true);
-        try {
-            if (mitigation) {
-                // Edit mode
-                await axios.patch(
-                    `/api/riskMitigations/${mitigation.mitigation_id}`,
-                    {
-                        risk_id: riskId,
-                        description,
-                        action_plan: `${actionPlan}\nLinked Task: ${
-                            tasks.find((t) => t.task_id.toString() === taskId)
-                                ?.name || ""
-                        }`,
-                        start_date: startDate,
-                        due_date: dueDate,
-                        status,
-                        assigned_to: parseInt(assignedTo),
-                        task_id: parseInt(taskId),
-                    },
-                    {
-                        headers: {
-                            Authorization: `Bearer ${localStorage.getItem("token")}`,
-                        },
-                    }
-                );
-                toast.success("Mitigation updated successfully");
-            } else {
-                // Create mode
-                await axios.post(
-                    "/api/riskMitigations",
-                    {
-                        risk_id: riskId,
-                        description,
-                        action_plan: `${actionPlan}\nLinked Task: ${
-                            tasks.find((t) => t.task_id.toString() === taskId)
-                                ?.name || ""
-                        }`,
-                        start_date: startDate,
-                        due_date: dueDate,
-                        status,
-                        assigned_to: parseInt(assignedTo),
-                        task_id: parseInt(taskId),
-                    },
-                    {
-                        headers: {
-                            Authorization: `Bearer ${localStorage.getItem("token")}`,
-                        },
-                    }
-                );
-                toast.success("Mitigation assigned successfully");
-            }
-            onSuccess();
-            onClose();
-        } catch (err: any) {
-            setError(
-                err.response?.data?.error || "Failed to save mitigation"
-            );
-        } finally {
-            setLoading(false);
-        }
+        notConnected(mitigation ? "Updating the mitigation" : "Assigning the mitigation");
     };
 
     const handleClose = () => {

@@ -3,10 +3,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AlertCircle, Save } from "lucide-react";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import {
   CancelButton,
   Field,
@@ -55,103 +54,27 @@ export default function EditTimesheetPage() {
   const params = useParams();
   const timesheetId = params?.id as string;
 
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  // notConnected: the timesheet (to prefill the form) would be loaded here.
+  // Until then the form starts empty.
+  const loading = false;
+  const notFound = false;
+  const submitting = false;
   const [error, setError] = useState<string | null>(null);
 
   const [status, setStatus] = useState("DRAFT");
   const [comments, setComments] = useState("");
-  const [context, setContext] = useState<[string, React.ReactNode][]>([]);
+  const [context] = useState<[string, React.ReactNode][]>([]);
 
-  useEffect(() => {
-    if (!timesheetId) return;
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const res = await axios.get(`/api/timesheets/${timesheetId}`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        });
-        if (cancelled) return;
-
-        const t = res.data?.timesheet ?? res.data;
-        if (!t) {
-          setNotFound(true);
-          return;
-        }
-
-        setStatus(t.status ?? "DRAFT");
-        setComments(t.comments ?? "");
-
-        const owner = t.user?.account
-          ? [t.user.account.first_name, t.user.account.last_name]
-              .filter(Boolean)
-              .join(" ")
-          : "—";
-
-        setContext([
-          ["Project", t.project?.name ?? `Project #${t.project_id}`],
-          ["Owner", owner],
-          [
-            "Period",
-            `${formatDate(t.start_date)} – ${formatDate(t.end_date)}`,
-          ],
-          [
-            "Total Hours",
-            <span key="hours" className="tabular-nums">
-              {t.total_hours ?? 0}
-            </span>,
-          ],
-        ]);
-      } catch {
-        if (!cancelled) setNotFound(true);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [timesheetId]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     setError(null);
-    setSubmitting(true);
-    try {
-      await axios.put(
-        `/api/timesheets/${timesheetId}`,
-        { status, comments: comments.trim() || null },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        },
-      );
-
-      toast.success("Timesheet updated");
-      router.push(`/timesheet/${timesheetId}`);
-    } catch (e) {
-      const err = e as {
-        response?: { data?: { error?: string; message?: string } };
-      };
-      const message =
-        err.response?.data?.error ??
-        err.response?.data?.message ??
-        "Failed to update timesheet";
-      setError(message);
-      toast.error(message);
-    } finally {
-      setSubmitting(false);
-    }
+    notConnected("Updating the timesheet");
   };
 
   if (loading) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout hideHeader>
           <div className="space-y-6">
             <PageHeader
@@ -167,13 +90,13 @@ export default function EditTimesheetPage() {
             </div>
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
   if (notFound) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout hideHeader>
           <div className="space-y-6">
             <PageHeader
@@ -204,12 +127,12 @@ export default function EditTimesheetPage() {
             </FormSection>
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
   return (
-    <ProtectedRoute>
+    <>
       <DashboardLayout hideHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <PageHeader
@@ -270,6 +193,6 @@ export default function EditTimesheetPage() {
           </FormFooter>
         </form>
       </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 }

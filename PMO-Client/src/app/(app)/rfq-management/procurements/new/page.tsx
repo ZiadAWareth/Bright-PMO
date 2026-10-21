@@ -3,10 +3,9 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import {
   CancelButton,
   Field,
@@ -49,9 +48,10 @@ const STATUS_OPTIONS = [
 export default function NewProcurementPage() {
   const router = useRouter();
 
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loadingProjects, setLoadingProjects] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  // notConnected: the projects to choose from would be loaded here.
+  const [projects] = useState<Project[]>([]);
+  const loadingProjects = false;
+  const submitting = false;
   const [error, setError] = useState<string | null>(null);
 
   const [projectId, setProjectId] = useState("");
@@ -60,29 +60,6 @@ export default function NewProcurementPage() {
   const [estimatedCost, setEstimatedCost] = useState("");
   const [actualCost, setActualCost] = useState("");
   const [status, setStatus] = useState("Planning");
-
-  useEffect(() => {
-    let cancelled = false;
-
-    axios
-      .get("/api/projects", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      })
-      .then((res) => {
-        if (cancelled) return;
-        setProjects(Array.isArray(res.data) ? res.data : []);
-      })
-      .catch(() => {
-        if (!cancelled) toast.error("Could not load projects");
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingProjects(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const validate = (): string | null => {
     if (!projectId) return "Please select a project.";
@@ -94,7 +71,7 @@ export default function NewProcurementPage() {
     return null;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     const problem = validate();
@@ -104,42 +81,11 @@ export default function NewProcurementPage() {
     }
 
     setError(null);
-    setSubmitting(true);
-    try {
-      const res = await axios.post(
-        "/api/procurements",
-        {
-          project_id: parseInt(projectId),
-          type,
-          description: description.trim(),
-          estimated_cost: parseFloat(estimatedCost),
-          actual_cost: actualCost ? parseFloat(actualCost) : 0,
-          status,
-        },
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        },
-      );
-
-      toast.success("Procurement added");
-      router.push("/rfq-management?tab=procurements");
-    } catch (e) {
-      const err = e as {
-        response?: { data?: { error?: string; message?: string } };
-      };
-      const message =
-        err.response?.data?.error ??
-        err.response?.data?.message ??
-        "Failed to add procurement";
-      setError(message);
-      toast.error(message);
-    } finally {
-      setSubmitting(false);
-    }
+    notConnected("Creating the procurement");
   };
 
   return (
-    <ProtectedRoute>
+    <>
       <DashboardLayout hideHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <PageHeader
@@ -249,6 +195,6 @@ export default function NewProcurementPage() {
           </FormFooter>
         </form>
       </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 }

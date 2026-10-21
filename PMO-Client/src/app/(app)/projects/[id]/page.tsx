@@ -24,7 +24,6 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import { TeamUserSelect } from "@/features/team/components/TeamUserSelect";
 import { ApprovalWorkflowModal } from "@/features/approvals/components/ApprovalWorkflowModal";
 import { BudgetChangeApprovalModal } from "@/features/approvals/components/BudgetChangeApprovalModal";
@@ -57,19 +56,19 @@ const ProjectDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => 
 
     if (d.loading || !d.activeView) {
         return (
-            <ProtectedRoute>
+            <>
                 <DashboardLayout title="Project Details" onViewChange={d.setActiveView} activeView={d.activeView || "overview"}>
                     <div className="flex items-center justify-center min-h-96">
                         <Spinner size={48} className="text-bright-primary" />
                     </div>
                 </DashboardLayout>
-            </ProtectedRoute>
+            </>
         );
     }
 
     if (!d.project) {
         return (
-            <ProtectedRoute>
+            <>
                 <DashboardLayout title="Project Details" onViewChange={d.setActiveView} activeView={d.activeView}>
                     <div className="text-center py-12">
                         <h3 className="text-lg font-medium text-ink mb-2">Project not found</h3>
@@ -77,7 +76,7 @@ const ProjectDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => 
                         <button onClick={() => d.router.back()} className="px-4 py-2 bg-bright text-white rounded-lg hover:bg-bright-deep transition-colors">Go Back</button>
                     </div>
                 </DashboardLayout>
-            </ProtectedRoute>
+            </>
         );
     }
 
@@ -95,7 +94,7 @@ const ProjectDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => 
     const riskColors = getRiskColors(riskScorePercent);
 
     return (
-        <ProtectedRoute>
+        <>
             <DashboardLayout
                 title={project.name}
                 subtitle={project.description}
@@ -733,7 +732,7 @@ const ProjectDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => 
                     </div>
                 )}
             </DashboardLayout>
-        </ProtectedRoute>
+        </>
     );
 };
 

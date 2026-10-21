@@ -3,10 +3,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AlertCircle, Save } from "lucide-react";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import {
   CancelButton,
   Field,
@@ -68,11 +67,13 @@ export default function EditRiskPage() {
   const params = useParams();
   const riskId = params?.id as string;
 
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  // notConnected: the risk (to prefill the form) would be loaded here. Until
+  // then the form starts empty.
+  const loading = false;
+  const notFound = false;
+  const submitting = false;
   const [error, setError] = useState<string | null>(null);
-  const [riskName, setRiskName] = useState("");
+  const [riskName] = useState("");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -84,48 +85,6 @@ export default function EditRiskPage() {
     approvalStatus: "Pending",
     currentStatus: "Open",
   });
-
-  useEffect(() => {
-    if (!riskId) return;
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const res = await axios.get(`/api/risks/${riskId}`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        });
-        if (cancelled) return;
-
-        const r = res.data?.risk ?? res.data;
-        if (!r) {
-          setNotFound(true);
-          return;
-        }
-
-        setRiskName(r.name ?? "");
-        setFormData({
-          name: r.name ?? "",
-          description: r.description ?? "",
-          category: r.category ?? "",
-          identified_date: r.identified_date
-            ? new Date(r.identified_date).toISOString().split("T")[0]
-            : "",
-          impact: r.impact ?? "medium",
-          probability: r.probability ?? "medium",
-          approvalStatus: r.approvalStatus ?? "Pending",
-          currentStatus: r.currentStatus ?? r.status ?? "Open",
-        });
-      } catch {
-        if (!cancelled) setNotFound(true);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [riskId]);
 
   const set = <K extends keyof typeof formData>(
     key: K,
@@ -149,7 +108,7 @@ export default function EditRiskPage() {
   const riskLevel = calculateRiskLevel(riskScore);
   const approved = formData.approvalStatus === "Approved for Mitigation";
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.name.trim()) {
@@ -162,49 +121,12 @@ export default function EditRiskPage() {
     }
 
     setError(null);
-    setSubmitting(true);
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        const message = "Authentication token not found. Please log in.";
-        setError(message);
-        toast.error(message);
-        setSubmitting(false);
-        return;
-      }
-
-      await axios.put(
-        `/api/risks/${riskId}`,
-        {
-          ...formData,
-          name: formData.name.trim(),
-          score: riskScore,
-          riskScore,
-          riskLevel,
-        },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-
-      toast.success("Risk updated");
-      router.push(`/risk/${riskId}`);
-    } catch (e) {
-      const err = e as {
-        response?: { data?: { error?: string; message?: string } };
-      };
-      const message =
-        err.response?.data?.message ??
-        err.response?.data?.error ??
-        "Failed to update risk";
-      setError(message);
-      toast.error(message);
-    } finally {
-      setSubmitting(false);
-    }
+    notConnected("Updating the risk");
   };
 
   if (loading) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout hideHeader>
           <div className="space-y-6">
             <PageHeader
@@ -220,13 +142,13 @@ export default function EditRiskPage() {
             </div>
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
   if (notFound) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout hideHeader>
           <div className="space-y-6">
             <PageHeader
@@ -254,12 +176,12 @@ export default function EditRiskPage() {
             </FormSection>
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
   return (
-    <ProtectedRoute>
+    <>
       <DashboardLayout hideHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <PageHeader
@@ -435,6 +357,6 @@ export default function EditRiskPage() {
           </FormFooter>
         </form>
       </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 }

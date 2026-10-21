@@ -2,27 +2,15 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
-import { toast } from "sonner";
-import axiosInstance from "@/lib/axios";
 import { AuthLayout } from "@/features/auth/components/AuthLayout";
 import { BRAND } from "@/lib/brand";
-import { loginErrorMessage, safeReturnTo, DEFAULT_HOME_PATH } from "./constants";
 import { Spinner } from "@/components/ui/spinner";
-import { signInToBackend } from "@/lib/backend";
+import { notConnected } from "@/lib/not-connected";
 
 const REMEMBER_EMAIL_KEY = "bright-remember-email";
 
 const FIELD_CLASS =
   "h-11 w-full rounded-[11px] border border-border bg-bg-surface px-3.5 text-sm text-text-primary shadow-sm transition-colors placeholder:text-text-secondary/60 focus:border-bright-primary focus:outline-none focus:ring-[3px] focus:ring-bright-primary/20 disabled:opacity-60";
-
-type LoginResponse = {
-  token?: string;
-  user?: {
-    user_id: number | string;
-    email: string;
-    role?: string;
-  };
-};
 
 export function SignInForm() {
   const [formData, setFormData] = useState({
@@ -31,22 +19,14 @@ export function SignInForm() {
     rememberMe: false,
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  // Sign-in is not connected to a backend yet, so nothing is ever loading and
+  // no error comes back. Both stay so the form's states are ready for it.
+  const isLoading = false;
+  const formError: string | null = null;
 
-  // Surface middleware/IdP errors passed as `?error=`, and restore a
-  // remembered address. Reads `window.location` rather than `useSearchParams`
-  // so this screen needs no Suspense boundary to render statically.
+  // Restore a remembered address. Reads localStorage after mount so the
+  // screen renders statically.
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const error = new URLSearchParams(window.location.search).get("error");
-    if (error) {
-      const message = loginErrorMessage(error);
-      setFormError(message);
-      toast.error(message);
-    }
-
     const rememberedEmail = localStorage.getItem(REMEMBER_EMAIL_KEY);
     if (rememberedEmail) {
       setFormData((prev) => ({
@@ -57,64 +37,14 @@ export function SignInForm() {
     }
   }, []);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setFormError(null);
-    setIsLoading(true);
-
-    try {
-      const response = await axiosInstance.post<LoginResponse>(
-        "/api/auth/login",
-        { email: formData.email, password: formData.password },
-      );
-
-      const data = response.data;
-      if (!data?.token) {
-        throw new Error("Sign-in succeeded but no session token was returned.");
-      }
-
-      if (formData.rememberMe) {
-        localStorage.setItem(REMEMBER_EMAIL_KEY, formData.email);
-      } else {
-        localStorage.removeItem(REMEMBER_EMAIL_KEY);
-      }
-
-      localStorage.setItem("token", data.token);
-      if (data.user?.role) {
-        localStorage.setItem("role", data.user.role);
-      }
-      if (data.user?.user_id != null) {
-        localStorage.setItem("userId", String(data.user.user_id));
-      }
-
-      // Same credentials on the new backend, for screens already moved there.
-      await signInToBackend(formData.email, formData.password);
-
-      toast.success(`Welcome back, ${data.user?.email ?? "there"}!`);
-
-      // Full navigation rather than router.push: the signed-in shell reads the
-      // token and role from localStorage as it mounts, and a soft push can land
-      // on the dashboard before that write is visible to the new tree.
-      const returnTo = safeReturnTo(
-        new URLSearchParams(window.location.search).get("returnTo"),
-      );
-      window.location.assign(returnTo || DEFAULT_HOME_PATH);
-    } catch (error: unknown) {
-      const err = error as {
-        response?: { status?: number; data?: { error?: string } };
-        message?: string;
-      };
-      const message =
-        err.response?.data?.error ??
-        (err.response?.status === 401
-          ? "Invalid email or password"
-          : err.message) ??
-        "Unable to sign in. Please try again.";
-      setFormError(message);
-      toast.error(message);
-    } finally {
-      setIsLoading(false);
+    if (formData.rememberMe) {
+      localStorage.setItem(REMEMBER_EMAIL_KEY, formData.email);
+    } else {
+      localStorage.removeItem(REMEMBER_EMAIL_KEY);
     }
+    notConnected("Sign-in");
   };
 
   return (

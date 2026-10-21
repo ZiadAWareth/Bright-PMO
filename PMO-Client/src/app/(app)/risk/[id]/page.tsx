@@ -15,7 +15,7 @@ import {
   Save,
   Plus,
 } from "lucide-react";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
 import ProjectsTab from "@/features/projects/components/ProjectsTab";
 import { Project } from "@/features/projects/types";
@@ -218,15 +218,18 @@ const MitigationsTab = ({
 const RiskDetailPage = ({ params }: { params: Promise<{ id: string }> }) => {
   const router = useRouter();
   const confirm = useConfirm();
-  const [risk, setRisk] = useState<Risk | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [users, setUsers] = useState<User[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
+  // notConnected: the risk, users (owners), projects (names) and the project's
+  // tasks would be loaded here. Until then there is no risk, so the page shows
+  // its empty state.
+  const [risk] = useState<Risk | null>(null);
+  const loading = false;
+  const [users] = useState<User[]>([]);
+  const [projects] = useState<Project[]>([]);
   const [riskId, setRiskId] = useState<string>("");
   const [activeTab, setActiveTab] = useState("overview");
-  const [isDeleting, setIsDeleting] = useState(false);
+  const isDeleting = false;
   const [isMitigationModalOpen, setIsMitigationModalOpen] = useState(false);
-  const [tasks, setTasks] = useState<TaskOption[]>([]);
+  const [tasks] = useState<TaskOption[]>([]);
   const [mitigationToEdit, setMitigationToEdit] =
     useState<RiskMitigation | null>(null);
 
@@ -237,62 +240,6 @@ const RiskDetailPage = ({ params }: { params: Promise<{ id: string }> }) => {
     };
     getParams();
   }, [params]);
-
-  useEffect(() => {
-    if (!riskId) return;
-    setLoading(true);
-    axios
-      .get(`/api/risks/${riskId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
-      .then((res) => {
-        setRisk(res.data);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [riskId]);
-
-  useEffect(() => {
-    axios
-      .get("/api/users", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
-      .then((res) =>
-        setUsers(
-          res.data.map((u: any) => ({
-            ...u,
-            email: u.account?.email || u.email || "",
-          }))
-        )
-      )
-      .catch(() => {});
-    axios
-      .get("/api/projects", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
-      .then((res) => setProjects(res.data))
-      .catch(() => {});
-  }, []);
-  useEffect(() => {
-    if (!risk || !risk.project_id) return;
-    // Fetch tasks for the project - same as working implementation
-    axios
-      .get(`/api/projects/${risk.project_id}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
-      .then((projectRes) => {
-        setTasks(projectRes.data.tasks || []);
-      })
-      .catch(() => setTasks([]));
-  }, [risk]);
 
   const getOwnerName = (owner_id: number) => {
     const user = users.find((u) => u.user_id === owner_id);
@@ -318,20 +265,7 @@ const RiskDetailPage = ({ params }: { params: Promise<{ id: string }> }) => {
       tone: "danger",
     });
     if (!ok) return;
-    setIsDeleting(true);
-    try {
-      await axios.delete(`/api/risks/${risk.risk_id}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-      toast.success("Risk deleted successfully");
-      router.push("/risk");
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Failed to delete risk");
-    } finally {
-      setIsDeleting(false);
-    }
+    notConnected("Deleting the risk");
   };
 
   const handleAddMitigation = () => {
@@ -352,28 +286,7 @@ const RiskDetailPage = ({ params }: { params: Promise<{ id: string }> }) => {
       tone: "danger",
     });
     if (!ok) return;
-    try {
-      await axios.delete(
-        `/api/riskMitigations/${mit.mitigation_id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-      toast.success("Mitigation plan deleted");
-      // Refresh risk data
-      if (riskId) {
-        const res = await axios.get(`/api/risks/${riskId}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
-        setRisk(res.data);
-      }
-    } catch (err) {
-      toast.error("Failed to delete mitigation");
-    }
+    notConnected("Deleting the mitigation plan");
   };
 
   if (loading) {
@@ -556,18 +469,10 @@ const RiskDetailPage = ({ params }: { params: Promise<{ id: string }> }) => {
       <AssignMitigationModal
         isOpen={isMitigationModalOpen}
         onClose={() => setIsMitigationModalOpen(false)}
-        onSuccess={async () => {
+        onSuccess={() => {
           setIsMitigationModalOpen(false);
           setMitigationToEdit(null);
-          // Refresh risk data
-          if (riskId) {
-            const res = await axios.get(`/api/risks/${riskId}`, {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-              },
-            });
-            setRisk(res.data);
-          }
+          // notConnected: reloads the risk.
         }}
         riskId={risk?.risk_id || 0}
         users={users}

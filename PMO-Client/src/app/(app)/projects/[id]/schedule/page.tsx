@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { ArrowLeft, DollarSign } from "lucide-react";
-import axios from "axios";
 import { toast } from "sonner";
 import CreateTaskModal from "@/features/waterfall/schedule/components/taskmodal";
 import ResourceAssignmentEditModal from "@/features/waterfall/schedule/components/ResourceAssignmentEditModal";
@@ -24,7 +23,6 @@ import { useProjectSchedule } from "@/features/waterfall/schedule/hooks/useProje
 import { useTaskManagement } from "@/features/waterfall/schedule/hooks/useTaskManagement";
 import { useResourceAssignments } from "@/features/waterfall/schedule/hooks/useResourceAssignments";
 import { useWBSProgress } from "@/features/waterfall/schedule/hooks/useWBSProgress";
-import { usePermissions } from "@/features/auth/hooks/usePermissions";
 
 // Utils
 import { filterTasks } from "@/features/waterfall/schedule/components/taskHelpers";
@@ -64,7 +62,10 @@ const ProjectSchedulePage = () => {
 
 
     // Custom Hooks
-    const { user, canEditSchedule, canViewLockedTasks } = usePermissions();
+    // Every action is open until roles come from the backend.
+    const user = null;
+    const canEditSchedule = () => true;
+    const canViewLockedTasks = () => true;
 
     const {
         project,
@@ -426,26 +427,11 @@ const ProjectSchedulePage = () => {
                         <span>Back to Setup</span>
                     </button>
                     <button
-                        onClick={async () => {
-                            try {
-                                await axios.patch(
-                                    `/api/projects/${projectId}/setup`,
-                                    { schedule: true },
-                                    {
-                                        headers: {
-                                            "Content-Type": "application/json",
-                                            Authorization: `Bearer ${localStorage.getItem(
-                                                "token"
-                                            )}`,
-                                        },
-                                    }
-                                );
-                                router.push(
-                                    `/projects/${projectId}/budget?from=previous`
-                                );
-                            } catch (error) {
-                                toast.error("Failed to mark schedule as complete.");
-                            }
+                        onClick={() => {
+                            // notConnected: marks the schedule step complete in the project setup.
+                            router.push(
+                                `/projects/${projectId}/budget?from=previous`
+                            );
                         }}
                         className="flex items-center space-x-2 px-6 py-3 bg-info text-white rounded-lg hover:opacity-90 transition-colors"
                     >

@@ -5,9 +5,7 @@ import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Modal } from "@/components/ui/modal";
 import { FilterBar, FilterSelect } from "@/components/ui/filter-bar";
-import RoleGuard from "@/features/auth/components/RoleGuard";
-import useCurrentUser from "@/features/auth/hooks/useCurrentUser";
-import { canAccessRoute } from "@/lib/route-access";
+import { notConnected } from "@/lib/not-connected";
 import {
     Plus,
     Calendar,
@@ -61,7 +59,6 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import axios from "@/lib/axios";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ViewToggle, type ListViewMode } from "@/components/ui/view-toggle";
 import {
@@ -133,7 +130,7 @@ const SchedulerPage = () => {
     const [activeView, setActiveView] = useState("admin");
     const [schedules, setSchedules] = useState<Schedule[]>([]);
     const [filteredSchedules, setFilteredSchedules] = useState<Schedule[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("all");
     const [priorityFilter, setPriorityFilter] = useState<string>("all");
@@ -163,31 +160,8 @@ const SchedulerPage = () => {
     );
     const [isDeleting, setIsDeleting] = useState(false);
     const [scheduleToEdit, setScheduleToEdit] = useState<number | null>(null);
-    // The signed-in role, from the shared cache rather than a local fetch of
-    // /api/auth/me. Exposes `roleLoading` so "not known yet" stays distinct
-    // from "not permitted" — see `permissionState` below.
-    const { userRole, roleLoading } = useCurrentUser();
-
-    /**
-     * Whether the current role may create, edit or delete schedules.
-     *
-     * Three states, not two. The old check read `user === null` as "denied",
-     * but null is the value before the fetch resolves, so every visitor — including
-     * PMO and ADMIN — got one frame of the read-only screen before the
-     * permitted one replaced it. Callers must handle "loading" by rendering
-     * neither branch.
-     */
-    const permissionState: "loading" | "allowed" | "denied" = roleLoading
-        ? "loading"
-        : canAccessRoute("/scheduler", userRole)
-          ? "allowed"
-          : "denied";
-
-    /**
-     * Roles come from `ROUTE_ROLES["/scheduler"]` rather than a list copied
-     * into this file, so the page controls and the route guard can never
-     * disagree about who may manage a schedule.
-     */
+    // Every action is open until roles come from the backend.
+    const permissionState = "allowed" as "loading" | "allowed" | "denied";
     const canManageSchedules = () => permissionState === "allowed";
 
     useEffect(() => {
@@ -199,24 +173,7 @@ const SchedulerPage = () => {
     }, [schedules, searchQuery, statusFilter, priorityFilter]);
 
     const fetchSchedules = async () => {
-        try {
-            const token = localStorage.getItem("token");
-            if (!token) {
-                router.push("/auth/login");
-                return;
-            }
-
-            const response = await axios.get("/api/schedules", {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-
-            setSchedules(response.data.schedules || []);
-        } catch (error) {
-            console.error("Failed to fetch schedules:", error);
-            toast.error("Failed to load schedules");
-        } finally {
-            setLoading(false);
-        }
+        // notConnected: loads the schedules.
     };
 
     const applyFilters = () => {
@@ -249,38 +206,10 @@ const SchedulerPage = () => {
         setShowDeleteModal(true);
     };
 
-    const handleDeleteConfirm = async () => {
+    const handleDeleteConfirm = () => {
         if (!scheduleToDelete) return;
-
-        if (!canManageSchedules()) {
-            toast.error("You don't have permission to delete schedules");
-            return;
-        }
-
-        setIsDeleting(true);
-        try {
-            const token = localStorage.getItem("token");
-            await axios.delete(
-                `/api/schedules/${scheduleToDelete.schedule_id}`,
-                {
-                    headers: { Authorization: `Bearer ${token}` },
-                }
-            );
-
-            toast.success("Schedule deleted successfully");
-            setSchedules((prev) =>
-                prev.filter(
-                    (s) => s.schedule_id !== scheduleToDelete.schedule_id
-                )
-            );
-            setShowDeleteModal(false);
-            setScheduleToDelete(null);
-        } catch (error) {
-            console.error("Failed to delete schedule:", error);
-            toast.error("Failed to delete schedule");
-        } finally {
-            setIsDeleting(false);
-        }
+        setShowDeleteModal(false);
+        notConnected("Deleting the schedule");
     };
 
     const handleDeleteCancel = () => {
@@ -574,7 +503,6 @@ const SchedulerPage = () => {
     );
 
     return (
-        <RoleGuard route="/scheduler" title="Project Scheduler">
             <DashboardLayout
                 title="Project Scheduler"
                 subtitle="Simulate and analyze project schedules before approval."
@@ -637,57 +565,7 @@ const SchedulerPage = () => {
                                             <AlertDialogFooter>
                                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                                                 <AlertDialogAction
-                                                    onClick={async () => {
-                                                        if (!canManageSchedules()) {
-                                                            toast.error("You don't have permission to delete schedules");
-                                                            return;
-                                                        }
-
-                                                        try {
-                                                            const token = localStorage.getItem("token");
-                                                            if (!token) {
-                                                                toast.error("Authentication required");
-                                                                router.push("/auth/login");
-                                                                return;
-                                                            }
-
-                                                            const deletePromises = selectedSchedules.map(
-                                                                (scheduleId) =>
-                                                                    axios.delete(
-                                                                        `/api/schedules/${scheduleId}`,
-                                                                        {
-                                                                            headers: { 
-                                                                                Authorization: `Bearer ${token}` 
-                                                                            }
-                                                                        }
-                                                                    )
-                                                            );
-                                                            
-                                                            await Promise.all(deletePromises);
-                                                            
-                                                            toast.success(
-                                                                `${selectedSchedules.length} schedule(s) deleted successfully`
-                                                            );
-                                                            setSelectedSchedules([]);
-                                                            fetchSchedules();
-                                                        } catch (error: any) {
-                                                            console.error(
-                                                                "Error deleting schedules:",
-                                                                error
-                                                            );
-                                                            
-                                                            if (error.response?.status === 401) {
-                                                                toast.error("Session expired. Please login again.");
-                                                                router.push("/auth/login");
-                                                            } else if (error.response?.status === 403) {
-                                                                toast.error("You don't have permission to delete schedules");
-                                                            } else {
-                                                                toast.error(
-                                                                    "Failed to delete some schedules"
-                                                                );
-                                                            }
-                                                        }
-                                                    }}
+                                                    onClick={() => notConnected("Deleting schedules")}
                                                     className="bg-danger hover:opacity-90"
                                                 >
                                                     Delete
@@ -1073,7 +951,6 @@ const SchedulerPage = () => {
                 </div>
 
             </DashboardLayout>
-        </RoleGuard>
     );
 };
 

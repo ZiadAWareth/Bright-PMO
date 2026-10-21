@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Save } from 'lucide-react';
 import { Modal } from "@/components/ui/modal";
-import axios from 'axios';
+import { notConnected } from "@/lib/not-connected";
 import { toast } from 'sonner';
 import { Spinner } from "@/components/ui/spinner";
 import { Dropdown } from "@/components/ui/dropdown";
@@ -43,35 +43,18 @@ const MassUpdateModal: React.FC<MassUpdateModalProps> = ({
   onSuccess
 }) => {
   const [updateData, setUpdateData] = useState<UpdateData>({});
-  const [options, setOptions] = useState<UpdateOptions | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
+  // notConnected: the allowed values for each field would be loaded here.
+  const [options] = useState<UpdateOptions | null>(null);
+  const loading = false;
+  const isUpdating = false;
   const [tagsInput, setTagsInput] = useState('');
 
   useEffect(() => {
     if (isOpen) {
-      fetchUpdateOptions();
       setUpdateData({});
       setTagsInput('');
     }
   }, [isOpen]);
-
-  const fetchUpdateOptions = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get('/api/projects/mass-update', {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      setOptions(response.data);
-    } catch (error) {
-      console.error('Error fetching update options:', error);
-      toast.error('Failed to load update options');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,47 +64,8 @@ const MassUpdateModal: React.FC<MassUpdateModalProps> = ({
       return;
     }
 
-    try {
-      setIsUpdating(true);
-      
-      // Process tags if provided
-      const finalUpdateData = { ...updateData };
-      if (tagsInput.trim()) {
-        finalUpdateData.tags = tagsInput.split(',').map(tag => tag.trim()).filter(tag => tag);
-      }
 
-      const response = await axios.post('/api/projects/mass-update', {
-        project_ids: selectedProjects,
-        updates: finalUpdateData
-      }, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      toast.success(response.data.message);
-      
-      if (response.data.warnings && response.data.warnings.length > 0) {
-        response.data.warnings.forEach((warning: string) => {
-          toast.warning(warning);
-        });
-      }
-
-      onSuccess();
-      onClose();
-    } catch (error: any) {
-      console.error('Error updating projects:', error);
-      const errorMessage = error.response?.data?.error || 'Failed to update projects';
-      toast.error(errorMessage);
-      
-      if (error.response?.data?.details) {
-        error.response.data.details.forEach((detail: string) => {
-          toast.error(detail);
-        });
-      }
-    } finally {
-      setIsUpdating(false);
-    }
+    notConnected('Updating projects');
   };
 
   const handleFieldChange = (field: string, value: any) => {

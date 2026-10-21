@@ -3,10 +3,9 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import {
   CancelButton,
   Field,
@@ -39,7 +38,7 @@ const PRIORITY_OPTIONS = [
 export default function NewPortfolioPage() {
   const router = useRouter();
 
-  const [submitting, setSubmitting] = useState(false);
+  const submitting = false;
   const [error, setError] = useState<string | null>(null);
 
   const [name, setName] = useState("");
@@ -62,7 +61,7 @@ export default function NewPortfolioPage() {
     return null;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     const problem = validate();
@@ -72,56 +71,11 @@ export default function NewPortfolioPage() {
     }
 
     setError(null);
-    setSubmitting(true);
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        const message = "Authentication token not found. Please log in.";
-        setError(message);
-        toast.error(message);
-        setSubmitting(false);
-        return;
-      }
-
-      await axios.post(
-        "/api/portfolios",
-        {
-          name: name.trim(),
-          description: description.trim(),
-          strategic_objective: strategicObjective.trim(),
-          tags: tags.filter((tag) => tag.trim() !== ""),
-          priority,
-          // A new portfolio always starts active.
-          status: "active",
-          budget_capacity: budgetCapacity ? parseFloat(budgetCapacity) : 0,
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      toast.success("Portfolio created");
-      router.push("/portfolios");
-    } catch (e) {
-      const err = e as {
-        response?: { data?: { error?: string; message?: string } };
-      };
-      const message =
-        err.response?.data?.error ??
-        err.response?.data?.message ??
-        "Failed to create portfolio";
-      setError(message);
-      toast.error(message);
-    } finally {
-      setSubmitting(false);
-    }
+    notConnected("Creating the portfolio");
   };
 
   return (
-    <ProtectedRoute>
+    <>
       <DashboardLayout hideHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <PageHeader
@@ -239,6 +193,6 @@ export default function NewPortfolioPage() {
           </FormFooter>
         </form>
       </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 }

@@ -26,9 +26,8 @@ import {
     Loader2,
 } from "lucide-react";
 import { ProjectWithRelations } from "@/features/projects/types";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import { Spinner } from "@/components/ui/spinner";
 import { useConfirm } from "@/components/ui/confirm-provider";
 import { Dropdown } from "@/components/ui/dropdown";
@@ -97,7 +96,7 @@ const ProjectClosurePage = ({
     const router = useRouter();
     const confirm = useConfirm();
     const [project, setProject] = useState<ProjectWithRelations | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [projectId, setProjectId] = useState<string>("");
     const [activeSection, setActiveSection] = useState("checklist");
     const [isStartingClosure, setIsStartingClosure] = useState(false);
@@ -238,10 +237,8 @@ const ProjectClosurePage = ({
         getParams();
     }, [params]);
 
-    useEffect(() => {
-        if (!projectId) return;
-        fetchProject();
-    }, [projectId]);
+    // notConnected: the project with its closure checklist, punch list,
+    // documents, inspection and handover would be loaded here.
 
     // Close inspector/handover dropdowns on click outside
     useEffect(() => {
@@ -318,692 +315,68 @@ const ProjectClosurePage = ({
 }, [project?.punch_list_items]);
 
     const fetchProject = async () => {
-        try {
-            setLoading(true);
-            const response = await axios.get(`/api/projects/${projectId}`, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
-            });
-            setProject(response.data);
-            console.log('Project data fetched:', {
-                final_inspection: response.data.final_inspection,
-                closure_checklists: response.data.closure_checklists?.map((item: any) => ({
-                    id: item.id,
-                    title: item.title,
-                    type: item.type,
-                    status: item.status
-                }))
-            });
-        } catch (error) {
-            console.error("Error fetching project:", error);
-            toast.error("Failed to load project data");
-        } finally {
-            setLoading(false);
-        }
+        // notConnected: loads the project with its closure data.
     };
 
     const startClosureProcess = async () => {
-        if (!projectId) return;
-        
-        setIsStartingClosure(true);
-        try {
-            const response = await axios.post(
-                `/api/projects/${projectId}/closure/start`,
-                {},
-                {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("token")}`,
-                    },
-                }
-            );
-
-            if (response.status === 200) {
-                toast.success("Closure process started successfully!");
-                fetchProject(); // Refresh data
-            }
-        } catch (error: any) {
-            console.error("Error starting closure process:", error);
-            if (error.response?.data?.error) {
-                toast.error(error.response.data.error);
-            } else {
-                toast.error("Failed to start closure process. Please try again.");
-            }
-        } finally {
-            setIsStartingClosure(false);
-        }
+        notConnected("Starting the closure process");
     };
 
     const handleChecklistToggle = async (checklistItemId: number) => {
-        try {
-            const response = await axios.patch(
-                `/api/projects/${projectId}/closure/checklist/${checklistItemId}`,
-                { status: "complete" },
-                {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("token")}`,
-                    },
-                }
-            );
-            
-            if (response.status === 200) {
-                toast.success("Checklist item updated");
-                fetchProject();
-            }
-        } catch (error) {
-            console.error("Error updating checklist item:", error);
-            toast.error("Failed to update checklist item");
-        }
+        notConnected("Updating the checklist item");
     };
 
     const handleFileUpload = async (documentItemId: number, files: FileList | null) => {
-        if (!files || files.length === 0) return;
-
-        const file = files[0];
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("document_item_id", documentItemId.toString());
-
-        setUploadingDocumentItemId(documentItemId);
-        try {
-            const response = await axios.patch(
-                `/api/projects/${projectId}/closure/documents/${documentItemId}`,
-                formData,
-                {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("token")}`,
-                        "Content-Type": "multipart/form-data",
-                    },
-                }
-            );
-
-            if (response.status === 200) {
-                toast.success("Document uploaded successfully");
-                
-                // Update the project state locally instead of refetching
-                setProject(prevProject => {
-                    if (!prevProject) return prevProject;
-                    
-                    const updatedProject = {
-                        ...prevProject,
-                        closure_documents: prevProject.closure_documents?.map(docItem => 
-                            docItem.id === documentItemId 
-                                ? {
-                                    ...docItem,
-                                    document: response.data.document,
-                                    submitted: true,
-                                    approved: true
-                                }
-                                : docItem
-                        )
-                    };
-
-                    // If the API indicates that all documents are uploaded, update the checklist
-                    if (response.data.checklistCompleted) {
-                        updatedProject.closure_checklists = prevProject.closure_checklists?.map(checklistItem =>
-                            checklistItem.type === 'documents'
-                                ? {
-                                    ...checklistItem,
-                                    status: 'complete' as const,
-                                    completed_at: new Date()
-                                }
-                                : checklistItem
-                        );
-                    }
-
-                    return updatedProject;
-                });
-                
-                setShowUploadModal(false);
-                setSelectedDocumentItem(null);
-            }
-        } catch (error) {
-            console.error("Error uploading document:", error);
-            toast.error("Failed to upload document");
-        } finally {
-            setUploadingDocumentItemId(null);
-        }
+        notConnected("Uploading the document");
     };
 
     const handleBulkDocumentUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const files = event.target.files;
-        if (!files || files.length === 0) return;
-
-        const formData = new FormData();
-        
-        // Add all files to the form data
-        Array.from(files).forEach(file => {
-            formData.append('files', file);
-        });
-
-        setBulkUploading(true);
-        try {
-            const response = await fetch(`/api/projects/${projectId}/closure/documents`, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem("token")}`,
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to upload documents');
-            }
-
-            const result = await response.json();
-            
-            if (result.success) {
-                toast.success(`Successfully uploaded ${result.results.length} document(s)`);
-                
-                if (result.errors && result.errors.length > 0) {
-                    toast.error(`${result.errors.length} document(s) failed to upload`);
-                    console.log('Upload errors:', result.errors);
-                }
-
-                // Refresh project data to show uploaded documents
-                fetchProject();
-            } else {
-                toast.error('Failed to upload documents');
-                console.error('Upload failed:', result.errors);
-            }
-        } catch (error) {
-            console.error('Error uploading documents:', error);
-            toast.error('Failed to upload documents');
-        } finally {
-            setBulkUploading(false);
-        }
-
-        // Reset the input
-        event.target.value = '';
+        notConnected("Uploading the documents");
     };
 
     const handleAddPunchItem = async () => {
-        try {
-            const response = await axios.post(
-                `/api/projects/${projectId}/closure/punch-list`,
-                punchItemForm,
-                {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("token")}`,
-                    },
-                }
-            );
-
-            if (response.status === 201) {
-                toast.success("Punch list item added");
-                
-                // Add the new item to the project state locally
-                setProject(prevProject => {
-                    if (!prevProject) return prevProject;
-                    
-                    return {
-                        ...prevProject,
-                        punch_list_items: [
-                            ...(prevProject.punch_list_items || []),
-                            response.data
-                        ]
-                    };
-                });
-                
-                setShowAddPunchItemModal(false);
-                setPunchItemForm({
-                    title: "",
-                    assignee_id: "",
-                });
-            }
-        } catch (error) {
-            console.error("Error adding punch item:", error);
-            toast.error("Failed to add punch list item");
-        }
+        notConnected("Adding the punch-list item");
     };
 
     const handleUpdatePunchItem = async (itemId: number, status: string) => {
-        try {
-            const response = await axios.patch(
-                `/api/projects/${projectId}/closure/punch-list/${itemId}`,
-                { status },
-                {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("token")}`,
-                    },
-                }
-            );
-
-            if (response.status === 200) {
-                toast.success("Punch list item updated");
-                
-                // Update the project state locally instead of refetching
-                setProject(prevProject => {
-                    if (!prevProject) return prevProject;
-                    
-                    return {
-                        ...prevProject,
-                        punch_list_items: prevProject.punch_list_items?.map(item => 
-                            item.id === itemId 
-                                ? { 
-                                    ...item, 
-                                    status, 
-                                    resolved_at: status === 'resolved' ? new Date() : null 
-                                }
-                                : item
-                        )
-                    };
-                });
-            }
-        } catch (error) {
-            console.error("Error updating punch item:", error);
-            toast.error("Failed to update punch list item");
-        }
+        notConnected("Updating the punch-list item");
     };
 
     const handleDeletePunchItem = async (itemId: number) => {
-        const ok = await confirm({
-            title: "Delete punch list item?",
-            message: "This removes the item from the punch list permanently.",
-            confirmText: "Delete",
-            tone: "danger",
-        });
-        if (!ok) return;
-
-        try {
-            const response = await axios.delete(
-                `/api/projects/${projectId}/closure/punch-list/${itemId}`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("token")}`,
-                    },
-                }
-            );
-
-            if (response.status === 200) {
-                toast.success("Punch list item deleted");
-                
-                // Remove the item from the project state locally
-                setProject(prevProject => {
-                    if (!prevProject) return prevProject;
-                    
-                    return {
-                        ...prevProject,
-                        punch_list_items: prevProject.punch_list_items?.filter(item => item.id !== itemId)
-                    };
-                });
-            }
-        } catch (error) {
-            console.error("Error deleting punch item:", error);
-            toast.error("Failed to delete punch list item");
-        }
+        notConnected("Deleting the punch-list item");
     };
 
     const handleEditPunchItem = async () => {
-        if (!selectedPunchItem) return;
-
-        try {
-            const response = await axios.patch(
-                `/api/projects/${projectId}/closure/punch-list/${selectedPunchItem.id}`,
-                {
-                    title: punchItemForm.title,
-                    assignee_id: punchItemForm.assignee_id || null,
-                },
-                {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("token")}`,
-                    },
-                }
-            );
-
-            if (response.status === 200) {
-                toast.success("Punch list item updated");
-                
-                // Update the item in the project state locally
-                setProject(prevProject => {
-                    if (!prevProject) return prevProject;
-                    
-                    return {
-                        ...prevProject,
-                        punch_list_items: prevProject.punch_list_items?.map(item => 
-                            item.id === selectedPunchItem.id 
-                                ? { ...item, ...response.data }
-                                : item
-                        )
-                    };
-                });
-                
-                setShowEditPunchItemModal(false);
-                setSelectedPunchItem(null);
-                setPunchItemForm({
-                    title: "",
-                    assignee_id: "",
-                });
-            }
-        } catch (error) {
-            console.error("Error updating punch item:", error);
-            toast.error("Failed to update punch list item");
-        }
+        notConnected("Saving the punch-list item");
     };
 
     const handleScheduleInspection = async () => {
-        if (!inspectionForm.inspector_id) {
-            toast.error("Please select an inspector");
-            return;
-        }
-        setScheduleInspectionSubmitting(true);
-        try {
-            const response = await axios.post(
-                `/api/projects/${projectId}/closure/inspection`,
-                inspectionForm,
-                {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("token")}`,
-                    },
-                }
-            );
-
-            if (response.status === 201) {
-                toast.success("Final inspection scheduled successfully");
-                fetchProject();
-                setShowScheduleInspectionModal(false);
-                setInspectionForm({
-                    scheduled_date: "",
-                    scheduled_time: "",
-                    inspector_id: "",
-                });
-                setInspectorSearchQuery("");
-            }
-        } catch (error: any) {
-            console.error("Error scheduling inspection:", error);
-            if (error.response?.data?.error) {
-                toast.error(error.response.data.error);
-            } else {
-                toast.error("Failed to schedule inspection");
-            }
-        } finally {
-            setScheduleInspectionSubmitting(false);
-        }
+        notConnected("Scheduling the inspection");
     };
 
     const handleUpdateInspection = async () => {
-        setInspectionSubmitting(true);
-        try {
-            // submitted_by is set server-side from authenticated user (PMO user_id)
-            const updateData: any = {
-                notes: inspectionNotes,
-                status: "completed",
-            };
-            
-            
-            // Handle document uploads using the new bulk upload API
-            if (inspectionDocuments.length > 0) {
-                try {
-                    const formData = new FormData();
-                    
-                    // Add all files to the form data
-                    inspectionDocuments.forEach(file => {
-                        formData.append('files', file);
-                    });
-
-                    const uploadResponse = await fetch(`/api/projects/${projectId}/closure/documents`, {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'Authorization': `Bearer ${localStorage.getItem("token")}`,
-                        }
-                    });
-
-                    if (!uploadResponse.ok) {
-                        throw new Error('Failed to upload documents');
-                    }
-
-                    const uploadResult = await uploadResponse.json();
-                    
-                    if (uploadResult.success) {
-                        console.log(`Successfully uploaded ${uploadResult.results.length} documents`);
-                        if (uploadResult.errors && uploadResult.errors.length > 0) {
-                            console.warn('Some documents failed to upload:', uploadResult.errors);
-                        }
-                    } else {
-                        console.error('Document upload failed:', uploadResult.errors);
-                    }
-                } catch (uploadError) {
-                    console.error('Error uploading inspection documents:', uploadError);
-                    toast.error('Failed to upload some inspection documents');
-                }
-            }
-
-            console.log('Inspection update data:', updateData);
-
-            const response = await axios.patch(
-                `/api/projects/${projectId}/closure/inspection`,
-                updateData,
-                {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("token")}`,
-                    },
-                }
-            );
-
-            if (response.status === 200) {
-                toast.success("Inspection completed and submitted successfully!");
-                console.log('Inspection API response:', response.data);
-                console.log('Fetching updated project data...');
-                
-                // Wait a moment before fetching to ensure DB updates are complete
-                setTimeout(() => {
-                    fetchProject();
-                }, 500);
-                
-                setShowInspectionDetailsModal(false);
-                setInspectionNotes("");
-                setInspectionDocuments([]);
-            }
-        } catch (error) {
-            console.error("Error updating inspection:", error);
-            toast.error("Failed to update inspection");
-        } finally {
-            setInspectionSubmitting(false);
-        }
+        notConnected("Updating the inspection");
     };
 
     const handleCompletePunchListCreation = async () => {
-        try {
-            // Find the punch list checklist item
-            const punchListChecklistItem = project?.closure_checklists?.find(
-                item => item.type === 'create_punch_list'
-            );
-
-            if (punchListChecklistItem) {
-                const response = await axios.patch(
-                    `/api/projects/${projectId}/closure/checklist/${punchListChecklistItem.id}`,
-                    { status: "complete" },
-                    {
-                        headers: {
-                            Authorization: `Bearer ${localStorage.getItem("token")}`,
-                        },
-                    }
-                );
-                
-                if (response.status === 200) {
-                    toast.success("Punch list creation marked as complete");
-                    fetchProject();
-                }
-            }
-        } catch (error) {
-            console.error("Error completing punch list creation:", error);
-            toast.error("Failed to mark punch list creation as complete");
-        }
+        notConnected("Completing the punch list");
     };
 
     const handleScheduleHandover = async () => {
-        if (!handoverForm.handed_over_by) {
-            toast.error("Please select a team member for Handed Over By");
-            return;
-        }
-        setScheduleHandoverSubmitting(true);
-        try {
-            const response = await axios.post(
-                `/api/projects/${projectId}/closure/handover`,
-                handoverForm,
-                {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("token")}`,
-                    },
-                }
-            );
-
-            if (response.status === 201) {
-                toast.success("Handover scheduled successfully");
-                fetchProject();
-                setShowScheduleHandoverModal(false);
-                setHandoverForm({
-                    handover_date: "",
-                    handover_time: "",
-                    handed_over_by: "",
-                    handed_over_to: "",
-                    notes: "",
-                });
-                setHandoverSearchQuery("");
-            }
-        } catch (error: any) {
-            console.error("Error scheduling handover:", error);
-            if (error.response?.data?.error) {
-                toast.error(error.response.data.error);
-            } else {
-                toast.error("Failed to schedule handover");
-            }
-        } finally {
-            setScheduleHandoverSubmitting(false);
-        }
+        notConnected("Scheduling the handover");
     };
 
     const handleCompleteHandover = async () => {
-        try {
-            let userId = 1; // Default fallback
-            
-            try {
-                const token = localStorage.getItem("token");
-                if (token) {
-                    const payload = JSON.parse(atob(token.split('.')[1]));
-                    userId = payload.userId || payload.user_id || 1;
-                }
-            } catch (tokenError) {
-                console.warn("Could not parse user ID from token, using default:", tokenError);
-            }
-
-            const updateData: any = {
-                status: "completed",
-                notes: handoverNotes,
-            };
-
-            const response = await axios.patch(
-                `/api/projects/${projectId}/closure/handover`,
-                updateData,
-                {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("token")}`,
-                    },
-                }
-            );
-
-            if (response.status === 200) {
-                toast.success("Handover completed successfully!");
-                fetchProject();
-                setShowHandoverDetailsModal(false);
-                setHandoverNotes("");
-            }
-        } catch (error) {
-            console.error("Error completing handover:", error);
-            toast.error("Failed to complete handover");
-        }
+        notConnected("Completing the handover");
     };
 
     const handleUploadHandoverReceipt = async () => {
-        if (!handoverReceiptFile) {
-            toast.error("Please select a file to upload");
-            return;
-        }
-
-        try {
-            const formData = new FormData();
-            formData.append('file', handoverReceiptFile);
-
-            const response = await axios.post(
-                `/api/projects/${projectId}/closure/handover/receipt`,
-                formData,
-                {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("token")}`,
-                        "Content-Type": "multipart/form-data",
-                    },
-                }
-            );
-
-            if (response.status === 200) {
-                toast.success("Handover receipt uploaded successfully");
-                fetchProject();
-                setHandoverReceiptFile(null);
-            }
-        } catch (error) {
-            console.error("Error uploading handover receipt:", error);
-            toast.error("Failed to upload handover receipt");
-        }
+        notConnected("Uploading the handover receipt");
     };
 
     // Approval functions
     const handleApproval = async () => {
-        try {
-            let userId = 1;
-            
-            try {
-                const token = localStorage.getItem("token");
-                if (token) {
-                    const payload = JSON.parse(atob(token.split('.')[1]));
-                    userId = payload.userId || payload.user_id || 1;
-                }
-            } catch (tokenError) {
-                console.warn("Could not parse user ID from token, using default:", tokenError);
-            }
-
-            const updateData: any = {
-                approved: approvalDecision === 'approve',
-                approval_notes: approvalNotes,
-                approved_by: userId,
-                approved_at: new Date().toISOString()
-            };
-
-            let endpoint = '';
-            let successMessage = '';
-
-            switch (approvalType) {
-                case 'inspection':
-                    endpoint = `/api/projects/${projectId}/closure/inspection/approve`;
-                    successMessage = `Inspection ${approvalDecision === 'approve' ? 'approved' : 'rejected'} successfully`;
-                    break;
-                case 'handover':
-                    endpoint = `/api/projects/${projectId}/closure/handover/approve`;
-                    successMessage = `Handover ${approvalDecision === 'approve' ? 'approved' : 'rejected'} successfully`;
-                    break;
-                case 'closeout':
-                    endpoint = `/api/projects/${projectId}/closure/approve`;
-                    successMessage = `Project closure ${approvalDecision === 'approve' ? 'approved' : 'rejected'} successfully`;
-                    break;
-            }
-
-            const response = await axios.post(endpoint, updateData, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
-            });
-
-            if (response.status === 200) {
-                toast.success(successMessage);
-                fetchProject();
-                setShowApprovalModal(false);
-                setApprovalNotes("");
-                setApprovalDecision('approve');
-            }
-        } catch (error) {
-            console.error("Error processing approval:", error);
-            toast.error("Failed to process approval");
-        }
+        notConnected("Submitting the approval");
     };
 
     const openApprovalModal = (type: 'inspection' | 'handover' | 'closeout') => {
@@ -1012,82 +385,24 @@ const ProjectClosurePage = ({
     };
 
     const handleDownloadPDFReport = async () => {
-        if (!projectId) return;
-
-        setIsGeneratingPDF(true);
-        try {
-            const response = await fetch(`/api/projects/${projectId}/closure/report`, {
-                method: 'GET',
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to generate PDF report');
-            }
-
-            // Get the blob and create download link
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `${project?.name || 'Project'}_Closure_Report_${new Date().toISOString().split('T')[0]}.pdf`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-
-            // Mark report checklist as complete after successful download
-            try {
-                const completeResponse = await fetch(`/api/projects/${projectId}/closure/report/complete`, {
-                    method: 'POST',
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("token")}`,
-                        'Content-Type': 'application/json',
-                    },
-                });
-
-                if (completeResponse.ok) {
-                    const completeData = await completeResponse.json();
-                    if (completeData.projectClosed) {
-                        toast.success("PDF closure report downloaded successfully! Project is now officially closed.");
-                    } else {
-                        toast.success("PDF closure report downloaded and marked as complete!");
-                    }
-                    // Refresh project data to show updated status
-                    fetchProject();
-                } else {
-                    toast.success("PDF closure report downloaded successfully!");
-                    console.warn("Failed to mark report as complete, but download succeeded");
-                }
-            } catch (completeError) {
-                console.error("Error marking report as complete:", completeError);
-                toast.success("PDF closure report downloaded successfully!");
-            }
-        } catch (error) {
-            console.error("Error downloading PDF report:", error);
-            toast.error("Failed to download PDF report. Please try again.");
-        } finally {
-            setIsGeneratingPDF(false);
-        }
+        notConnected("Downloading the closure report");
     };
 
     if (loading) {
         return (
-            <ProtectedRoute>
+            <>
                 <DashboardLayout>
                     <div className="flex items-center justify-center h-64">
                         <Spinner size={32} className="text-bright-primary" />
                     </div>
                 </DashboardLayout>
-            </ProtectedRoute>
+            </>
         );
     }
 
     if (!project) {
         return (
-            <ProtectedRoute>
+            <>
                 <DashboardLayout>
                     <div className="text-center py-12">
                         <h2 className="text-2xl font-semibold text-ink mb-4">
@@ -1101,12 +416,12 @@ const ProjectClosurePage = ({
                         </button>
                     </div>
                 </DashboardLayout>
-            </ProtectedRoute>
+            </>
         );
     }
 
     return (
-        <ProtectedRoute>
+        <>
             <DashboardLayout
                 title="Project Closure Management"
                 backHref={`/projects/${projectId}`}
@@ -1612,25 +927,15 @@ const ProjectClosurePage = ({
                                                                             label={`View ${title}`}
                                                                             onClick={() =>
                                                                                 docItem.document?.document_id &&
-                                                                                window.open(
-                                                                                    `/api/documents/download?documentId=${docItem.document.document_id}`,
-                                                                                    "_blank",
-                                                                                )
+                                                                                notConnected("Viewing the document")
                                                                             }
                                                                         />
                                                                         <RowAction
                                                                             icon={Download}
                                                                             label={`Download ${title}`}
                                                                             onClick={() => {
-                                                                                const doc = docItem.document;
-                                                                                if (!doc?.document_id) return;
-                                                                                const a = document.createElement("a");
-                                                                                a.href = `/api/documents/download?documentId=${doc.document_id}`;
-                                                                                a.download = doc.name || "document";
-                                                                                a.rel = "noopener noreferrer";
-                                                                                document.body.appendChild(a);
-                                                                                a.click();
-                                                                                document.body.removeChild(a);
+                                                                                // notConnected: downloads docItem.document.
+                                                                                notConnected("Downloading the document");
                                                                             }}
                                                                         />
                                                                     </RowActions>
@@ -3499,7 +2804,7 @@ const ProjectClosurePage = ({
                     </Modal>
                 )}
             </DashboardLayout>
-        </ProtectedRoute>
+        </>
     );
 };
 

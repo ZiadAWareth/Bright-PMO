@@ -17,7 +17,7 @@ import {
   Users,
   GitBranch,
 } from 'lucide-react';
-import axios from 'axios';
+import { notConnected } from "@/lib/not-connected";
 import { ProjectSetup } from '@/features/projects/types';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/ui/spinner';
@@ -138,112 +138,18 @@ const ProjectSetupPage = () => {
   const projectId = params.id as string;
   const [activeView, setActiveView] = useState('admin');
   const [project, setProject] = useState<Project | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [setup, setSetup] = useState<ProjectSetup | null>(null);
-  const [setupLoading, setSetupLoading] = useState(true);
+  const [setupLoading, setSetupLoading] = useState(false);
   const [executionLoading, setExecutionLoading] = useState(false);
-  const [token, setToken] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('pipeline');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // Initialize token on mount (client-side only)
-  useEffect(() => {
-    const storedToken = localStorage?.getItem('token');
-    setToken(storedToken);
-
-    // If no token, redirect to login
-    if (!storedToken) {
-      router.push('/auth/login');
-    }
-  }, [router]);
-
-  // Fetch data when token is available
-  useEffect(() => {
-    if (!token) return;
-
-    const fetchProject = async () => {
-      try {
-        const response = await axios.get(`/api/projects/${projectId}`, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        setProject(response.data);
-      } catch (error: any) {
-        console.error('Error fetching project:', error);
-        // If unauthorized, clear token and redirect to login
-        if (error?.response?.status === 401) {
-          localStorage.removeItem('token');
-          router.push('/auth/login');
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const fetchSetup = async () => {
-      setSetupLoading(true);
-      try {
-        const res = await axios.get(`/api/projects/${projectId}/setup`, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        setSetup(res.data);
-      } catch (e: any) {
-        console.error('Error fetching setup:', e);
-        // If unauthorized, clear token and redirect to login
-        if (e?.response?.status === 401) {
-          localStorage.removeItem('token');
-          router.push('/auth/login');
-        }
-        setSetup(null);
-      } finally {
-        setSetupLoading(false);
-      }
-    };
-
-    fetchProject();
-    fetchSetup();
-  }, [projectId, token]);
+  // notConnected: the project and its setup checklist would be loaded here.
 
   const handleExecutionStart = async () => {
     if (!setup) return;
-    setExecutionLoading(true);
-    try {
-      // Update the execution field in setup only
-      const setupRes = await axios.patch(
-        `/api/projects/${projectId}/setup`,
-        { execution: true },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
-      setSetup(setupRes.data);
-
-      // Refetch project to update status display
-      const projectRes = await axios.get(`/api/projects/${projectId}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      setProject(projectRes.data);
-
-      // Show success toast and route to project page
-      toast.success('Project execution started! Project status updated to pending approval.');
-      router.push(`/projects/${projectId}`);
-    } catch (e) {
-      console.error('Error starting project execution:', e);
-      toast.error('Error starting project execution. Please try again.');
-    } finally {
-      setExecutionLoading(false);
-    }
+    notConnected("Starting execution");
   };
 
   if (loading || setupLoading) {

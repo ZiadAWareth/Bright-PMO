@@ -44,9 +44,8 @@ import {
   Layers,
   X,
 } from "lucide-react";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import { format } from "date-fns";
 // Removed EpsEditForm import since we're using dedicated edit page
 import ProjectsTab from "@/features/projects/components/ProjectsTab";
@@ -191,44 +190,20 @@ const DeleteModal = ({
 const EPSDetailPage = ({ params }: { params: Promise<{ id: string }> }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [user, setUser] = useState<User | null>(null);
   const [activeView, setActiveView] = useState("admin");
   const [activeTab, setActiveTab] = useState("overview");
-  const [eps, setEps] = useState<EPS | null>(null);
-  const [loading, setLoading] = useState(true);
+  // notConnected: the EPS would be loaded here. Until then there is none, so
+  // the page shows its empty state.
+  const [eps] = useState<EPS | null>(null);
+  const loading = false;
   const [isStarred, setIsStarred] = useState(false);
   const [epsId, setEpsId] = useState<string>("");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const isDeleting = false;
 
-  // Permission checking function
-  const canManageEPS = () => {
-    if (!user || !user.role) {
-      return false;
-    }
-    const roleName = user.role.role_name || user.role.name;
-    return roleName && ["PMO", "PJM", "ADMIN"].includes(roleName);
-  };
-
-  // Check if user data is loaded and user can manage EPS
-  const canShowManagementButtons = () => {
-    return user && user.role && canManageEPS();
-  };
-
-  // Fetch user data function
-  const fetchUserData = async () => {
-    try {
-      const response = await axios.get("/api/auth/me", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-      setUser(response.data.user);
-    } catch (error) {
-      console.error("Error fetching user data:", error);
-      setUser(null);
-    }
-  };
+  // Every action is open until roles come from the backend.
+  const canManageEPS = () => true;
+  const canShowManagementButtons = () => true;
 
   useEffect(() => {
     const getParams = async () => {
@@ -236,61 +211,12 @@ const EPSDetailPage = ({ params }: { params: Promise<{ id: string }> }) => {
       setEpsId(resolvedParams.id);
     };
     getParams();
-    fetchUserData();
   }, [params]);
 
-  useEffect(() => {
-    if (!epsId) return;
-
-    setLoading(true);
-    axios
-      .get(`/api/eps/${epsId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
-      .then((res) => {
-        console.log("EPS data fetched:", res.data);
-        const data = res.data;
-        
-        // Validate the received data
-        if (!data || !data.eps_id || !data.name) {
-          console.error("Invalid EPS data received:", data);
-          toast.error("Invalid EPS data received from server");
-          setLoading(false);
-          return;
-        }
-        
-        setEps({
-          ...data,
-          // Ensure all required fields have proper values
-          eps_code: data.eps_code || `EPS-${data.eps_id}`,
-          description: data.description || null,
-          level: data.level || 1,
-          parent_eps_id: data.parent_eps_id || null,
-          projects: Array.isArray(data.projects) ? data.projects : [],
-          created_at: data.created_at || new Date().toISOString(),
-          updated_at: data.updated_at || new Date().toISOString(),
-        });
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error fetching EPS data:", err);
-        const errorMessage = err.response?.data?.error || "Failed to fetch EPS data";
-        toast.error(errorMessage);
-        setLoading(false);
-      });
-  }, [epsId]);
 
   // Remove allEps fetching since we're not using edit modal anymore
 
   const handleDeleteClick = () => {
-    // Check if user data is loaded
-    if (!user || !user.role) {
-      toast.error("Please wait for the page to fully load before deleting.");
-      return;
-    }
-
     if (!canManageEPS()) {
       toast.error("You don't have permission to delete EPS entries");
       return;
@@ -298,39 +224,12 @@ const EPSDetailPage = ({ params }: { params: Promise<{ id: string }> }) => {
     setIsDeleteModalOpen(true);
   };
 
-  const handleDeleteConfirm = async () => {
-    if (!eps) return;
-
-    setIsDeleting(true);
-    try {
-      const response = await axios.delete(`/api/eps/${eps.eps_id}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-
-      if (response.status === 200) {
-        toast.success("EPS and all associated projects deleted successfully");
-        router.push("/eps");
-      }
-    } catch (error: any) {
-      console.error("Error deleting EPS:", error);
-      const errorMessage =
-        error.response?.data?.error || "Failed to delete EPS";
-      toast.error(errorMessage);
-    } finally {
-      setIsDeleting(false);
-      setIsDeleteModalOpen(false);
-    }
+  const handleDeleteConfirm = () => {
+    setIsDeleteModalOpen(false);
+    notConnected("Deleting the EPS");
   };
 
   const handleEditClick = () => {
-    // Check if user data is loaded
-    if (!user || !user.role) {
-      toast.error("Please wait for the page to fully load before editing.");
-      return;
-    }
-
     if (!canManageEPS()) {
       toast.error("You don't have permission to edit EPS entries");
       return;
@@ -424,19 +323,19 @@ const EPSDetailPage = ({ params }: { params: Promise<{ id: string }> }) => {
 
   if (loading) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout onViewChange={setActiveView} activeView={activeView}>
           <div className="flex items-center justify-center min-h-96">
             <Spinner size={48} className="text-bright-primary" />
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
   if (!eps) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout onViewChange={setActiveView} activeView={activeView}>
           <div className="text-center py-12">
             <h3 className="text-lg font-medium text-ink mb-2">
@@ -454,7 +353,7 @@ const EPSDetailPage = ({ params }: { params: Promise<{ id: string }> }) => {
             </button>
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
@@ -518,7 +417,7 @@ const EPSDetailPage = ({ params }: { params: Promise<{ id: string }> }) => {
   ];
 
   return (
-    <ProtectedRoute>
+    <>
       <DashboardLayout
         title={eps.name}
         subtitle={eps.description}
@@ -635,7 +534,7 @@ const EPSDetailPage = ({ params }: { params: Promise<{ id: string }> }) => {
           isDeleting={isDeleting}
         />
       </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 };
 

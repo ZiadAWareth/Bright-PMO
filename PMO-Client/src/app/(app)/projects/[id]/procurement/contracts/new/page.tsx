@@ -3,10 +3,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Save } from "lucide-react";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import {
   CancelButton,
   Field,
@@ -48,10 +47,11 @@ export default function NewProjectContractPage() {
   const params = useParams();
   const projectId = params?.id as string;
 
-  const [procurements, setProcurements] = useState<Procurement[]>([]);
-  const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [loadingData, setLoadingData] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  // notConnected: the project's procurements and the vendors would be loaded here.
+  const [procurements] = useState<Procurement[]>([]);
+  const [vendors] = useState<Vendor[]>([]);
+  const loadingData = false;
+  const submitting = false;
   const [error, setError] = useState<string | null>(null);
 
   const [procurementId, setProcurementId] = useState("");
@@ -66,33 +66,6 @@ export default function NewProjectContractPage() {
 
   const backHref = `/projects/${projectId}/procurement`;
 
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      const auth = {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      };
-      try {
-        const [procRes, vendorRes] = await Promise.all([
-          axios.get(`/api/projects/${projectId}/procurements`, auth),
-          axios.get("/api/vendors", auth),
-        ]);
-        if (cancelled) return;
-        setProcurements(Array.isArray(procRes.data) ? procRes.data : []);
-        setVendors(Array.isArray(vendorRes.data) ? vendorRes.data : []);
-      } catch {
-        if (!cancelled) toast.error("Could not load procurements or vendors");
-      } finally {
-        if (!cancelled) setLoadingData(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [projectId]);
-
   const validate = (): string | null => {
     if (!procurementId) return "Please select a procurement.";
     if (!vendorId) return "Please select a vendor.";
@@ -104,7 +77,7 @@ export default function NewProjectContractPage() {
     return null;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     const problem = validate();
@@ -114,45 +87,11 @@ export default function NewProjectContractPage() {
     }
 
     setError(null);
-    setSubmitting(true);
-    try {
-      await axios.post(
-        "/api/contracts",
-        {
-          procurement_id: parseInt(procurementId),
-          vendor_id: parseInt(vendorId),
-          contract_number: contractNumber.trim(),
-          name: name.trim(),
-          description: description.trim(),
-          start_date: startDate,
-          end_date: endDate,
-          value: parseFloat(value),
-          status,
-        },
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        },
-      );
-
-      toast.success("Contract added");
-      router.push(`${backHref}?tab=contracts`);
-    } catch (e) {
-      const err = e as {
-        response?: { data?: { error?: string; message?: string } };
-      };
-      const message =
-        err.response?.data?.error ??
-        err.response?.data?.message ??
-        "Failed to add contract";
-      setError(message);
-      toast.error(message);
-    } finally {
-      setSubmitting(false);
-    }
+    notConnected("Creating the contract");
   };
 
   return (
-    <ProtectedRoute>
+    <>
       <DashboardLayout hideHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <PageHeader
@@ -305,6 +244,6 @@ export default function NewProjectContractPage() {
           </FormFooter>
         </form>
       </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 }

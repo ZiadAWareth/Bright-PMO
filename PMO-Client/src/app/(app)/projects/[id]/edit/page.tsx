@@ -3,10 +3,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AlertCircle, Save } from "lucide-react";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import {
   CancelButton,
   Field,
@@ -58,15 +57,17 @@ export default function EditProjectPage() {
   const params = useParams();
   const projectId = params?.id as string;
 
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  // notConnected: the project (to prefill the form) and the portfolios would be
+  // loaded here. Until then the form starts empty.
+  const loading = false;
+  const notFound = false;
+  const submitting = false;
   const [error, setError] = useState<string | null>(null);
   const [dateError, setDateError] = useState<string>("");
 
-  const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
-  const [projectName, setProjectName] = useState("");
-  const [projectCode, setProjectCode] = useState("");
+  const [portfolios] = useState<Portfolio[]>([]);
+  const [projectName] = useState("");
+  const [projectCode] = useState("");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -82,65 +83,6 @@ export default function EditProjectPage() {
     planned_end_date: "",
     portfolio_id: 0,
   });
-
-  useEffect(() => {
-    if (!projectId) return;
-    let cancelled = false;
-
-    (async () => {
-      const auth = {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      };
-
-      try {
-        const [projectRes, portfolioRes] = await Promise.all([
-          axios.get(`/api/projects/${projectId}`, auth),
-          axios.get("/api/portfolios", auth).catch(() => ({ data: [] })),
-        ]);
-        if (cancelled) return;
-
-        const p = projectRes.data?.project ?? projectRes.data;
-        if (!p) {
-          setNotFound(true);
-          return;
-        }
-
-        setProjectName(p.name ?? "");
-        setProjectCode(p.project_code ?? "");
-        setFormData({
-          name: p.name ?? "",
-          description: p.description ?? "",
-          priority: p.priority ?? "medium",
-          compliance: p.compliance ?? "pending",
-          strategicValue: p.strategicValue ?? "medium",
-          location: p.location ?? "",
-          client: p.client ?? "",
-          contractor: p.contractor ?? "",
-          budget_amount:
-            p.budget_amount != null ? String(p.budget_amount) : "",
-          start_date: p.start_date
-            ? new Date(p.start_date).toISOString().split("T")[0]
-            : "",
-          planned_end_date: p.planned_end_date
-            ? new Date(p.planned_end_date).toISOString().split("T")[0]
-            : "",
-          portfolio_id: p.portfolio_id ?? 0,
-        });
-
-        setPortfolios(
-          Array.isArray(portfolioRes.data) ? portfolioRes.data : [],
-        );
-      } catch {
-        if (!cancelled) setNotFound(true);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [projectId]);
 
   const set = <K extends keyof typeof formData>(
     key: K,
@@ -168,7 +110,7 @@ export default function EditProjectPage() {
     return true;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.name.trim()) {
@@ -181,49 +123,12 @@ export default function EditProjectPage() {
     }
 
     setError(null);
-    setSubmitting(true);
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        const message = "Authentication token not found. Please log in.";
-        setError(message);
-        toast.error(message);
-        setSubmitting(false);
-        return;
-      }
-
-      await axios.put(
-        `/api/projects/${projectId}`,
-        {
-          ...formData,
-          name: formData.name.trim(),
-          budget_amount: parseFloat(formData.budget_amount) || 0,
-          description: formData.description || null,
-          portfolio_id: formData.portfolio_id || undefined,
-        },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-
-      toast.success("Project updated");
-      router.push(`/projects/${projectId}`);
-    } catch (e) {
-      const err = e as {
-        response?: { data?: { error?: string; message?: string } };
-      };
-      const message =
-        err.response?.data?.error ??
-        err.response?.data?.message ??
-        "Failed to update project";
-      setError(message);
-      toast.error(message);
-    } finally {
-      setSubmitting(false);
-    }
+    notConnected("Updating the project");
   };
 
   if (loading) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout hideHeader>
           <div className="space-y-6">
             <PageHeader
@@ -239,13 +144,13 @@ export default function EditProjectPage() {
             </div>
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
   if (notFound) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout hideHeader>
           <div className="space-y-6">
             <PageHeader
@@ -275,12 +180,12 @@ export default function EditProjectPage() {
             </FormSection>
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
   return (
-    <ProtectedRoute>
+    <>
       <DashboardLayout hideHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <PageHeader
@@ -486,6 +391,6 @@ export default function EditProjectPage() {
           </FormFooter>
         </form>
       </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 }

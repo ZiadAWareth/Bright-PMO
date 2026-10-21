@@ -1,5 +1,6 @@
 'use client';
 
+import { notConnected } from "@/lib/not-connected";
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -97,78 +98,16 @@ export default function CriticalPathPage({ params }: { params: Promise<{ id: str
         getParams();
     }, [params]);
 
-    const getAuthHeaders = (): Record<string, string> => {
-        if (typeof window !== 'undefined') {
-            const token = localStorage.getItem('token');
-            if (token) {
-                return { Authorization: `Bearer ${token}` };
-            }
-        }
-        return {};
-    };
-
     const fetchProject = async (id: string) => {
-        try {
-            const response = await fetch(`/api/projects/${id}`, {
-                headers: {
-                    ...getAuthHeaders(),
-                },
-            });
-            if (response.ok) {
-                const data = await response.json();
-                setProject(data);
-            }
-        } catch (error) {
-            console.error('Error fetching project:', error);
-        }
+        // notConnected: loads the project.
     };
 
     const fetchCriticalPath = async (id: string) => {
-        setLoading(true);
-        setError(null);
-
-        try {
-            const response = await fetch(`/api/projects/${id}/critical-path`, {
-                headers: {
-                    ...getAuthHeaders(),
-                },
-            });
-            if (!response.ok) {
-                throw new Error('Failed to fetch critical path data');
-            }
-            const data = await response.json();
-            setCriticalPathData(data);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'An error occurred');
-            toast.error('Failed to fetch critical path data');
-        } finally {
-            setLoading(false);
-        }
+        // notConnected: loads the project's critical path.
     };
 
     const calculateCriticalPath = async () => {
-        setCalculating(true);
-        setError(null);
-
-        try {
-            const response = await fetch(`/api/projects/${projectId}/critical-path`, {
-                method: 'POST',
-                headers: {
-                    ...getAuthHeaders(),
-                },
-            });
-            if (!response.ok) {
-                throw new Error('Failed to calculate critical path');
-            }
-            const data = await response.json();
-            setCriticalPathData(data);
-            toast.success('Critical path calculated successfully');
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to calculate critical path');
-            toast.error('Failed to calculate critical path');
-        } finally {
-            setCalculating(false);
-        }
+        notConnected("Calculating the critical path");
     };
 
     const formatDate = (dateString: string) => {

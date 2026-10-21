@@ -3,10 +3,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AlertCircle, Save } from "lucide-react";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import {
   CancelButton,
   Field,
@@ -45,12 +44,14 @@ export default function EditUserPage() {
   const params = useParams();
   const userId = params?.id as string;
 
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  // notConnected: the user (to prefill the form) and the roles would be loaded
+  // here. Until then the form starts empty.
+  const loading = false;
+  const notFound = false;
+  const submitting = false;
   const [error, setError] = useState<string | null>(null);
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [displayName, setDisplayName] = useState("");
+  const [roles] = useState<Role[]>([]);
+  const [displayName] = useState("");
 
   const [formData, setFormData] = useState({
     first_name: "",
@@ -61,60 +62,12 @@ export default function EditUserPage() {
     status: "active",
   });
 
-  useEffect(() => {
-    if (!userId) return;
-    let cancelled = false;
-
-    (async () => {
-      const auth = {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      };
-
-      try {
-        const [userRes, rolesRes] = await Promise.all([
-          axios.get(`/api/users/${userId}`, auth),
-          axios.get("/api/roles", auth).catch(() => ({ data: [] })),
-        ]);
-        if (cancelled) return;
-
-        const u = userRes.data?.user ?? userRes.data;
-        if (!u) {
-          setNotFound(true);
-          return;
-        }
-
-        const first = u.account?.first_name ?? "";
-        const last = u.account?.last_name ?? "";
-        setDisplayName([first, last].filter(Boolean).join(" "));
-
-        setFormData({
-          first_name: first,
-          last_name: last,
-          department: u.account?.department ?? "",
-          phone_number: u.account?.phone_number ?? "",
-          role_id: u.role?.role_id ?? u.role_id ?? 0,
-          status: u.status ?? "active",
-        });
-
-        setRoles(Array.isArray(rolesRes.data) ? rolesRes.data : []);
-      } catch {
-        if (!cancelled) setNotFound(true);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [userId]);
-
   const set = <K extends keyof typeof formData>(
     key: K,
     value: (typeof formData)[K],
   ) => setFormData((prev) => ({ ...prev, [key]: value }));
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.first_name.trim()) {
@@ -131,38 +84,7 @@ export default function EditUserPage() {
     }
 
     setError(null);
-    setSubmitting(true);
-    try {
-      await axios.put(
-        `/api/users/${userId}`,
-        {
-          account: {
-            first_name: formData.first_name.trim(),
-            last_name: formData.last_name.trim(),
-            department: formData.department.trim() || null,
-            phone_number: formData.phone_number.trim() || null,
-          },
-          role_id: Number(formData.role_id),
-          status: formData.status,
-        },
-        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } },
-      );
-
-      toast.success("User updated");
-      router.push(`/users/${userId}`);
-    } catch (e) {
-      const err = e as {
-        response?: { data?: { error?: string; message?: string } };
-      };
-      const message =
-        err.response?.data?.error ??
-        err.response?.data?.message ??
-        "Failed to update user";
-      setError(message);
-      toast.error(message);
-    } finally {
-      setSubmitting(false);
-    }
+    notConnected("Updating the user");
   };
 
   const roleOptions = [
@@ -175,7 +97,7 @@ export default function EditUserPage() {
 
   if (loading) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout hideHeader>
           <div className="space-y-6">
             <PageHeader
@@ -191,13 +113,13 @@ export default function EditUserPage() {
             </div>
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
   if (notFound) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout hideHeader>
           <div className="space-y-6">
             <PageHeader
@@ -225,12 +147,12 @@ export default function EditUserPage() {
             </FormSection>
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
   return (
-    <ProtectedRoute>
+    <>
       <DashboardLayout hideHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <PageHeader
@@ -332,6 +254,6 @@ export default function EditUserPage() {
           </FormFooter>
         </form>
       </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 }

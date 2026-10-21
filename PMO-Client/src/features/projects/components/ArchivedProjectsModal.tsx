@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { RotateCcw, Trash2, Archive, Search } from 'lucide-react';
 import { Modal } from "@/components/ui/modal";
-import axios from 'axios';
+import { notConnected } from "@/lib/not-connected";
 import { toast } from 'sonner';
 import { ProjectWithRelations } from '@/features/projects/types';
 import { Spinner } from "@/components/ui/spinner";
@@ -17,19 +17,19 @@ const ArchivedProjectsModal: React.FC<ArchivedProjectsModalProps> = ({
   onClose,
   onRestore
 }) => {
-  const [archivedProjects, setArchivedProjects] = useState<ProjectWithRelations[]>([]);
+  // notConnected: archived projects would be loaded here. Until then there are none.
+  const [archivedProjects] = useState<ProjectWithRelations[]>([]);
   const [filteredProjects, setFilteredProjects] = useState<ProjectWithRelations[]>([]);
-  const [loading, setLoading] = useState(false);
+  const loading = false;
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProjects, setSelectedProjects] = useState<number[]>([]);
-  const [isRestoring, setIsRestoring] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const isRestoring = false;
+  const isDeleting = false;
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [projectsToDelete, setProjectsToDelete] = useState<number[]>([]);
 
   useEffect(() => {
     if (isOpen) {
-      fetchArchivedProjects();
       setSearchQuery('');
       setSelectedProjects([]);
     }
@@ -50,99 +50,17 @@ const ArchivedProjectsModal: React.FC<ArchivedProjectsModalProps> = ({
     }
   }, [searchQuery, archivedProjects]);
 
-  const fetchArchivedProjects = async () => {
-    try {
-      setLoading(true);
-      
-      // Fetch archived projects by modifying the main projects API call
-      const response = await axios.get('/api/projects', {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        },
-        params: {
-          include_archived: 'true',
-          archived_only: 'true'
-        }
-      });
-      
-      setArchivedProjects(response.data);
-    } catch (error) {
-      console.error('Error fetching archived projects:', error);
-      toast.error('Failed to load archived projects');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRestore = async (projectIds: number[]) => {
-    try {
-      setIsRestoring(true);
-      
-      const response = await axios.put('/api/projects/archive', {
-        project_ids: projectIds
-      }, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      toast.success(response.data.message);
-      
-      // Remove restored projects from the list
-      setArchivedProjects(prev => 
-        prev.filter(project => !projectIds.includes(project.project_id))
-      );
-      setSelectedProjects([]);
-      
-      // Notify parent to refresh main projects list
-      onRestore();
-      
-    } catch (error: any) {
-      console.error('Error restoring projects:', error);
-      const errorMessage = error.response?.data?.error || 'Failed to restore projects';
-      toast.error(errorMessage);
-    } finally {
-      setIsRestoring(false);
-    }
-  };
+  const handleRestore = (_projectIds: number[]) => notConnected('Restoring projects');
 
   const handlePermanentDelete = async (projectIds: number[]) => {
     setProjectsToDelete(projectIds);
     setShowDeleteConfirmModal(true);
   };
 
-  const confirmPermanentDelete = async () => {
-    try {
-      setIsDeleting(true);
-      setShowDeleteConfirmModal(false);
-      
-      // Call delete API for each project
-      const deletePromises = projectsToDelete.map(id =>
-        axios.delete(`/api/projects/${id}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`
-          }
-        })
-      );
-
-      await Promise.all(deletePromises);
-      
-      toast.success(`Successfully deleted ${projectsToDelete.length} project(s) permanently`);
-      
-      // Remove deleted projects from the list
-      setArchivedProjects(prev => 
-        prev.filter(project => !projectsToDelete.includes(project.project_id))
-      );
-      setSelectedProjects([]);
-      setProjectsToDelete([]);
-      
-    } catch (error: any) {
-      console.error('Error deleting projects:', error);
-      const errorMessage = error.response?.data?.error || 'Failed to delete projects';
-      toast.error(errorMessage);
-    } finally {
-      setIsDeleting(false);
-    }
+  const confirmPermanentDelete = () => {
+    setShowDeleteConfirmModal(false);
+    setProjectsToDelete([]);
+    notConnected('Deleting projects');
   };
 
   const cancelPermanentDelete = () => {

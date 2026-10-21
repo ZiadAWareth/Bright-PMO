@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { TeamUserSelect } from "@/features/team/components/TeamUserSelect";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
 import {
     Users,
@@ -31,55 +31,13 @@ export default function ApprovalsPage() {
         FIN: "",
     });
     const [submitting, setSubmitting] = useState(false);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [showNavButtons, setShowNavButtons] = useState(false);
     const [existingApprovals, setExistingApprovals] = useState<any[]>([]);
     const [creatingApprovals, setCreatingApprovals] = useState(false);
 
-    const token = () =>
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    const authHeader = () => ({ Authorization: `Bearer ${token()}` });
-
-    useEffect(() => {
-        async function fetchData() {
-            try {
-                const projectRes = await axios.get(`/api/projects/${projectId}`, {
-                    headers: authHeader(),
-                });
-                setProject(projectRes.data);
-
-                const approvalsRes = await axios.get(
-                    `/api/projects/${projectId}/approval`,
-                    { headers: authHeader() }
-                );
-                setExistingApprovals(approvalsRes.data);
-
-                const usersRes = await axios.get(`/api/users`, {
-                    headers: authHeader(),
-                });
-                const allUsers = usersRes.data;
-
-                const managerUser = allUsers.find(
-                    (u: any) => u.user_id === projectRes.data.manager_id
-                );
-
-                setUsersByRole({
-                    PJM: managerUser ? [managerUser] : [],
-                    FIN: allUsers.filter((u: any) => u.role?.name === "FIN"),
-                });
-
-                setForm((f) => ({
-                    ...f,
-                    PJM: projectRes.data.manager_id?.toString() || "",
-                }));
-            } catch {
-                toast.error("Failed to load project or users");
-            } finally {
-                setLoading(false);
-            }
-        }
-        fetchData();
-    }, [projectId]);
+    // notConnected: the project, its approvals and the PJM/Finance users to pick
+    // from would be loaded here.
 
     useEffect(() => {
         if (typeof window !== "undefined") {
@@ -88,38 +46,13 @@ export default function ApprovalsPage() {
         }
     }, []);
 
-    const refreshApprovals = async () => {
-        const res = await axios.get(`/api/projects/${projectId}/approval`, {
-            headers: authHeader(),
-        });
-        setExistingApprovals(res.data);
-    };
-
     // Create approvals (submit for approval) — workflow is managed on the project page
     const handleCreateApprovals = async () => {
         if (!form.PJM || !form.FIN) {
             toast.error("Please select a user for PJM and Finance.");
             return;
         }
-        setCreatingApprovals(true);
-        try {
-            const response = await axios.post(
-                `/api/projects/${projectId}/approval`,
-                { userIds: [parseInt(form.PJM), parseInt(form.FIN)] },
-                { headers: authHeader() }
-            );
-            toast.success(response.data.message);
-            await refreshApprovals();
-        } catch (error: any) {
-            if (error.response?.status === 409) {
-                toast.error(error.response.data.error);
-                await refreshApprovals();
-            } else {
-                toast.error("Failed to create approvals");
-            }
-        } finally {
-            setCreatingApprovals(false);
-        }
+        notConnected("Requesting approvals");
     };
 
     const approvalsCreated = existingApprovals.length > 0;
@@ -283,17 +216,9 @@ export default function ApprovalsPage() {
                         <span>Back to Setup</span>
                     </button>
                     <button
-                        onClick={async () => {
-                            try {
-                                await axios.patch(
-                                    `/api/projects/${projectId}/setup`,
-                                    { execution: true },
-                                    { headers: authHeader() }
-                                );
-                                router.push(`/projects/${projectId}`);
-                            } catch {
-                                toast.error("Failed to mark approval as complete.");
-                            }
+                        onClick={() => {
+                            // notConnected: marks the approval step complete in the project setup.
+                            router.push(`/projects/${projectId}`);
                         }}
                         className="flex items-center space-x-2 px-6 py-3 bg-info text-white rounded-lg hover:opacity-90 transition-colors"
                     >

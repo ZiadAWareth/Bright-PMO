@@ -1,5 +1,6 @@
 "use client";
 
+import { notConnected } from "@/lib/not-connected";
 import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -14,11 +15,9 @@ import {
   Trash2,
   Users,
 } from "lucide-react";
-import axios from "axios";
 import { ProjectSetup, ProjectWithRelations } from "@/features/projects/types";
 import { ProjectStatus, ProjectPriority } from "@/types/enums";
 import { toast } from "sonner";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import { FilterBar, FilterSelect } from "@/components/ui/filter-bar";
 import MassUpdateModal from "@/features/projects/components/MassUpdateModal";
 import ArchivedProjectsModal from "@/features/projects/components/ArchivedProjectsModal";
@@ -99,19 +98,17 @@ const shortDate = (date: Date | string | null | undefined) =>
       }).format(new Date(date))
     : "—";
 
-const auth = () => ({
-  headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-});
-
 const ProjectsPage = () => {
   const router = useRouter();
   const confirm = useConfirm();
 
   const [activeView, setActiveView] = useState("ADMIN");
-  const [projects, setProjects] = useState<ProjectWithRelations[]>([]);
-  const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
-  const [userName, setUserName] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(true);
+  // notConnected: projects, portfolios (for the filter) and the signed-in
+  // user's name (for role scoping) would be loaded here.
+  const [projects] = useState<ProjectWithRelations[]>([]);
+  const [portfolios] = useState<Portfolio[]>([]);
+  const [userName] = useState<string>("");
+  const isLoading = false;
 
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
   const [view, setView] = useState<ListViewMode>("grid");
@@ -119,7 +116,7 @@ const ProjectsPage = () => {
   const debouncedSearch = useDebounce(filters.search, 300);
 
   const [selectedProjects, setSelectedProjects] = useState<number[]>([]);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const isDeleting = false;
   const [showMassUpdateModal, setShowMassUpdateModal] = useState(false);
   const [showArchivedModal, setShowArchivedModal] = useState(false);
   const [projectToEdit, setProjectToEdit] =
@@ -130,47 +127,9 @@ const ProjectsPage = () => {
   // A narrowed result set can leave the current page past the end of the list.
   useEffect(() => setPage(0), [debouncedSearch, filters.status, filters.portfolio, filters.priority]);
 
-  const loadProjects = async () => {
-    try {
-      setIsLoading(true);
-      const response = await axios.get("api/projects", auth());
-      setProjects(response.data as ProjectWithRelations[]);
-    } catch (error) {
-      console.error("Error fetching projects:", error);
-      toast.error("Failed to load projects");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const refreshProjects = async () => {
-    try {
-      const response = await axios.get("/api/projects", auth());
-      setProjects(response.data);
-    } catch (error) {
-      console.error("Error refreshing projects:", error);
-    }
+    // notConnected: reloads the projects.
   };
-
-  useEffect(() => {
-    loadProjects();
-
-    axios
-      .get(`api/auth/me`, auth())
-      .then((res) =>
-        axios.get(`api/users/${res.data.user.user_id}`, auth()).then((userRes) =>
-          setUserName(
-            `${userRes.data.user.account.first_name} ${userRes.data.user.account.last_name}`,
-          ),
-        ),
-      )
-      .catch((error) => console.error("Error fetching user details:", error));
-
-    axios
-      .get("api/portfolios", auth())
-      .then((res) => setPortfolios(res.data))
-      .catch((error) => console.error("Error fetching portfolios:", error));
-  }, [activeView]);
 
   /**
    * Role scoping. Technical staff see only projects they are on; executives see
@@ -300,19 +259,7 @@ const ProjectsPage = () => {
     });
     if (!ok) return;
 
-    setIsDeleting(true);
-    try {
-      await axios.delete(`api/projects/${project.project_id}`, auth());
-      setProjects((prev) =>
-        prev.filter((p) => p.project_id !== project.project_id),
-      );
-      toast.success("Project deleted successfully");
-    } catch (error) {
-      console.error("Error deleting project:", error);
-      toast.error("Failed to delete project. Please try again.");
-    } finally {
-      setIsDeleting(false);
-    }
+    notConnected("Deleting the project");
   };
 
   const handleArchiveSelected = async () => {
@@ -320,19 +267,7 @@ const ProjectsPage = () => {
       toast.error("Please select projects to archive");
       return;
     }
-    try {
-      const response = await axios.post(
-        "/api/projects/archive",
-        { project_ids: selectedProjects },
-        auth(),
-      );
-      toast.success(response.data.message);
-      await refreshProjects();
-      setSelectedProjects([]);
-    } catch (error: any) {
-      console.error("Error archiving projects:", error);
-      toast.error(error.response?.data?.error || "Failed to archive projects");
-    }
+    notConnected("Archiving projects");
   };
 
   const toggleSelected = (id: number) =>
@@ -502,7 +437,7 @@ const ProjectsPage = () => {
   );
 
   return (
-    <ProtectedRoute>
+    <>
       <DashboardLayout
         title="Projects"
         subtitle="Every project you have access to, across all portfolios."
@@ -780,7 +715,7 @@ const ProjectsPage = () => {
           </div>
         )}
       </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 };
 

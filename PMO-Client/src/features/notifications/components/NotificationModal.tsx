@@ -43,7 +43,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
 }) => {
   const router = useRouter();
   const [navigationUrl, setNavigationUrl] = useState<string | null>(null);
-  const [isLoadingUrl, setIsLoadingUrl] = useState(false);
+  const isLoadingUrl = false;
 
   useEffect(() => {
     if (notification && isOpen) {
@@ -51,87 +51,31 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
     }
   }, [notification, isOpen]);
 
-  const getNavigationUrl = async () => {
-    // Always reset to null at the start
-    setNavigationUrl(null);
-    
-    if (!notification?.metadata) {
-      setIsLoadingUrl(false);
+  const getNavigationUrl = () => {
+    const metadata = notification?.metadata;
+    if (!metadata) {
+      setNavigationUrl(null);
       return;
     }
-
-    setIsLoadingUrl(true);
-    const metadata = notification.metadata;
     const type = notification.type?.toUpperCase();
     let url: string | null = null;
 
-    try {
-      const token = localStorage.getItem('token');
-      const fetchOptions: RequestInit = {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      };
-
-      // Handle task comment mentions
-      if (type === 'TASK_UPDATE' && metadata.task_id && metadata.comment_id) {
-        // Fetch task to get wbs_id, then fetch wbs to get project_id
-        const taskResponse = await fetch(`/api/tasks/${metadata.task_id}`, fetchOptions);
-        
-        if (taskResponse.ok) {
-          const task = await taskResponse.json();
-          const wbsId = task.wbs_id || task.wbs?.wbs_id;
-          
-          if (wbsId) {
-            // Fetch WBS to get project_id
-            const wbsResponse = await fetch(`/api/wbs/${wbsId}`, fetchOptions);
-            if (wbsResponse.ok) {
-              const wbs = await wbsResponse.json();
-              if (wbs.project_id) {
-                url = `/projects/${wbs.project_id}/tasks/${metadata.task_id}?comment=${metadata.comment_id}`;
-              }
-            }
-          }
-        }
+    if ((type === 'TASK_UPDATE' || type === 'TASK_ASSIGNMENT') && metadata.task_id) {
+      // notConnected: a task link needs the task's project, which was looked up
+      // from the task and its WBS on the backend. Linked only when the
+      // notification already carries the project.
+      if (metadata.project_id) {
+        url = `/projects/${metadata.project_id}/tasks/${metadata.task_id}` +
+          (metadata.comment_id ? `?comment=${metadata.comment_id}` : '');
       }
-      // Handle task assignments/updates (but not if it's a comment mention, already handled above)
-      else if ((type === 'TASK_ASSIGNMENT' || type === 'TASK_UPDATE') && metadata.task_id && !metadata.comment_id) {
-        const taskResponse = await fetch(`/api/tasks/${metadata.task_id}`, fetchOptions);
-        
-        if (taskResponse.ok) {
-          const task = await taskResponse.json();
-          const wbsId = task.wbs_id || task.wbs?.wbs_id;
-          
-          if (wbsId) {
-            const wbsResponse = await fetch(`/api/wbs/${wbsId}`, fetchOptions);
-            if (wbsResponse.ok) {
-              const wbs = await wbsResponse.json();
-              if (wbs.project_id) {
-                url = `/projects/${wbs.project_id}/tasks/${metadata.task_id}`;
-              }
-            }
-          }
-        }
-      }
-      // Handle project-related notifications
-      else if (metadata.project_id && (type === 'PROJECT_CREATION' || type === 'PROJECT_UPDATE')) {
-        url = `/projects/${metadata.project_id}`;
-      }
-      // Handle risk notifications
-      else if (metadata.risk_id) {
-        url = `/risk/${metadata.risk_id}`;
-      }
-      // Handle schedule notifications
-      else if (metadata.schedule_id) {
-        url = `/scheduler/${metadata.schedule_id}`;
-      }
-      
-      // Only set URL if we have a valid one
-      setNavigationUrl(url);
-    } catch (error) {
-      console.error('Error getting navigation URL:', error);
-      setNavigationUrl(null);
-    } finally {
-      setIsLoadingUrl(false);
+    } else if (metadata.project_id && (type === 'PROJECT_CREATION' || type === 'PROJECT_UPDATE')) {
+      url = `/projects/${metadata.project_id}`;
+    } else if (metadata.risk_id) {
+      url = `/risk/${metadata.risk_id}`;
+    } else if (metadata.schedule_id) {
+      url = `/scheduler/${metadata.schedule_id}`;
     }
+    setNavigationUrl(url);
   };
 
   const handleView = () => {

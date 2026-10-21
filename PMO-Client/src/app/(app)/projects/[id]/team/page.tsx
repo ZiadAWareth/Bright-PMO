@@ -17,14 +17,12 @@ import {
     Gauge,
     AlertTriangle,
 } from "lucide-react";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
 import { ProjectWithRelations, ProjectSetup } from "@/features/projects/types";
 import { AddEntityModal } from "@/components/form/AddEntityModal";
 import { TeamUserSelect } from "@/features/team/components/TeamUserSelect";
 import ResourceAssignmentModal from "@/features/waterfall/schedule/components/ResourceAssignmentModal";
-import { useDepartments } from "@/features/team/hooks/useDepartments";
-import { useEmployees } from "@/features/team/hooks/useEmployees";
 import { Spinner } from "@/components/ui/spinner";
 import { useConfirm } from "@/components/ui/confirm-provider";
 import { Dropdown } from "@/components/ui/dropdown";
@@ -66,7 +64,7 @@ const TeamResourcesPage = () => {
 
     const [project, setProject] = useState<ProjectWithRelations | null>(null);
     const [setup, setSetup] = useState<ProjectSetup | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [showNavButtons, setShowNavButtons] = useState(false);
     const [showAddMemberModal, setShowAddMemberModal] = useState(false);
     const [showEditMemberModal, setShowEditMemberModal] = useState(false);
@@ -84,8 +82,8 @@ const TeamResourcesPage = () => {
         Record<number, any[]>
     >({});
     const [teamMembers, setTeamMembers] = useState<any[]>([]);
-    const [userRole, setUserRole] = useState<string>("");
-    const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+    // Every action is open until roles come from the backend.
+    const userRole = "ADMIN";
     const [resources, setResources] = useState<any[]>([]);
     const [expandedTasks, setExpandedTasks] = useState<Record<number, boolean>>(
         {}
@@ -115,8 +113,12 @@ const TeamResourcesPage = () => {
     const [memberListOpen, setMemberListOpen] = useState(false);
     const memberListRef = useRef<HTMLDivElement>(null);
 
-    const { departments, loading: departmentsLoading } = useDepartments();
-    const { employees, loading: employeesLoading } = useEmployees({ limit: 200 });
+    // notConnected: departments and employees came from the HR service. Until
+    // the integration there are none to pick from.
+    const [departments] = useState<any[]>([]);
+    const departmentsLoading = false;
+    const [employees] = useState<any[]>([]);
+    const employeesLoading = false;
 
     const availableRoles = TEAM_MEMBER_ROLES;
     const getEmployeeFullName = (emp: any) =>
@@ -143,247 +145,43 @@ const TeamResourcesPage = () => {
         }
     }, []);
 
-    // Fetch current user info to get role
-    useEffect(() => {
-        const fetchCurrentUser = async () => {
-            try {
-                const token = localStorage.getItem("token");
-                if (!token) return;
-
-                const response = await axios.get("/api/auth/me", {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
-
-                if (response.data && response.data.user) {
-                    setCurrentUserId(response.data.user.user_id);
-                    // Set user role
-                    if (
-                        response.data.user.role &&
-                        response.data.user.role.name
-                    ) {
-                        const roleName =
-                            response.data.user.role.name.toUpperCase();
-                        setUserRole(roleName);
-                        console.log("User role detected:", roleName);
-                    } else {
-                        console.log("No role found for user");
-                    }
-                }
-            } catch (error) {
-                console.error("Error fetching current user:", error);
-            }
-        };
-
-        fetchCurrentUser();
-    }, []);
-
-    useEffect(() => {
-        fetchProject();
-        fetchSetupStatus();
-        fetchResources();
-    }, [projectId]);
+    // notConnected: the project (with its team and tasks), its setup checklist
+    // and the resources would be loaded here.
 
     const fetchProject = async () => {
-        try {
-            const token = localStorage.getItem("token");
-            const res = await axios.get(`/api/projects/${projectId}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            setProject(res.data);
-            setTeamMembers(res.data.team_members || []);
-            // Fetch assignments for all tasks
-            if (res.data.tasks) {
-                for (const task of res.data.tasks) {
-                    fetchTaskAssignments(task.task_id);
-                    fetchResourceAssignments(task.task_id);
-                }
-            }
-            setLoading(false);
-        } catch (e) {
-            setProject(null);
-            setLoading(false);
-        }
+        // notConnected: loads the project with its team members and tasks.
     };
 
     const fetchSetupStatus = async () => {
-        try {
-            const token = localStorage.getItem("token");
-            const res = await axios.get(`/api/projects/${projectId}/setup`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            setSetup(res.data);
-        } catch (e) {
-            setSetup(null);
-        }
+        // notConnected: loads the project's setup checklist.
     };
 
     const fetchTaskAssignments = async (taskId: number) => {
-        try {
-            const token = localStorage.getItem("token");
-            const res = await axios.get(`/api/tasks/${taskId}/assign`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            setTaskAssignments((prev) => ({ ...prev, [taskId]: res.data }));
-        } catch (e) {
-            setTaskAssignments((prev) => ({ ...prev, [taskId]: [] }));
-        }
+        // notConnected: loads the users assigned to the task.
     };
 
     const fetchResourceAssignments = async (taskId: number) => {
-        try {
-            const token = localStorage.getItem("token");
-            const res = await axios.get(
-                `/api/tasks/${taskId}/resource-assignments`,
-                {
-                    headers: { Authorization: `Bearer ${token}` },
-                }
-            );
-            setResourceAssignments((prev) => ({ ...prev, [taskId]: res.data }));
-        } catch (e) {
-            setResourceAssignments((prev) => ({ ...prev, [taskId]: [] }));
-        }
+        // notConnected: loads the resources assigned to the task.
     };
 
     const fetchResources = async () => {
-        try {
-            const token = localStorage.getItem("token");
-            const res = await axios.get("/api/resources", {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            setResources(res.data.allResources || []);
-        } catch (e) {
-            setResources([]);
-            toast.error("Failed to load resources");
-        }
+        // notConnected: loads the available resources.
     };
 
     const handleAddUserAssignment = async (taskId: number, userId: number) => {
-        try {
-            const token = localStorage.getItem("token");
-            await axios.post(
-                `/api/tasks/${taskId}/assign`,
-                {
-                    user_ids: [userId],
-                },
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
-            toast.success("User assigned to task");
-            fetchTaskAssignments(taskId);
-        } catch (e) {
-            toast.error("Failed to assign user");
-        }
+        notConnected("Assigning the user");
     };
 
-    const handleRemoveUserAssignment = async (
-        taskId: number,
-        userId: number
-    ) => {
-        try {
-            const token = localStorage.getItem("token");
-            await axios.delete(`/api/tasks/${taskId}/assign`, {
-                data: { user_ids: [userId] },
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-            toast.success("User unassigned from task");
-            fetchTaskAssignments(taskId);
-        } catch (e) {
-            toast.error("Failed to unassign user");
-        }
+    const handleRemoveUserAssignment = async (_taskId: number, _userId: number) => {
+        notConnected("Unassigning the user");
     };
 
     const handleResourceAssignment = async (assignmentData: any) => {
-        try {
-            const token = localStorage.getItem("token");
-            await axios.post("/api/resourceAssignments", assignmentData, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            toast.success("Resource assigned successfully");
-            fetchResourceAssignments(assignmentData.task_id);
-            setResourceAssignmentModalOpen(false);
-        } catch (error: any) {
-            console.error("Error assigning resource:", error);
-            if (error.response?.status === 400) {
-                const errorData = error.response.data;
-
-                // Handle specific backend validation errors
-                if (errorData.reason === "resource_not_available") {
-                    toast.error("Resource is not available for assignments");
-                } else if (errorData.reason === "capacity_exceeded") {
-                    toast.error(
-                        "Resource capacity exceeded for this time period"
-                    );
-                } else if (errorData.conflictDetails) {
-                    // Handle overlapping assignments
-                    toast.error(
-                        "Resource has conflicting assignments during this period"
-                    );
-                    if (
-                        errorData.alternatives &&
-                        errorData.alternatives.length > 0
-                    ) {
-                        toast.info(
-                            `${errorData.alternatives.length} alternative resources available`
-                        );
-                    }
-                } else if (errorData.details) {
-                    // Handle planned hours vs required hours validation
-                    if (
-                        errorData.details.plannedHours &&
-                        errorData.details.requiredHours
-                    ) {
-                        toast.error(
-                            `Planned hours (${errorData.details.plannedHours}) exceed available time (${errorData.details.requiredHours} hours)`
-                        );
-                    } else if (errorData.details.capacity) {
-                        toast.error(
-                            `Resource capacity insufficient: ${errorData.details.capacity}h/day`
-                        );
-                    } else {
-                        toast.error(
-                            errorData.error ||
-                                "Resource assignment validation failed"
-                        );
-                    }
-                } else {
-                    toast.error(
-                        errorData.error || "Resource assignment failed"
-                    );
-                }
-
-                // Handle alternative resource suggestions if available
-                if (
-                    errorData.alternatives &&
-                    errorData.alternatives.length > 0
-                ) {
-                    console.log(
-                        "Alternative resources:",
-                        errorData.alternatives
-                    );
-                    toast.info(
-                        `${errorData.alternatives.length} alternative resources suggested`
-                    );
-                }
-            } else {
-                // For other error types, extract the error message from backend response
-                const errorMessage =
-                    error.response?.data?.error || "Failed to assign resource";
-                toast.error(errorMessage);
-            }
-        }
+        notConnected("Assigning a resource");
     };
 
     const handleAddTeamMember = async (userId: number) => {
-        // Implement API call to add user to project team
-        // After success, refetch project/teamMembers
-        await fetchProject();
+        notConnected("Adding a team member");
     };
 
     // Helper to toggle expand/collapse for a task card
@@ -395,18 +193,7 @@ const TeamResourcesPage = () => {
     };
 
     const fetchAllUsers = async () => {
-        setIsLoadingUsers(true);
-        try {
-            const token = localStorage.getItem("token");
-            const res = await axios.get("/api/users", {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            setAllUsers(res.data || []);
-        } catch (e) {
-            setAllUsers([]);
-        } finally {
-            setIsLoadingUsers(false);
-        }
+        // notConnected: loads the users that can join the team.
     };
 
     useEffect(() => {
@@ -421,26 +208,8 @@ const TeamResourcesPage = () => {
             addMemberForm.user_id &&
             !selectedHrEmployee
         ) {
-            const token = localStorage.getItem("token");
-            if (!token) return;
-            axios
-                .get(`/api/users/workload?user_ids=${addMemberForm.user_id}`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                })
-                .then((res) => {
-                    const list = Array.isArray(res.data) ? res.data : [];
-                    const u = list.find(
-                        (x: any) => x.user_id === parseInt(addMemberForm.user_id, 10)
-                    );
-                    if (u && typeof u.utilization_percentage === "number") {
-                        setWorkloadAvailable(
-                            Math.max(0, Math.round(100 - u.utilization_percentage))
-                        );
-                    } else {
-                        setWorkloadAvailable(null);
-                    }
-                })
-                .catch(() => setWorkloadAvailable(null));
+            // notConnected: loads the selected user's current workload.
+            setWorkloadAvailable(null);
         } else {
             setWorkloadAvailable(null);
         }
@@ -490,121 +259,14 @@ const TeamResourcesPage = () => {
             toast.error("Please select Role and Department.");
             return;
         }
-        setIsAddingMember(true);
-        try {
-            const token = localStorage.getItem("token");
-            if (!token) {
-                toast.error("Please log in.");
-                return;
-            }
-            let userId: number;
-            if (memberSource === "hr" && selectedHrEmployee) {
-                const fromHrRes = await axios.post(
-                    "/api/users/from-hr-employee",
-                    {
-                        idp_user_id:
-                            selectedHrEmployee._id ?? selectedHrEmployee.id,
-                        email: selectedHrEmployee.email,
-                        first_name:
-                            selectedHrEmployee.first_name ??
-                            selectedHrEmployee.firstName,
-                        last_name:
-                            selectedHrEmployee.last_name ??
-                            selectedHrEmployee.lastName,
-                        department:
-                            addMemberForm.department ||
-                            selectedHrEmployee.department ||
-                            "General",
-                        role: addMemberForm.role,
-                    },
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
-                userId = fromHrRes.data.user_id;
-            } else {
-                if (!addMemberForm.user_id) {
-                    toast.error("Please select a user.");
-                    return;
-                }
-                userId = parseInt(addMemberForm.user_id, 10);
-            }
-            await axios.post(
-                `/api/projects/${projectId}/assign`,
-                {
-                    user_id: userId,
-                    role: addMemberForm.role,
-                    department: addMemberForm.department,
-                    workload: parseFloat(addMemberForm.workload),
-                    is_lead: addMemberForm.is_lead,
-                },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            toast.success("User added to team");
-            await fetchProject();
-            setShowAddMemberModal(false);
-            setAddMemberForm({
-                user_id: "",
-                role: "",
-                department: "",
-                workload: "100",
-                is_lead: false,
-            });
-            setMemberSource("pmo");
-            setSelectedHrEmployee(null);
-            setWorkloadAvailable(null);
-            setMemberSearchTerm("");
-            setDepartmentSearchTerm("");
-        } catch (e: any) {
-            console.error("Error adding team member:", e);
-            const errorMessage =
-                e.response?.data?.error || e.message || "Failed to add user";
-            toast.error(errorMessage);
-        } finally {
-            setIsAddingMember(false);
-        }
+        notConnected("Adding the team member");
     };
 
     const handleEditMemberFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingMember) return;
         
-        setIsUpdatingMember(true);
-        try {
-            const token = localStorage.getItem("token");
-            await axios.patch(
-                `/api/projects/${projectId}/assign`,
-                {
-                    user_id: editingMember.user_id,
-                    role: addMemberForm.role,
-                    department: addMemberForm.department,
-                    workload: parseFloat(addMemberForm.workload),
-                    is_lead: addMemberForm.is_lead,
-                },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            
-            toast.success("Team member updated successfully");
-            
-            // Refresh the project data to show updated values
-            await fetchProject();
-            
-            // Close modal and reset form
-            setShowEditMemberModal(false);
-            setEditingMember(null);
-            setAddMemberForm({
-                user_id: "",
-                role: "",
-                department: "",
-                workload: "100",
-                is_lead: false,
-            });
-        } catch (e: any) {
-            console.error("Error updating team member:", e);
-            const errorMessage =
-                e.response?.data?.error || e.message || "Failed to update team member";
-            toast.error(errorMessage);
-        } finally {
-            setIsUpdatingMember(false);
-        }
+        notConnected("Updating the team member");
     };
 
     if (loading) {
@@ -777,45 +439,7 @@ const TeamResourcesPage = () => {
                                                                     tone: "danger",
                                                                 })
                                                             ) {
-                                                                setDeletingMemberId(tm.user_id);
-                                                                try {
-                                                                    const token =
-                                                                        localStorage.getItem(
-                                                                            "token"
-                                                                        );
-                                                                    await axios.delete(
-                                                                        `/api/projects/${projectId}/assign`,
-                                                                        {
-                                                                            data: {
-                                                                                userIds: [
-                                                                                    tm.user_id,
-                                                                                ],
-                                                                            },
-                                                                            headers: {
-                                                                                Authorization: `Bearer ${token}`,
-                                                                            },
-                                                                        }
-                                                                    );
-                                                                    toast.success(
-                                                                        "Team member removed successfully"
-                                                                    );
-                                                                    await fetchProject();
-                                                                } catch (e: any) {
-                                                                    console.error(
-                                                                        "Error removing team member:",
-                                                                        e
-                                                                    );
-                                                                    const errorMessage =
-                                                                        e.response?.data
-                                                                            ?.error ||
-                                                                        e.message ||
-                                                                        "Failed to remove team member";
-                                                                    toast.error(
-                                                                        errorMessage
-                                                                    );
-                                                                } finally {
-                                                                    setDeletingMemberId(null);
-                                                                }
+                                                                notConnected("Removing the team member");
                                                             }
                                                         }}
                                                         disabled={deletingMemberId === tm.user_id}
@@ -1076,15 +700,7 @@ const TeamResourcesPage = () => {
                                                                 )}
                                                                 {canManageTeam && (
                                                                     <button
-                                                                        onClick={async () => {
-                                                                            const token = localStorage.getItem("token");
-                                                                            await axios.delete(
-                                                                                `/api/resourceAssignments/${assn.assignment_id}`,
-                                                                                { headers: { Authorization: `Bearer ${token}` } }
-                                                                            );
-                                                                            toast.success("Resource unassigned");
-                                                                            fetchResourceAssignments(task.task_id);
-                                                                        }}
+                                                                        onClick={() => notConnected("Unassigning the resource")}
                                                                         className="rounded-md p-1.5 text-muted transition-colors hover:bg-danger-soft hover:text-danger"
                                                                         title="Remove"
                                                                         aria-label="Unassign resource from task"
@@ -1119,28 +735,9 @@ const TeamResourcesPage = () => {
                             <span>Back to Setup</span>
                         </button>
                         <button
-                            onClick={async () => {
-                                try {
-                                    const token = localStorage.getItem("token");
-                                    await axios.patch(
-                                        `/api/projects/${projectId}/setup`,
-                                        { team: true },
-                                        {
-                                            headers: {
-                                                "Content-Type":
-                                                    "application/json",
-                                                Authorization: `Bearer ${token}`,
-                                            },
-                                        }
-                                    );
-                                    router.push(
-                                        `/projects/${projectId}/risk?from=previous`
-                                    );
-                                } catch (error) {
-                                    toast.error(
-                                        "Failed to mark team step as complete."
-                                    );
-                                }
+                            onClick={() => {
+                                // notConnected: marks the team step complete in the project setup.
+                                router.push(`/projects/${projectId}/risk?from=previous`);
                             }}
                             className="flex items-center space-x-2 px-6 py-3 bg-info text-white rounded-lg hover:opacity-90 transition-colors"
                         >

@@ -22,7 +22,7 @@ import {
   CheckSquare,
   Upload,
 } from "lucide-react";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
 import { ProjectSetup } from "@/features/projects/types";
 import { Spinner } from "@/components/ui/spinner";
@@ -115,11 +115,10 @@ const ProjectBudgetPage = () => {
   const router = useRouter();
   const params = useParams();
   const projectId = params.id as string;
-  const [user, setUser] = useState<User | null>(null);
   const [project, setProject] = useState<Project | null>(null);
   const [wbsData, setWbsData] = useState<WBSItem[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showNavButtons, setShowNavButtons] = useState(false);
   const [activeView, setActiveView] = useState("admin");
@@ -131,14 +130,8 @@ const ProjectBudgetPage = () => {
   const [setup, setSetup] = useState<ProjectSetup | null>(null);
 
   // Check if user has permission to edit budget
-  const canEditBudget = () => {
-    if (!user || !user.role) {
-      console.log("User role is not defined as  role is: ", user?.role);
-      return false;
-    }
-    const allowedRoles = ["PMO", "PJM", "ADMIN"];
-    return allowedRoles.includes(user.role.name);
-  };
+  // Every action is open until roles come from the backend.
+  const canEditBudget = () => true;
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -154,140 +147,23 @@ const ProjectBudgetPage = () => {
     }
   }, [error]);
 
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      await Promise.all([
-        fetchProjectData(),
-        fetchWBSData(),
-        fetchBudgets(),
-        fetchSetupStatus(),
-        fetchUserData()
-      ]);
-      setLoading(false);
-    };
-    loadData();
-  }, [projectId]);
-
-  const fetchUserData = async () => {
-    try {
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      if (!token) {
-        setUser(null);
-        return;
-      }
-
-      const response = await axios.get(`/api/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setUser(response.data.user);
-      console.log("User data fetched successfully:", response.data.user);
-    } catch (error) {
-      console.error("Error fetching user data:", error);
-      setUser(null);
-    }
-  };
+  // notConnected: the project, its WBS items, budgets and setup status would be
+  // loaded here.
 
   const fetchProjectData = async () => {
-    try {
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      const response = await axios.get(
-        `/api/projects/${projectId}`,
-        token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
-      );
-      setProject(response.data);
-      console.log(response.data);
-    } catch (error) {
-      setProject(null);
-    }
+    // notConnected: loads the project.
   };
 
   const fetchWBSData = async () => {
-    try {
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      const auth = token ? { headers: { Authorization: `Bearer ${token}` } } : undefined;
-
-      // Same approach as schedule page: two parallel calls instead of 1 + N
-      const [wbsResponse, tasksResponse] = await Promise.all([
-        axios.get(`/api/projects/${projectId}/wbs`, auth),
-        axios.get(`/api/projects/${projectId}/tasks`, auth),
-      ]);
-
-      const wbsList = wbsResponse.data;
-      const allTasks: Task[] = tasksResponse.data ?? [];
-
-      // Attach tasks to each WBS by wbs_id (client-side grouping)
-      const wbsWithTasks = wbsList.map((wbs: any) => ({
-        ...wbs,
-        tasks: allTasks.filter(
-          (t: Task) => (t.wbs_id ?? (t as any).wbs?.wbs_id) === wbs.wbs_id
-        ),
-      }));
-
-      // Build hierarchy from flat WBS data
-      const buildHierarchy = (items: WBSItem[]): WBSItem[] => {
-        const itemMap = new Map<number, WBSItem>();
-        const roots: WBSItem[] = [];
-
-        // Create a map of all items
-        items.forEach((item) => {
-          itemMap.set(item.wbs_id, { ...item, children: [], isExpanded: true });
-        });
-
-        // Build the tree structure
-        items.forEach((item) => {
-          const node = itemMap.get(item.wbs_id)!;
-          if (item.parent_wbs_id === null) {
-            roots.push(node);
-          } else {
-            const parent = itemMap.get(item.parent_wbs_id);
-            if (parent) {
-              parent.children!.push(node);
-            }
-          }
-        });
-
-        return roots;
-      };
-
-      const hierarchicalWBS = buildHierarchy(wbsWithTasks);
-      setWbsData(hierarchicalWBS);
-    } catch (error) {
-      console.error("Error fetching WBS data:", error);
-      setError("Failed to fetch WBS data");
-    }
+    // notConnected: loads the WBS items with their tasks.
   };
 
   const fetchBudgets = async () => {
-    try {
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      const res = await axios.get(
-        `/api/projects/${projectId}/budgets`,
-        token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
-      );
-      setBudgets(res.data);
-      console.log(res.data);
-    } catch (e) {
-      setError("Failed to fetch budgets");
-    }
+    // notConnected: loads the budget lines.
   };
 
   const fetchSetupStatus = async () => {
-    try {
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      const response = await axios.get(
-        `/api/projects/${projectId}/setup`,
-        token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
-      );
-      setSetup(response.data);
-    } catch (error) {
-      setSetup(null);
-    }
+    // notConnected: loads the project setup status.
   };
 
   // Refresh function for template manager
@@ -426,113 +302,9 @@ const ProjectBudgetPage = () => {
       return;
     }
 
-    const originalBudgets = [...budgets];
-    const existingBudget = originalBudgets.find((b) => b.wbs_id === wbsId);
-    let optimisticBudgets;
-    const tempId = Date.now(); // Temporary ID for new items
-
-    // Optimistically update UI
-    if (existingBudget) {
-      optimisticBudgets = originalBudgets.map((b) =>
-        b.budget_id === existingBudget.budget_id
-          ? {
-              ...b,
-              planned_amount: newValue,
-              variance: newValue - b.actual_amount,
-            }
-          : b
-      );
-    } else {
-      const newBudgetItem: Budget = {
-        budget_id: tempId,
-        project_id: parseInt(projectId),
-        wbs_id: wbsId,
-        task_id: undefined,
-        cost_type: "General",
-        planned_amount: newValue,
-        actual_amount: 0,
-        variance: newValue,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      optimisticBudgets = [...originalBudgets, newBudgetItem];
-    }
-
-    setBudgets(optimisticBudgets);
     setEditingWBS(null);
     setEditValue("");
-
-    try {
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
-
-      if (existingBudget) {
-        // Update existing budget on the server
-        await axios.put(
-          `/api/budget/${existingBudget.budget_id}`,
-          {
-            ...existingBudget,
-            planned_amount: newValue,
-            variance: newValue - existingBudget.actual_amount,
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-      } else {
-        // Create new budget on the server
-        const response = await axios.post(
-          `/api/projects/${projectId}/budgets`,
-          {
-            wbs_id: wbsId,
-            cost_type: "General",
-            planned_amount: newValue,
-            actual_amount: 0,
-            variance: newValue,
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-
-        // Replace temporary budget with the real one from the server
-        const realNewBudget = response.data;
-        setBudgets((currentBudgets) =>
-          currentBudgets.map((b) =>
-            b.budget_id === tempId ? realNewBudget : b
-          )
-        );
-      }
-
-      toast.success("Budget Saved", {
-        description: "The planned amount has been updated successfully.",
-      });
-    } catch (error: any) {
-      console.error("Error saving budget:", error);
-
-      // Revert UI on failure
-      setBudgets(originalBudgets);
-
-      if (
-        error.response?.status === 400 &&
-        error.response?.data?.error === "Budget validation failed"
-      ) {
-        // Display the actual error message from the API
-        const errorMessage = 
-          error.response?.data?.details || 
-          error.response?.data?.error || 
-          "The total exceeds the budget limit.";
-        toast.error("Budget Validation Failed", {
-          description: errorMessage,
-        });
-      } else {
-        // Extract error message from response if available
-        const errorMessage = 
-          error.response?.data?.error || 
-          error.response?.data?.details || 
-          error.response?.data?.message ||
-          "An unexpected error occurred. Please try again.";
-        toast.error("Failed to save budget", {
-          description: errorMessage,
-        });
-      }
-    }
+    notConnected("Saving the budget");
   };
 
   const saveTaskBudget = async (taskId: number) => {
@@ -544,113 +316,8 @@ const ProjectBudgetPage = () => {
       return;
     }
 
-    const originalBudgets = [...budgets];
-    const existingBudget = originalBudgets.find((b) => b.task_id === taskId);
-    let optimisticBudgets;
-    const tempId = Date.now(); // Temporary ID for new items
-
-    // Optimistically update UI
-    if (existingBudget) {
-      optimisticBudgets = originalBudgets.map((b) =>
-        b.budget_id === existingBudget.budget_id
-          ? {
-              ...b,
-              planned_amount: newValue,
-              variance: newValue - b.actual_amount,
-            }
-          : b
-      );
-    } else {
-      const newBudgetItem: Budget = {
-        budget_id: tempId,
-        project_id: parseInt(projectId),
-        wbs_id: undefined,
-        task_id: taskId,
-        cost_type: "TASK_BUDGET",
-        planned_amount: newValue,
-        actual_amount: 0,
-        variance: newValue,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      optimisticBudgets = [...originalBudgets, newBudgetItem];
-    }
-
-    setBudgets(optimisticBudgets);
-    setEditingTask(null);
     setEditValue("");
-
-    try {
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
-
-      if (existingBudget) {
-        // Update existing budget on the server
-        await axios.put(
-          `/api/budget/${existingBudget.budget_id}`,
-          {
-            ...existingBudget,
-            planned_amount: newValue,
-            variance: newValue - existingBudget.actual_amount,
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-      } else {
-        // Create new budget on the server
-        const response = await axios.post(
-          `/api/projects/${projectId}/budgets`,
-          {
-            task_id: taskId,
-            cost_type: "TASK_BUDGET",
-            planned_amount: newValue,
-            actual_amount: 0,
-            variance: newValue,
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-
-        // Replace temporary budget with the real one from the server
-        const realNewBudget = response.data;
-        setBudgets((currentBudgets) =>
-          currentBudgets.map((b) =>
-            b.budget_id === tempId ? realNewBudget : b
-          )
-        );
-      }
-
-      toast.success("Budget Saved", {
-        description: "The planned amount has been updated successfully.",
-      });
-    } catch (error: any) {
-      console.error("Error saving budget:", error);
-
-      // Revert UI on failure
-      setBudgets(originalBudgets);
-
-      if (
-        error.response?.status === 400 &&
-        error.response?.data?.error === "Budget validation failed"
-      ) {
-        // Display the actual error message from the API
-        const errorMessage = 
-          error.response?.data?.details || 
-          error.response?.data?.error || 
-          "The total exceeds the budget limit.";
-        toast.error("Budget Validation Failed", {
-          description: errorMessage,
-        });
-      } else {
-        // Extract error message from response if available
-        const errorMessage = 
-          error.response?.data?.error || 
-          error.response?.data?.details || 
-          error.response?.data?.message ||
-          "An unexpected error occurred. Please try again.";
-        toast.error("Failed to save budget", {
-          description: errorMessage,
-        });
-      }
-    }
+    notConnected("Saving the task budget");
   };
 
   const handleKeyPress = (e: React.KeyboardEvent, wbsId: number) => {
@@ -950,14 +617,6 @@ const ProjectBudgetPage = () => {
       subtitle={
         project ? `${project.name} (${project.project_code})` : undefined
       }
-      meta={
-        user ? (
-          <StatusBadge
-            label={`${user.role.name} ${canEditBudget() ? "(Edit Access)" : "(Read Only)"}`}
-            tone={canEditBudget() ? "success" : "warning"}
-          />
-        ) : undefined
-      }
       onViewChange={setActiveView}
       activeView={activeView}
     >
@@ -1068,7 +727,7 @@ const ProjectBudgetPage = () => {
             <span>{showNavButtons ? "Back to Setup" : "Back to Project"}</span>
           </button>
           <button
-            onClick={async () => {
+            onClick={() => {
               if (!canEditBudget()) {
                 toast.error("Access Denied", {
                   description:
@@ -1077,27 +736,8 @@ const ProjectBudgetPage = () => {
                 return;
               }
 
-              try {
-                const token =
-                  typeof window !== "undefined"
-                    ? localStorage.getItem("token")
-                    : null;
-                await axios.patch(
-                  `/api/projects/${projectId}/setup`,
-                  { budget: true },
-                  token
-                    ? {
-                        headers: {
-                          "Content-Type": "application/json",
-                          Authorization: `Bearer ${token}`,
-                        },
-                      }
-                    : undefined
-                );
-                router.push(`/projects/${projectId}/team?from=previous`);
-              } catch (error) {
-                toast.error("Failed to mark budget as complete.");
-              }
+              // notConnected: marks the budget step complete in the project setup.
+              router.push(`/projects/${projectId}/team?from=previous`);
             }}
             className={`flex items-center space-x-2 px-6 py-3 rounded-lg transition-colors ${
               canEditBudget()

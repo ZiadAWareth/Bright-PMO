@@ -3,10 +3,9 @@
 import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Save } from "lucide-react";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import {
   CancelButton,
   Field,
@@ -46,7 +45,7 @@ export default function NewProjectProcurementPage() {
   const params = useParams();
   const projectId = params?.id as string;
 
-  const [submitting, setSubmitting] = useState(false);
+  const submitting = false;
   const [error, setError] = useState<string | null>(null);
 
   const [type, setType] = useState("material");
@@ -68,7 +67,7 @@ export default function NewProjectProcurementPage() {
     return null;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     const problem = validate();
@@ -78,41 +77,11 @@ export default function NewProjectProcurementPage() {
     }
 
     setError(null);
-    setSubmitting(true);
-    try {
-      await axios.post(
-        `/api/projects/${projectId}/procurements`,
-        {
-          type,
-          description: description.trim(),
-          estimated_cost: parseFloat(estimatedCost),
-          actual_cost: parseFloat(actualCost),
-          status,
-        },
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        },
-      );
-
-      toast.success("Procurement added");
-      router.push(`${backHref}?tab=procurements`);
-    } catch (e) {
-      const err = e as {
-        response?: { data?: { error?: string; details?: string } };
-      };
-      const message =
-        err.response?.data?.error ??
-        err.response?.data?.details ??
-        "Failed to add procurement";
-      setError(message);
-      toast.error(message);
-    } finally {
-      setSubmitting(false);
-    }
+    notConnected("Creating the procurement");
   };
 
   return (
-    <ProtectedRoute>
+    <>
       <DashboardLayout hideHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <PageHeader
@@ -200,6 +169,6 @@ export default function NewProjectProcurementPage() {
           </FormFooter>
         </form>
       </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 }

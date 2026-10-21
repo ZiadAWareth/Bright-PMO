@@ -19,7 +19,7 @@ import {
     Trash2,
     MoreHorizontal,
 } from "lucide-react";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
 import AddRiskModal from "@/features/risks/components/AddRiskModal";
 import AssignMitigationModal from "@/features/risks/components/AssignMitigationModal";
@@ -74,7 +74,7 @@ const RiskPage = () => {
     const projectId = params.id as string;
 
     // State management
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [done, setDone] = useState(false);
     const [showNavButtons, setShowNavButtons] = useState(false);
     const [risks, setRisks] = useState<Risk[]>([]);
@@ -138,37 +138,7 @@ const RiskPage = () => {
     }, [searchQuery, categoryFilter, statusFilter, risks]);
 
     const fetchData = async () => {
-        setLoading(true);
-        try {
-            const token = localStorage.getItem("token");
-
-            // Fetch project details, risks, users, and tasks in parallel
-            const [projectRes, risksRes, usersRes, tasksRes] =
-                await Promise.all([
-                    axios.get(`/api/projects/${projectId}`, {
-                        headers: { Authorization: `Bearer ${token}` },
-                    }),
-                    axios.get(`/api/projects/${projectId}/risks`, {
-                        headers: { Authorization: `Bearer ${token}` },
-                    }),
-                    axios.get("/api/users", {
-                        headers: { Authorization: `Bearer ${token}` },
-                    }),
-                    axios.get(`/api/projects/${projectId}`, {
-                        headers: { Authorization: `Bearer ${token}` },
-                    }),
-                ]);
-
-            setProject(projectRes.data);
-            setRisks(risksRes.data);
-            setUsers(usersRes.data);
-            setTasks(tasksRes.data.tasks);
-        } catch (error) {
-            console.error("Error fetching data:", error);
-            toast.error("Failed to load data");
-        } finally {
-            setLoading(false);
-        }
+        // notConnected: loads the project, its risks, the users and the tasks.
     };
 
     const handleBackButton = () => {
@@ -183,32 +153,9 @@ const RiskPage = () => {
         }
     };
 
-    const handleNext = async () => {
-        setLoading(true);
-        try {
-            const token =
-                typeof window !== "undefined"
-                    ? localStorage.getItem("token")
-                    : null;
-            await axios.patch(
-                `/api/projects/${projectId}/setup`,
-                { risk: true },
-                token
-                    ? {
-                          headers: {
-                              "Content-Type": "application/json",
-                              Authorization: `Bearer ${token}`,
-                          },
-                      }
-                    : undefined
-            );
-            setDone(true);
-            router.push(`/projects/${projectId}/baseline?from=previous`);
-        } catch (e) {
-            toast.error("Failed to update setup status");
-        } finally {
-            setLoading(false);
-        }
+    const handleNext = () => {
+        // notConnected: marks the risk step complete in the project setup.
+        router.push(`/projects/${projectId}/baseline?from=previous`);
     };
 
     const handleAddRiskSuccess = () => {
@@ -220,21 +167,9 @@ const RiskPage = () => {
 
     const confirmDeleteRisk = async () => {
         if (!riskToDelete) return;
-
-        try {
-            const token = localStorage.getItem("token");
-            await axios.delete(`/api/risks/${riskToDelete.risk_id}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            toast.success("Risk deleted successfully");
-            fetchData();
-        } catch (error) {
-            console.error("Error deleting risk:", error);
-            toast.error("Failed to delete risk");
-        } finally {
-            setShowDeleteConfirm(false);
-            setRiskToDelete(null);
-        }
+        setShowDeleteConfirm(false);
+        setRiskToDelete(null);
+        notConnected("Deleting the risk");
     };
 
     const handleEditRisk = (risk: Risk) => {

@@ -3,10 +3,9 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import {
   CancelButton,
   Field,
@@ -44,10 +43,11 @@ interface Vendor {
 export default function NewRfqResponsePage() {
   const router = useRouter();
 
-  const [procurements, setProcurements] = useState<Procurement[]>([]);
-  const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [loadingData, setLoadingData] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  // notConnected: procurements and vendors would be loaded here.
+  const [procurements] = useState<Procurement[]>([]);
+  const [vendors] = useState<Vendor[]>([]);
+  const loadingData = false;
+  const submitting = false;
   const [error, setError] = useState<string | null>(null);
 
   const [procurementId, setProcurementId] = useState("");
@@ -58,33 +58,6 @@ export default function NewRfqResponsePage() {
   const [commercialScore, setCommercialScore] = useState("0");
   const [totalScore, setTotalScore] = useState("0");
   const [notes, setNotes] = useState("");
-
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      const auth = {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      };
-      try {
-        const [procRes, vendorRes] = await Promise.all([
-          axios.get("/api/procurements", auth),
-          axios.get("/api/vendors", auth),
-        ]);
-        if (cancelled) return;
-        setProcurements(Array.isArray(procRes.data) ? procRes.data : []);
-        setVendors(Array.isArray(vendorRes.data) ? vendorRes.data : []);
-      } catch {
-        if (!cancelled) toast.error("Could not load procurements or vendors");
-      } finally {
-        if (!cancelled) setLoadingData(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const openProcurements = procurements.filter(
     (p) =>
@@ -105,7 +78,7 @@ export default function NewRfqResponsePage() {
     return null;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     const problem = validate();
@@ -115,67 +88,11 @@ export default function NewRfqResponsePage() {
     }
 
     setError(null);
-    setSubmitting(true);
-    try {
-      const auth = {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      };
-
-      const res = await axios.post(
-        "/api/rfq-responses",
-        {
-          procurement_id: parseInt(procurementId),
-          vendor_id: parseInt(vendorId),
-          quote_amount: parseFloat(quoteAmount),
-          delivery_time: `${deliveryDays} days`,
-          technical_score: parseFloat(technicalScore) || 0,
-          commercial_score: parseFloat(commercialScore) || 0,
-          total_score: parseFloat(totalScore) || 0,
-          notes,
-        },
-        auth,
-      );
-
-      if (res.status === 201) {
-        const procurement = procurements.find(
-          (p) => p.procurement_id === parseInt(procurementId),
-        );
-        if (procurement) {
-          try {
-            await axios.put(
-              `/api/procurements/${procurement.procurement_id}`,
-              {
-                ...procurement,
-                status: "Awarded",
-                actual_cost: parseFloat(quoteAmount),
-              },
-              auth,
-            );
-          } catch (err) {
-            console.error("Error updating procurement status:", err);
-          }
-        }
-
-        toast.success("RFQ Response added and procurement awarded");
-        router.push("/rfq-management?tab=responses");
-      }
-    } catch (e) {
-      const err = e as {
-        response?: { data?: { error?: string; message?: string } };
-      };
-      const message =
-        err.response?.data?.error ??
-        err.response?.data?.message ??
-        "Failed to add RFQ response";
-      setError(message);
-      toast.error(message);
-    } finally {
-      setSubmitting(false);
-    }
+    notConnected("Recording the RFQ response");
   };
 
   return (
-    <ProtectedRoute>
+    <>
       <DashboardLayout hideHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <PageHeader
@@ -323,6 +240,6 @@ export default function NewRfqResponsePage() {
           </FormFooter>
         </form>
       </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 }

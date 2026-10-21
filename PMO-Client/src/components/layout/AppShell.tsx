@@ -24,17 +24,13 @@ import {
 } from "lucide-react";
 import NotificationModal from "@/features/notifications/components/NotificationModal";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import { useNotifications } from "@/features/notifications/hooks/useNotifications";
 import { useOutsideClick } from "@/hooks/useOutsideClick";
 import { BrightLogo } from "@/components/brand/bright-logo";
-import { clearCachedUser } from "@/lib/current-user-cache";
-import { signOutOfBackend } from "@/lib/backend";
 import { BRAND } from "@/lib/brand";
 
 import {
     NAV_SECTIONS,
-    type NavItem,
     type NavSection,
 } from "@/components/layout/nav-sections";
 
@@ -89,8 +85,11 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const router = useRouter();
     const pathname = usePathname();
 
-    const { fullName, nameAbbreviation, userRole, roleLoading, isClient } =
-        useCurrentUser();
+    // notConnected: the signed-in user would come from the backend. Until then
+    // the shell shows a neutral guest identity.
+    const fullName = "Guest";
+    const nameAbbreviation = "G";
+    const isClient = true;
     const {
         notifications,
         notificationsOpen,
@@ -105,7 +104,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         handleNotificationDelete,
         handleNotificationDeleteFromDropdown,
         handleMarkAsRead,
-    } = useNotifications(isClient);
+    } = useNotifications();
 
     useOutsideClick(
         userMenuRef,
@@ -157,103 +156,13 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const isActiveRoute = (href: string) =>
         pathname === href || Boolean(pathname?.startsWith(`${href}/`));
 
-    const handleLogout = async () => {
-        try {
-            await fetch("/api/auth/logout", {
-                method: "POST",
-                credentials: "same-origin",
-            });
-            localStorage.removeItem('token');
-            await signOutOfBackend();
-            // Drop the cached identity so the next sign-in re-fetches it.
-            clearCachedUser();
-            const useIdp =
-                typeof process !== "undefined" &&
-                process.env.NEXT_PUBLIC_USE_IDP_AUTH === "true";
-            const idpLogoutUrl =
-                typeof process !== "undefined"
-                    ? process.env.NEXT_PUBLIC_IDP_LOGOUT_URL
-                    : undefined;
-
-            if (useIdp) {
-                const afterLogout =
-                    typeof window !== "undefined"
-                        ? `${window.location.origin}/api/auth/idp/start?returnTo=${encodeURIComponent("/dashboard")}`
-                        : "";
-                if (idpLogoutUrl && typeof window !== "undefined") {
-                    const url = new URL(idpLogoutUrl, window.location.origin);
-                    if (!url.searchParams.has("post_logout_redirect_uri")) {
-                        url.searchParams.set(
-                            "post_logout_redirect_uri",
-                            afterLogout
-                        );
-                    }
-                    window.location.assign(url.toString());
-                } else if (typeof window !== "undefined") {
-                    window.location.assign(afterLogout);
-                }
-            } else {
-                router.push('/auth/login');
-            }
-        } catch (error) {
-            console.error("Logout failed:", error);
-            window.location.href = "/auth/login";
-        }
+    // No session to end until the backend integration: back to sign-in.
+    const handleLogout = () => {
+        router.push("/auth/signin");
     };
-
-    const hasAccessToNavItem = (item: NavItem): boolean => {
-        if (!item.allowedRoles || item.allowedRoles.length === 0) {
-            return true;
-        }
-        if (!userRole) {
-            return false;
-        }
-        return item.allowedRoles.some(
-            (allowedRole) =>
-                allowedRole.toLowerCase() === userRole.toLowerCase()
-        );
-    };
-
-    /**
-     * Placeholder navigation shown while the signed-in user's role is still
-     * resolving. It mirrors the real section/item geometry exactly — same
-     * paddings, same 20px icon box, same row height — so the real nav swaps in
-     * without any layout shift, and the sidebar never looks half-built.
-     *
-     * Row counts approximate the real sections (Analytics: 3, Main: 6) purely so
-     * the placeholder has believable proportions; the real items replace them.
-     */
-    const renderNavSkeleton = () => (
-        <div aria-hidden="true" className="animate-pulse">
-            {navSections.map((section, sectionIndex) => (
-                <div className="mb-3 px-3" key={section.key}>
-                    <div className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-1.5">
-                        <span className="h-2.5 w-20 rounded bg-text-secondary/20" />
-                        <span className="h-3.5 w-3.5 shrink-0 rounded bg-text-secondary/10" />
-                    </div>
-                    <div className="mt-1 space-y-0.5">
-                        {Array.from({
-                            length: sectionIndex === 0 ? 3 : 6,
-                        }).map((_, itemIndex) => (
-                            <div
-                                key={itemIndex}
-                                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2"
-                            >
-                                <span className="h-5 w-5 shrink-0 rounded bg-text-secondary/20" />
-                                <span className="h-2.5 flex-1 rounded bg-text-secondary/15" />
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            ))}
-        </div>
-    );
 
     const renderNavSection = (section: NavSection) => {
-        const sectionItems = section.items.filter(hasAccessToNavItem);
-        if (sectionItems.length === 0) {
-            return null;
-        }
+        const sectionItems = section.items;
 
         // A group holding the current route always renders open — collapsing the
         // section you are standing in would hide where you are.
@@ -382,11 +291,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                     </div>
 
                     <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-3">
-                        {roleLoading ? (
-                            renderNavSkeleton()
-                        ) : (
-                            <>{navSections.map(renderNavSection)}</>
-                        )}
+                        {navSections.map(renderNavSection)}
                     </div>
 
                     {/* Account block, pinned to the foot of the sidebar.

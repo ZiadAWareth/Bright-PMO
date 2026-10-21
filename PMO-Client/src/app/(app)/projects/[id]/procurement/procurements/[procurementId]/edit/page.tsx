@@ -3,10 +3,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AlertCircle, Save } from "lucide-react";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import {
   CancelButton,
   Field,
@@ -48,9 +47,11 @@ export default function EditProjectProcurementPage() {
   const projectId = params?.id as string;
   const procurementId = params?.procurementId as string;
 
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  // notConnected: the procurement (to prefill the form) would be loaded here.
+  // Until then the form starts empty.
+  const loading = false;
+  const notFound = false;
+  const submitting = false;
   const [error, setError] = useState<string | null>(null);
 
   const [type, setType] = useState("material");
@@ -60,40 +61,6 @@ export default function EditProjectProcurementPage() {
   const [status, setStatus] = useState("Planning");
 
   const backHref = `/projects/${projectId}/procurement`;
-
-  useEffect(() => {
-    if (!procurementId) return;
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const res = await axios.get(`/api/procurements/${procurementId}`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        });
-        if (cancelled) return;
-
-        const p = res.data;
-        if (!p) {
-          setNotFound(true);
-          return;
-        }
-
-        setType(p.type ?? "material");
-        setDescription(p.description ?? "");
-        setEstimatedCost(String(p.estimated_cost ?? ""));
-        setActualCost(String(p.actual_cost ?? ""));
-        setStatus(p.status ?? "Planning");
-      } catch {
-        if (!cancelled) setNotFound(true);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [procurementId]);
 
   const validate = (): string | null => {
     if (!description.trim()) return "Description is required.";
@@ -106,7 +73,7 @@ export default function EditProjectProcurementPage() {
     return null;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     const problem = validate();
@@ -116,42 +83,12 @@ export default function EditProjectProcurementPage() {
     }
 
     setError(null);
-    setSubmitting(true);
-    try {
-      await axios.put(
-        `/api/procurements/${procurementId}`,
-        {
-          type,
-          description: description.trim(),
-          estimated_cost: parseFloat(estimatedCost),
-          actual_cost: parseFloat(actualCost),
-          status,
-        },
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        },
-      );
-
-      toast.success("Procurement updated");
-      router.push(`${backHref}?tab=procurements`);
-    } catch (e) {
-      const err = e as {
-        response?: { data?: { error?: string; details?: string } };
-      };
-      const message =
-        err.response?.data?.error ??
-        err.response?.data?.details ??
-        "Failed to update procurement";
-      setError(message);
-      toast.error(message);
-    } finally {
-      setSubmitting(false);
-    }
+    notConnected("Updating the procurement");
   };
 
   if (loading) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout hideHeader>
           <div className="space-y-6">
             <PageHeader
@@ -167,13 +104,13 @@ export default function EditProjectProcurementPage() {
             </div>
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
   if (notFound) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout hideHeader>
           <div className="space-y-6">
             <PageHeader
@@ -203,12 +140,12 @@ export default function EditProjectProcurementPage() {
             </FormSection>
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
   return (
-    <ProtectedRoute>
+    <>
       <DashboardLayout hideHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <PageHeader
@@ -296,6 +233,6 @@ export default function EditProjectProcurementPage() {
           </FormFooter>
         </form>
       </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 }

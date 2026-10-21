@@ -42,7 +42,7 @@ import {
   Square,
   CheckCircle,
 } from "lucide-react";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { FormSection, InfoGrid, StatusBadge } from "@/components/ui/form-shell";
@@ -111,11 +111,13 @@ export default function TimesheetDetailPage() {
   const params = useParams();
   const timesheetId = params.id as string;
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  // notConnected: the timesheet with its entries, and the tasks the user can
+  // log time against, would be loaded here. Until then there is no timesheet,
+  // so the page shows its empty state.
+  const loading = false;
+  const saving = false;
   const [timesheet, setTimesheet] = useState<Timesheet | null>(null);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks] = useState<Task[]>([]);
   const [selectedWeekDay, setSelectedWeekDay] = useState<string>("");
   const [isNewEntryModalOpen, setIsNewEntryModalOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
@@ -145,42 +147,6 @@ export default function TimesheetDetailPage() {
   });
 
   useEffect(() => {
-    if (timesheetId) {
-      fetchCurrentUser();
-      fetchTimesheet();
-    }
-  }, [timesheetId]);
-
-  const fetchCurrentUser = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        router.push("/auth/login");
-        return;
-      }
-
-      const response = await axios.get("/api/auth/me", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      console.log("API response:", response.data);
-      // The API returns user data in a nested 'user' object
-      setCurrentUser(response.data.user || response.data);
-    } catch (error) {
-      console.error("Failed to fetch current user:", error);
-      router.push("/auth/login");
-    }
-  };
-
-  useEffect(() => {
-    if (timesheetId) {
-      fetchTimesheet();
-    }
-  }, [timesheetId]);
-
-  useEffect(() => {
     let interval: NodeJS.Timeout;
     if (timer.isRunning && timer.startTime) {
       interval = setInterval(() => {
@@ -194,65 +160,10 @@ export default function TimesheetDetailPage() {
     return () => clearInterval(interval);
   }, [timer.isRunning, timer.startTime]);
 
-  const fetchTimesheet = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        router.push("/auth/login");
-        return;
-      }
-
-      const response = await axios.get(`/api/timesheets/${timesheetId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      setTimesheet(response.data);
-      await fetchProjectTasks(response.data.project_id);
-    } catch (error) {
-      console.error("Failed to fetch timesheet:", error);
-      toast.error("Failed to load timesheet");
-      router.push("/timesheet");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchProjectTasks = async (projectId: number) => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(`/api/tasks`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      // Filter tasks to only show those belonging to the current project
-      // The API already filters to only return tasks where the current user is assigned
-      const projectTasks = response.data.filter(
-        (task: any) => task.wbs && task.wbs.project_id === projectId
-      );
-
-      setTasks(projectTasks);
-    } catch (error) {
-      console.error("Failed to fetch tasks:", error);
-    }
-  };
-
   // Helper functions
-  const canViewOtherTimesheets = () => {
-    return (
-      currentUser?.role?.name &&
-      ["ADMIN", "PMO", "PJM"].includes(currentUser.role.name)
-    );
-  };
-
-  const isOwnTimesheet = () => {
-    return (
-      timesheet && currentUser && timesheet.user.user_id === currentUser.user_id
-    );
-  };
+  // Every action is open until roles come from the backend.
+  const canViewOtherTimesheets = () => true;
+  const isOwnTimesheet = () => true;
 
   const canEditTimesheet = () => {
     if (!timesheet) return false;
@@ -261,67 +172,15 @@ export default function TimesheetDetailPage() {
   };
 
   // Handle timesheet approval
-  const handleApproveTimesheet = async () => {
+  const handleApproveTimesheet = () => {
     if (!timesheet) return;
-
-    setSaving(true);
-    try {
-      const token = localStorage.getItem("token");
-
-      await axios.put(
-        `/api/timesheets/${timesheet.timesheet_id}`,
-        {
-          status: "APPROVED",
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      toast.success("Timesheet approved successfully");
-      await fetchTimesheet(); // Refresh to get updated status
-    } catch (error: any) {
-      console.error("Failed to approve timesheet:", error);
-      const errorMessage =
-        error.response?.data?.error || "Failed to approve timesheet";
-      toast.error(errorMessage);
-    } finally {
-      setSaving(false);
-    }
+    notConnected("Approving the timesheet");
   };
 
   // Handle timesheet rejection
-  const handleRejectTimesheet = async () => {
+  const handleRejectTimesheet = () => {
     if (!timesheet) return;
-
-    setSaving(true);
-    try {
-      const token = localStorage.getItem("token");
-
-      await axios.put(
-        `/api/timesheets/${timesheet.timesheet_id}`,
-        {
-          status: "REJECTED",
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      toast.success("Timesheet rejected successfully");
-      await fetchTimesheet(); // Refresh to get updated status
-    } catch (error: any) {
-      console.error("Failed to reject timesheet:", error);
-      const errorMessage =
-        error.response?.data?.error || "Failed to reject timesheet";
-      toast.error(errorMessage);
-    } finally {
-      setSaving(false);
-    }
+    notConnected("Rejecting the timesheet");
   };
 
   // Calculate total hours from current time entries
@@ -439,133 +298,16 @@ export default function TimesheetDetailPage() {
     toast.success(`Timer stopped. Logged ${hours.toFixed(2)} hours`);
   };
 
-  const handleCreateTimeEntry = async (entryData: any) => {
-    setSaving(true);
-    try {
-      const token = localStorage.getItem("token");
-      const payload =
-        !isOwnTimesheet() && canViewOtherTimesheets() && timesheet
-          ? { ...entryData, timesheet_id: timesheet.timesheet_id }
-          : entryData;
-
-      console.log("Creating time entry with data:", payload);
-
-      await axios.post(`/api/time-entries`, payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      toast.success("Time entry created successfully");
-      await fetchTimesheet(); // Refresh the timesheet
-      setIsNewEntryModalOpen(false);
-      resetNewEntryForm();
-    } catch (error: any) {
-      console.error("Failed to create time entry:", error);
-      console.error("Error response:", error.response?.data);
-
-      // Show specific error message from backend if available
-      const errorMessage =
-        error.response?.data?.error ||
-        error.response?.data?.message ||
-        "Failed to create time entry";
-
-      toast.error(errorMessage);
-    } finally {
-      setSaving(false);
-    }
+  const handleCreateTimeEntry = async (_entryData: any) => {
+    notConnected("Adding a time entry");
   };
 
-  const handleUpdateTimeEntry = async (entryId: number, entryData: any) => {
-    setSaving(true);
-    try {
-      const token = localStorage.getItem("token");
-
-      console.log("Sending update request:", {
-        entryId,
-        entryData,
-        url: `/api/time-entries/${entryId}`,
-      });
-
-      const response = await axios.put(
-        `/api/time-entries/${entryId}`,
-        entryData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      console.log("Update response:", response.data);
-
-      toast.success("Time entry updated successfully");
-      await fetchTimesheet(); // Refresh the timesheet
-      setEditingEntry(null);
-    } catch (error: any) {
-      console.error("Failed to update time entry:", error);
-      console.error("Error response:", error.response?.data);
-
-      const errorMessage =
-        error.response?.data?.error ||
-        error.response?.data?.message ||
-        "Failed to update time entry";
-
-      toast.error(errorMessage);
-    } finally {
-      setSaving(false);
-    }
+  const handleUpdateTimeEntry = async (_entryId: number, _entryData: any) => {
+    notConnected("Updating the time entry");
   };
 
-  const handleDeleteTimeEntry = async (entryId: number) => {
-    setSaving(true);
-    try {
-      const token = localStorage.getItem("token");
-
-      // Find the entry to get task_id
-      const entryToDelete = timesheet?.time_entries.find(
-        (entry) => entry.time_entry_id === entryId
-      );
-
-      if (!entryToDelete) {
-        toast.error("Time entry not found");
-        return;
-      }
-
-      console.log("Deleting time entry:", {
-        entryId,
-        project_id: timesheet?.project_id,
-        task_id: entryToDelete.task.task_id,
-      });
-
-      await axios.delete(`/api/time-entries/${entryId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        data: {
-          project_id: timesheet?.project_id,
-          task_id: entryToDelete.task.task_id,
-        },
-      });
-
-      toast.success("Time entry deleted successfully");
-      await fetchTimesheet(); // Refresh the timesheet
-      setDeleteConfirmEntry(null); // Close modal
-    } catch (error: any) {
-      console.error("Failed to delete time entry:", error);
-      console.error("Error response:", error.response?.data);
-
-      // Show specific error message from backend if available
-      const errorMessage =
-        error.response?.data?.error ||
-        error.response?.data?.message ||
-        "Failed to delete time entry";
-
-      toast.error(errorMessage);
-    } finally {
-      setSaving(false);
-    }
+  const handleDeleteTimeEntry = async (_entryId: number) => {
+    notConnected("Deleting the time entry");
   };
 
   const handleSubmitTimesheet = async () => {
@@ -577,64 +319,12 @@ export default function TimesheetDetailPage() {
       return;
     }
 
-    setSaving(true);
-    try {
-      const token = localStorage.getItem("token");
-
-      await axios.put(
-        `/api/timesheets/${timesheetId}`,
-        {
-          status: "SUBMITTED",
-          total_hours: totalHours, // Update total hours when submitting
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      toast.success("Timesheet submitted for approval");
-      await fetchTimesheet(); // Refresh the timesheet
-    } catch (error: any) {
-      console.error("Failed to submit timesheet:", error);
-      const errorMessage =
-        error.response?.data?.error ||
-        error.response?.data?.message ||
-        "Failed to submit timesheet";
-      toast.error(errorMessage);
-    } finally {
-      setSaving(false);
-    }
+    notConnected("Submitting the timesheet");
   };
 
-  const handleSaveComments = async () => {
+  const handleSaveComments = () => {
     if (!timesheet) return;
-
-    setSaving(true);
-    try {
-      const token = localStorage.getItem("token");
-
-      await axios.put(
-        `/api/timesheets/${timesheetId}`,
-        {
-          comments: timesheet.comments,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      toast.success("Comments saved successfully");
-      await fetchTimesheet(); // Refresh the timesheet
-    } catch (error) {
-      console.error("Failed to save comments:", error);
-      toast.error("Failed to save comments");
-    } finally {
-      setSaving(false);
-    }
+    notConnected("Saving comments");
   };
 
   const resetNewEntryForm = () => {
@@ -775,11 +465,6 @@ export default function TimesheetDetailPage() {
               <span>· {timesheet.user.account.department}</span>
             )}
             {timesheet.user.role && <span>· {timesheet.user.role.name}</span>}
-            {canViewOtherTimesheets() && currentUser?.role?.name && (
-              <span className="text-faint">
-                · viewing as {currentUser.role.name}
-              </span>
-            )}
           </div>
         ) : undefined
       }

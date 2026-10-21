@@ -1,5 +1,6 @@
 "use client";
 
+import { notConnected } from "@/lib/not-connected";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
@@ -25,7 +26,6 @@ import {
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
-import axios from "axios";
 import { Spinner } from "@/components/ui/spinner";
 import { FormSection, InfoGrid, StatusBadge } from "@/components/ui/form-shell";
 import { TabRow } from "@/components/ui/tab-row";
@@ -140,7 +140,7 @@ const ResourceDetailPage: React.FC = () => {
     ProjectPerformance[]
   >([]);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<
     "overview" | "assignments" | "skills" | "performance"
   >("overview");
@@ -154,102 +154,16 @@ const ResourceDetailPage: React.FC = () => {
   }, [resourceId]);
 
   const fetchResourceDetails = async () => {
-    try {
-      const token = localStorage.getItem("token");
-
-      // Fetch basic resource details
-      const response = await fetch(`/api/resources/${resourceId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-
-        // Transform API data to match our interface
-        const transformedResource: Resource = {
-          id: data.resource_id.toString(),
-          firstName: data.name.split(" ")[0] || "",
-          lastName: data.name.split(" ").slice(1).join(" ") || "",
-          email: data.email || "No email provided",
-          phone_number: data.phone_number || "No phone number provided",
-          position: data.role,
-          department: data.department,
-          skills: getSkillsFromData(data.skills, data.role, data.department),
-          hourlyRate: data.rate,
-          availability: data.availability_status === "available" ? 100 : 0,
-          utilization: data.current_utilization || 0,
-          currentProjects: [],
-          totalCapacity: data.capacity || 40,
-          allocatedHours: data.total_actual_hours || 0,
-          status:
-            data.availability_status === "inactive" ? "inactive" : "active",
-          location: data.location || "Not specified",
-          manager: "Department Manager",
-          startDate: new Date(data.created_at),
-          languages: data.skills?.Languages?.map((lang: any) => lang.name) || [
-            "Arabic",
-            "English",
-          ],
-          costCenter: `${data.department.toUpperCase()}-${data.resource_id}`,
-          rating: data.rating || 0,
-          type: data.type || "labor", // Add resource type
-        };
-        setResource(transformedResource);
-      } else {
-        toast.error("Failed to fetch resource details");
-      }
-    } catch (error) {
-      console.error("Error fetching resource:", error);
-      toast.error("Failed to fetch resource details");
-    } finally {
-      setIsLoading(false);
-    }
+    // notConnected: loads the resource. Until then there is none, so the page
+    // shows its empty state.
   };
 
   const fetchResourceAssignments = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`/api/resources/${resourceId}/assignments`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setAssignments(data.assignments || []);
-      } else {
-        console.warn("Failed to fetch resource assignments, using empty array");
-        setAssignments([]);
-      }
-    } catch (error) {
-      console.error("Error fetching resource assignments:", error);
-      setAssignments([]);
-    }
+    // notConnected: loads the resource's assignments.
   };
 
   const fetchResourcePerformance = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`/api/resources/${resourceId}/performance`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setPerformanceMetrics(data.performance_metrics);
-        setProjectPerformance(data.project_performance || []);
-        setRecentActivity(data.recent_activity || []);
-      } else {
-        console.warn("Failed to fetch resource performance data");
-      }
-    } catch (error) {
-      console.error("Error fetching resource performance:", error);
-    }
+    // notConnected: loads performance metrics and recent activity.
   };
 
   const getStatusColor = (status: string) => {

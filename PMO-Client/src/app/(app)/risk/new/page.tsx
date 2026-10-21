@@ -4,8 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Save } from "lucide-react";
-import axios from "axios";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
+import { notConnected } from "@/lib/not-connected";
 import {
     CancelButton,
     Field,
@@ -71,38 +70,11 @@ const categoryOptions = ["Technical", "Schedule", "Cost", "Resource", "Quality",
 const RiskCreatePage = () => {
     const router = useRouter();
     const [form, setForm] = useState<RiskForm>(defaultForm);
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const isSubmitting = false;
     const [error, setError] = useState<string | null>(null);
-    const [projects, setProjects] = useState<Project[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchUserAndProjects = async () => {
-            try {
-                const userResponse = await axios.get("/api/auth/me", {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("token")}`,
-                    },
-                });
-                // Set owner_id from account_id
-                setForm(prev => ({ ...prev, owner_id: userResponse.data.account_id }));
-
-                // Fetch projects
-                const projectsResponse = await axios.get("/api/projects", {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("token")}`,
-                    },
-                });
-                setProjects(projectsResponse.data);
-            } catch (err: any) {
-                setError(err.message || "Failed to load necessary data. Please try again.");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchUserAndProjects();
-    }, []);
+    // notConnected: the projects (and the signed-in user as owner) would be loaded here.
+    const [projects] = useState<Project[]>([]);
+    const loading = false;
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -144,46 +116,19 @@ const RiskCreatePage = () => {
         return true;
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         
         if (!validateForm()) {
             return;
         }
 
-        if (!form.owner_id) {
-            setError("User account not properly initialized. Please refresh the page.");
-            return;
-        }
-
-        setIsSubmitting(true);
-        try {
-            // Ensure all numeric fields are properly typed
-            const dataToSend = {
-                ...form,
-                project_id: Number(form.project_id),
-                score: Number(form.score),
-                owner_id: Number(form.owner_id)
-            };
-
-            await axios.post("/api/risks", dataToSend, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
-            });
-            router.push("/risk");
-        } catch (err: any) {
-            const errorMessage = err.response?.data?.message || "Failed to create risk. Please try again.";
-            setError(errorMessage);
-            console.error("Error creating risk:", err);
-        } finally {
-            setIsSubmitting(false);
-        }
+        notConnected("Creating the risk");
     };
 
     if (loading) {
         return (
-            <ProtectedRoute>
+            <>
                 <DashboardLayout hideHeader>
                     <div className="space-y-6">
                         <PageHeader
@@ -197,12 +142,12 @@ const RiskCreatePage = () => {
                         </div>
                     </div>
                 </DashboardLayout>
-            </ProtectedRoute>
+            </>
         );
     }
 
     return (
-        <ProtectedRoute>
+        <>
             <DashboardLayout hideHeader>
                 <form
                     onSubmit={handleSubmit}
@@ -432,7 +377,7 @@ const RiskCreatePage = () => {
                     </FormFooter>
                 </form>
             </DashboardLayout>
-        </ProtectedRoute>
+        </>
     );
 };
 

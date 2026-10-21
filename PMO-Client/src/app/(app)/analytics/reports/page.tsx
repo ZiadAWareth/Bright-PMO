@@ -31,7 +31,7 @@ import {
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ViewToggle, type ListViewMode } from "@/components/ui/view-toggle";
 
-import { generateReport } from "@/lib/reporting/generator";
+import { notConnected } from "@/lib/not-connected";
 import { REPORT_TEMPLATES } from "@/lib/reporting/templates";
 import type { ReportFormat, ReportTemplate } from "@/lib/reporting/types";
 import type { BadgeTone } from "@/components/ui/form-shell";
@@ -79,9 +79,9 @@ const humanise = (token: string) =>
  *
  * This screen used to open on a four-tab console (templates / generated /
  * scheduled / analytics) whose figures were hardcoded samples. Templates are
- * the only part backed by a working pipeline — `generateReport` queries live
- * PMO tables and builds the file in the browser — so the screen now leads with
- * them instead of burying them behind a tab.
+ * the part meant to be real — each one loads live PMO data and builds the file
+ * (not connected to a backend yet) — so the screen leads with them instead of
+ * burying them behind a tab.
  *
  * Structurally it follows the same shape as every other list screen: filter
  * bar, a grid/table toggle, and pagination. Templates are a fixed set today, so
@@ -95,7 +95,7 @@ export default function ReportsPage() {
   const [format, setFormat] = useState("all");
   const [view, setView] = useState<ListViewMode>("grid");
   const [page, setPage] = useState(0);
-  const [downloading, setDownloading] = useState<string | null>(null);
+  const [downloading] = useState<string | null>(null);
 
   const categories = useMemo(
     () => Array.from(new Set(REPORT_TEMPLATES.map((t) => t.category))).sort(),
@@ -128,13 +128,11 @@ export default function ReportsPage() {
   // user on a page index that no longer has rows.
   useEffect(() => setPage(0), [search, category, format, view]);
 
-  const handleDownload = async (template: ReportTemplate) => {
-    setDownloading(template.id);
-    try {
-      await generateReport(template);
-    } finally {
-      setDownloading(null);
-    }
+  const handleDownload = (template: ReportTemplate) => {
+    // notConnected: loads the template's data sources from the backend, then
+    // renders it with lib/reporting (pdfGenerator, excelGenerator; PowerPoint
+    // is rendered by the backend).
+    notConnected(`Generating "${template.name}"`);
   };
 
   const activeCount = (category !== "all" ? 1 : 0) + (format !== "all" ? 1 : 0);

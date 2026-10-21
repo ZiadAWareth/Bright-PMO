@@ -18,11 +18,10 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { Spinner } from "@/components/ui/spinner";
 
 export interface DownloadConfig {
-  url: string;
   fileName: string;
   successMessage: string;
   errorMessage: string;
@@ -45,7 +44,6 @@ export interface TemplateManagerBaseProps {
     onDownload: () => Promise<void>;
   }) => React.ReactNode;
 
-  uploadUrl: string;
   fileInputId: string;
   acceptedFileTypes?: string;
   onUploadResponse: (data: any) => void | Promise<void>;
@@ -200,7 +198,6 @@ const TemplateManagerBase: React.FC<TemplateManagerBaseProps> = ({
   downloadCardTitle,
   downloadCardDescription,
   renderDownloadCardContent,
-  uploadUrl,
   fileInputId,
   acceptedFileTypes = ".xlsx,.xls",
   onUploadResponse,
@@ -231,29 +228,8 @@ const TemplateManagerBase: React.FC<TemplateManagerBaseProps> = ({
       if (customDownloadHandler) {
         await customDownloadHandler();
       } else {
-        const response = await axios.get(downloadConfig.url, {
-          responseType: "blob",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
-
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute("download", downloadConfig.fileName);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        window.URL.revokeObjectURL(url);
-
-        toast.success(downloadConfig.successMessage);
-      }
-    } catch (error: any) {
-      if (!customDownloadHandler) {
-        const errorMessage =
-          error?.response?.data?.error || downloadConfig.errorMessage;
-        toast.error(errorMessage);
+        // notConnected: downloads the generated template (downloadConfig.fileName).
+        notConnected("Downloading the template");
       }
     } finally {
       setIsDownloading(false);
@@ -279,31 +255,8 @@ const TemplateManagerBase: React.FC<TemplateManagerBaseProps> = ({
       return;
     }
 
-    setIsUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", selectedFile);
-
-      const response = await axios.post(uploadUrl, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-
-      setUploadResult(response.data);
-      await onUploadResponse(response.data);
-    } catch (error: any) {
-      if (onUploadError) {
-        onUploadError(error);
-      } else {
-        toast.error(
-          error?.response?.data?.error || "Failed to upload file"
-        );
-      }
-    } finally {
-      setIsUploading(false);
-    }
+    // notConnected: uploads the file; the response goes to onUploadResponse.
+    notConnected("Uploading the template");
   };
 
   const resetUpload = () => {

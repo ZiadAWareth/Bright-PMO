@@ -26,7 +26,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import TemplateManagerBase, {
   DownloadButton,
   handleSecurityAwareUploadError,
@@ -181,41 +181,12 @@ const WBSTemplateManager: React.FC<WBSTemplateManagerProps> = ({
   projectId,
   onWBSCreated,
 }) => {
-  const [isDownloadingP6, setIsDownloadingP6] = useState(false);
-  const [isUploadingP6, setIsUploadingP6] = useState(false);
+  const isDownloadingP6 = false;
+  const isUploadingP6 = false;
   const [uploadResultP6, setUploadResultP6] = useState<UploadResult | null>(null);
   const [selectedFileP6, setSelectedFileP6] = useState<File | null>(null);
 
-  const handleDownloadP6Template = async () => {
-    setIsDownloadingP6(true);
-    try {
-      const response = await axios.get(
-        `/api/projects/${projectId}/wbs/template/download-p6`,
-        {
-          responseType: "blob",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute(
-        "download",
-        `wbs_p6_template_project_${projectId}_${new Date().toISOString().split("T")[0]}.xlsx`
-      );
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-      toast.success("P6 WBS template downloaded");
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Failed to download P6 template");
-    } finally {
-      setIsDownloadingP6(false);
-    }
-  };
+  const handleDownloadP6Template = async () => notConnected("Downloading the P6 template");
 
   const handleFileSelectP6 = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -235,59 +206,7 @@ const WBSTemplateManager: React.FC<WBSTemplateManagerProps> = ({
       toast.error("Please select a file first");
       return;
     }
-    setIsUploadingP6(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", selectedFileP6);
-      const response = await axios.post(
-        `/api/projects/${projectId}/wbs/template/upload-p6`,
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-      setUploadResultP6(response.data);
-      if (response.data.created_wbs_items?.length > 0) {
-        toast.success(
-          `Successfully created ${response.data.created_wbs_items.length} WBS items from P6 file`
-        );
-        await onWBSCreated?.();
-      }
-      if (response.data.errors?.length > 0) {
-        toast.warning(
-          `${response.data.errors.length} row(s) had errors. Check the results below.`
-        );
-      }
-    } catch (error: any) {
-      const msg =
-        error.response?.data?.error ||
-        error.response?.data?.details ||
-        "P6 WBS upload failed";
-      toast.error(msg);
-      if (error.response?.data?.errors?.length) {
-        setUploadResultP6({
-          message: msg,
-          created_wbs_items: [],
-          errors: error.response.data.errors.map(
-            (e: { row?: number; field?: string; error?: string }) => ({
-              row: e.row ?? 0,
-              field: e.field ?? "",
-              error: e.error ?? "",
-            })
-          ),
-          summary: {
-            total_processed: 0,
-            successful: 0,
-            failed: error.response.data.errors.length,
-          },
-        });
-      }
-    } finally {
-      setIsUploadingP6(false);
-    }
+    notConnected("Uploading the P6 file");
   };
 
   const p6TabContent = (
@@ -700,7 +619,6 @@ const WBSTemplateManager: React.FC<WBSTemplateManagerProps> = ({
   return (
     <TemplateManagerBase
       downloadConfig={{
-        url: `/api/projects/${projectId}/wbs/template/download`,
         fileName: `wbs_template_project_${projectId}_${new Date().toISOString().split("T")[0]}.xlsx`,
         successMessage: "WBS template downloaded successfully",
         errorMessage: "Failed to download WBS template",
@@ -708,7 +626,6 @@ const WBSTemplateManager: React.FC<WBSTemplateManagerProps> = ({
       downloadCardTitle="Download WBS Template"
       downloadCardDescription="Download an Excel template with all required fields and reference data to create WBS items in bulk."
       renderDownloadCardContent={renderDownloadCardContent}
-      uploadUrl={`/api/projects/${projectId}/wbs/template/upload`}
       fileInputId="wbs-file-upload"
       uploadCardTitle="Upload WBS Data"
       uploadCardDescription="Upload your completed WBS template to create multiple WBS items at once."

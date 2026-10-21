@@ -7,18 +7,31 @@ import { KpiBand } from "@/features/analytics/dashboard/components/KpiBand";
 import { DashboardCharts } from "@/features/analytics/dashboard/components/DashboardCharts";
 import { QuickActions } from "@/features/analytics/dashboard/components/QuickActions";
 import { RecentActivity } from "@/features/analytics/dashboard/components/RecentActivity";
-import { useAnalyticsDashboard } from "@/features/analytics/dashboard/hooks/useAnalyticsDashboard";
+import { notConnected } from "@/lib/not-connected";
+import type {
+  ActivityResponse,
+  ChartsResponse,
+  PulseResponse,
+  StatsResponse,
+} from "@/features/analytics/dashboard/components/types";
 
 /**
- * Analytics dashboard — a thin orchestrator over `/api/analytics/dashboard/*`.
+ * Analytics dashboard — a thin orchestrator over the dashboard sections.
  *
- * Every figure on this screen is aggregated from live PMO records (projects,
- * WBS, tasks, budgets, risks, resources, approvals); see
- * `lib/services/portfolio-analytics.ts` for how each one is derived.
+ * notConnected: stats, charts, delivery pulse and recent activity would be
+ * aggregated by the backend from projects, WBS, tasks, budgets, risks,
+ * resources and approvals. Until then every section shows its empty state.
  */
+const stats: StatsResponse | null = null;
+const charts: ChartsResponse | null = null;
+const pulse: PulseResponse | null = null;
+const activity: ActivityResponse | null = null;
+
 export default function AnalyticsDashboardPage() {
-  const { stats, charts, pulse, activity, loading, refreshing, error, refresh } =
-    useAnalyticsDashboard();
+  const loading = false;
+  const refreshing = false;
+  const error: string | null = null;
+  const refresh = () => notConnected("Refreshing the dashboard");
 
   return (
     <DashboardLayout hideHeader>

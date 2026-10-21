@@ -1,3 +1,4 @@
+import { notConnected } from "@/lib/not-connected";
 import React from "react";
 import {
   Zap, RotateCcw, AlertTriangle, CheckCircle
@@ -61,67 +62,7 @@ const CriticalPathTab: React.FC<CriticalPathTabProps> = ({
         });
 
         // Critical path calculation function
-        const calculateCriticalPath = async () => {
-            setCalculatingCriticalPath(true);
-            setCriticalPathError(null);
-
-            try {
-                console.log(
-                    `🔄 Calculating critical path for project ${projectId}`
-                );
-
-                const response = await fetch(
-                    `/api/projects/${projectId}/critical-path`,
-                    {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            Authorization: `Bearer ${localStorage.getItem(
-                                "token"
-                            )}`,
-                        },
-                    }
-                );
-
-                const result = await response.json();
-
-                console.log("📊 Critical path calculation result:", result);
-
-                if (result.success) {
-                    setCriticalPathCalculated(true);
-                    setCriticalPathError(null);
-
-                    console.log(
-                        "✅ Critical path calculation successful, refreshing data..."
-                    );
-
-                    // Refresh project data to get updated critical path information
-                    await fetchProjectData();
-
-                    console.log(
-                        "✅ Project data refreshed after critical path calculation"
-                    );
-
-                    // Analyze critical path risks and generate management actions
-                    analyzeCriticalPathRisks();
-
-                    toast.success("Critical path calculated successfully!");
-                } else {
-                    setCriticalPathError(
-                        result.error || "Failed to calculate critical path"
-                    );
-                    toast.error("Failed to calculate critical path");
-                }
-            } catch (err) {
-                console.error("❌ Critical path calculation error:", err);
-                setCriticalPathError("Network error occurred");
-                toast.error(
-                    "Network error occurred while calculating critical path"
-                );
-            } finally {
-                setCalculatingCriticalPath(false);
-            }
-        };
+        const calculateCriticalPath = () => notConnected("Calculating the critical path");
 
         // Analyze critical path risks and generate management actions
         const analyzeCriticalPathRisks = () => {

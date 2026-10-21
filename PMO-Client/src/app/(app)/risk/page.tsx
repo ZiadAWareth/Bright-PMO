@@ -16,7 +16,7 @@ import {
     FolderOpen,
     Save,
 } from "lucide-react";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { FilterBar, FilterSelect } from "@/components/ui/filter-bar";
 import ProjectCalendarView from "@/features/risks/components/calendar-component";
 import { LoadingState, Spinner } from "@/components/ui/spinner";
@@ -107,20 +107,21 @@ interface User {
 
 const RiskPage = () => {
     const router = useRouter();
-    const [risks, setRisks] = useState<Risk[]>([]);
-    const [loading, setLoading] = useState(true);
+    // notConnected: risks, projects (names) and users (owners) would be loaded here.
+    const [risks] = useState<Risk[]>([]);
+    const loading = false;
     const [search, setSearch] = useState("");
     const [levelFilter, setLevelFilter] = useState("all");
     const [statusFilter, setStatusFilter] = useState("all");
     const [filteredRisks, setFilteredRisks] = useState<Risk[]>([]);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [riskToDelete, setRiskToDelete] = useState<Risk | null>(null);
-    const [isDeleting, setIsDeleting] = useState(false);
+    const isDeleting = false;
     const [activeTab, setActiveTab] = useState<"grid" | "calendar">("grid");
     const [showGrid, setShowGrid] = useState(true);
     const [showCalendar, setShowCalendar] = useState(false);
-    const [projects, setProjects] = useState<Project[]>([]);
-    const [users, setUsers] = useState<User[]>([]);
+    const [projects] = useState<Project[]>([]);
+    const [users] = useState<User[]>([]);
     const [view, setView] = useState<ListViewMode>("grid");
     const [page, setPage] = useState(0);
 
@@ -212,63 +213,6 @@ const RiskPage = () => {
     );
 
     useEffect(() => {
-        setLoading(true);
-        axios
-            .get("/api/risks", {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
-            })
-            .then((res) => {
-                // Ensure res.data is an array, if not, use empty array
-                console.log(res.data.risks);
-                const risksData = Array.isArray(res.data.risks)
-                    ? res.data.risks
-                    : [];
-                setRisks(risksData);
-                setFilteredRisks(risksData);
-                console.log(risksData);
-            })
-            .catch((err) => {
-                console.error("Failed to fetch risks", err);
-                // Set empty arrays on error
-                setRisks([]);
-                setFilteredRisks([]);
-            })
-            .finally(() => {
-                setLoading(false);
-            });
-
-        // Fetch all projects for mapping project_id to name
-        axios
-            .get("/api/projects", {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
-            })
-            .then((res) => {
-                setProjects(res.data);
-            })
-            .catch((err) => {
-                console.error("Failed to fetch projects", err);
-            });
-
-        // Fetch all users for mapping owner_id to name
-        axios
-            .get("/api/users", {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
-            })
-            .then((res) => {
-                setUsers(res.data);
-            })
-            .catch((err) => {
-                console.error("Failed to fetch users", err);
-            });
-    }, []);
-
-    useEffect(() => {
         const term = search.trim().toLowerCase();
         setFilteredRisks(
             risks.filter((risk) => {
@@ -291,22 +235,10 @@ const RiskPage = () => {
         setShowDeleteModal(true);
     };
 
-    const confirmDelete = async () => {
+    const confirmDelete = () => {
         if (!riskToDelete) return;
-        setIsDeleting(true);
-        try {
-            await axios.delete(`/api/risks/${riskToDelete.risk_id}`, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
-            });
-            setRisks(risks.filter((r) => r.risk_id !== riskToDelete.risk_id));
-            setShowDeleteModal(false);
-        } catch (err) {
-            console.error("Delete failed", err);
-        } finally {
-            setIsDeleting(false);
-        }
+        setShowDeleteModal(false);
+        notConnected("Deleting the risk");
     };
 
     // Edit handlers

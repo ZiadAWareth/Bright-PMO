@@ -40,7 +40,6 @@ import {
     GitBranch,
     ArrowRight,
 } from "lucide-react";
-import axios from "axios";
 import { toast } from "sonner";
 import { ProjectWithRelations, ProjectSetup, ProjectTask } from "@/features/projects/types";
 

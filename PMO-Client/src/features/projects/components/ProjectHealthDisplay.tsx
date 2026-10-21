@@ -67,39 +67,12 @@ export default function ProjectHealthDisplay({
   projectId,
   onHealthUpdate,
 }: ProjectHealthDisplayProps) {
-  const [healthData, setHealthData] = useState<HealthResult | null>(null);
-  const [loading, setLoading] = useState(false);
+  // notConnected: the project's health score and breakdown would be loaded here.
+  const [healthData] = useState<HealthResult | null>(null);
+  const loading = false;
   const [activeTab, setActiveTab] = useState<
     "overview" | "breakdown" | "recommendations"
   >("overview");
-
-  // Load current health data
-  const loadHealthData = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(`/api/projects/${projectId}/health`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        setHealthData(result);
-      } else {
-        console.error("Failed to load health data");
-      }
-    } catch (error) {
-      console.error("Error loading health data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadHealthData();
-  }, [projectId]);
 
   const getHealthColor = (score: number) => {
     if (score >= 90) return "text-success bg-success-soft border-line";

@@ -7,8 +7,8 @@
  * generated enums, so they can be used both as types and as runtime values
  * (`Object.values(ProjectStatus)`) without reaching for the Prisma client.
  *
- * Values are mirrored from `PMO-Legacy-API/prisma/schema.prisma` — keep them in
- * sync when the schema enums change.
+ * Values still match the old schema. Reconcile them with the backend's schema
+ * (`docs/target-schema.prisma`) during the integration.
  */
 
 export const ProjectStatus = {

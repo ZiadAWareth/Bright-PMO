@@ -3,10 +3,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AlertCircle, Save } from "lucide-react";
-import axios from "@/lib/axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import {
   CancelButton,
   Field,
@@ -49,9 +48,11 @@ export default function EditSchedulePage() {
   const params = useParams();
   const scheduleId = params?.id as string;
 
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  // notConnected: the schedule (to prefill the form) would be loaded here.
+  // Until then the form starts empty.
+  const loading = false;
+  const notFound = false;
+  const submitting = false;
   const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
@@ -65,48 +66,6 @@ export default function EditSchedulePage() {
     target_completion_date: "",
     notes: "",
   });
-
-  useEffect(() => {
-    if (!scheduleId) return;
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const res = await axios.get(`/api/schedules/${scheduleId}`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        });
-        if (cancelled) return;
-
-        const s = res.data?.schedule ?? res.data;
-        if (!s) {
-          setNotFound(true);
-          return;
-        }
-
-        const day = (v?: string) => (v ? v.split("T")[0] : "");
-
-        setFormData({
-          name: s.name ?? "",
-          description: s.description ?? "",
-          start_date: day(s.start_date),
-          end_date: day(s.end_date),
-          status: s.status ?? "draft",
-          priority: s.priority ?? "medium",
-          estimated_budget: s.total_budget ?? 0,
-          target_completion_date: day(s.target_completion_date),
-          notes: s.notes ?? "",
-        });
-      } catch {
-        if (!cancelled) setNotFound(true);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [scheduleId]);
 
   const set = <K extends keyof typeof formData>(
     key: K,
@@ -125,7 +84,7 @@ export default function EditSchedulePage() {
     return null;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     const problem = validate();
@@ -135,38 +94,7 @@ export default function EditSchedulePage() {
     }
 
     setError(null);
-    setSubmitting(true);
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        const message = "Authentication token not found. Please log in.";
-        setError(message);
-        toast.error(message);
-        setSubmitting(false);
-        return;
-      }
-
-      await axios.put(
-        `/api/schedules/${scheduleId}`,
-        { ...formData, schedule_id: Number(scheduleId) },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-
-      toast.success("Schedule updated");
-      router.push(`/scheduler/${scheduleId}`);
-    } catch (e) {
-      const err = e as {
-        response?: { data?: { error?: string; message?: string } };
-      };
-      const message =
-        err.response?.data?.message ??
-        err.response?.data?.error ??
-        "Failed to update schedule";
-      setError(message);
-      toast.error(message);
-    } finally {
-      setSubmitting(false);
-    }
+    notConnected("Updating the schedule");
   };
 
   const durationDays =
@@ -180,7 +108,7 @@ export default function EditSchedulePage() {
 
   if (loading) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout hideHeader>
           <div className="space-y-6">
             <PageHeader
@@ -196,13 +124,13 @@ export default function EditSchedulePage() {
             </div>
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
   if (notFound) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout hideHeader>
           <div className="space-y-6">
             <PageHeader
@@ -232,12 +160,12 @@ export default function EditSchedulePage() {
             </FormSection>
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
   return (
-    <ProtectedRoute>
+    <>
       <DashboardLayout hideHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <PageHeader
@@ -398,6 +326,6 @@ export default function EditSchedulePage() {
           </FormFooter>
         </form>
       </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 }

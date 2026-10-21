@@ -43,7 +43,6 @@ import {
 } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import axios from "axios";
 import { Spinner } from "@/components/ui/spinner";
 
 interface User {
@@ -142,52 +141,14 @@ export default function UserDetailPage() {
   const router = useRouter();
   const userId = params?.id as string;
 
-  const [user, setUser] = useState<User | null>(null);
-  const [workload, setWorkload] = useState<UserWorkload | null>(null);
-  const [loading, setLoading] = useState(true);
+  // notConnected: the user and their workload would be loaded here. Until then
+  // there is no user, so the page shows its empty state.
+  const [user] = useState<User | null>(null);
+  const [workload] = useState<UserWorkload | null>(null);
+  const loading = false;
   const [activeTab, setActiveTab] = useState("overview");
-  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
-  const [roles, setRoles] = useState<Role[]>([]);
-
-  useEffect(() => {
-    if (userId) {
-      fetchUserDetails();
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-    axios
-      .get("/api/auth/me", { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => setCurrentUserRole(res.data?.user?.role?.name ?? null))
-      .catch(() => {});
-  }, []);
-
-  const fetchUserDetails = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem("token");
-
-      // Fetch user basic info
-      const userResponse = await axios.get(`/api/users/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      // Fetch user workload
-      const workloadResponse = await axios.get(`/api/users/${userId}/workload`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setUser(userResponse.data.user);
-      setWorkload(workloadResponse.data);
-    } catch (error) {
-      console.error("Error fetching user details:", error);
-      toast.error("Failed to load user details");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Every action is open until roles come from the backend.
+  const currentUserRole: string | null = "ADMIN";
 
   const getStatusBadge = (status: string) => {
     const colors: Record<string, string> = {

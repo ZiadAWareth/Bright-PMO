@@ -18,7 +18,6 @@ import {
   priorityTone,
   scheduleStatusTone,
 } from "@/lib/status-tone";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import {
   ArrowLeft,
   Plus,
@@ -55,7 +54,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import axios from "@/lib/axios";
+import { notConnected } from "@/lib/not-connected";
 import { TeamUserSelect } from '@/features/team/components/TeamUserSelect';
 import { AddEntityModal } from '@/components/form/AddEntityModal';
 import ResourceAssignmentModal from '@/features/waterfall/schedule/components/ResourceAssignmentModal';
@@ -209,7 +208,7 @@ const ScheduleDetailPage = () => {
   const [schedule, setSchedule] = useState<Schedule | null>(null);
   const [wbsItems, setWbsItems] = useState<WBSItem[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [selectedItem, setSelectedItem] = useState<WBSItem | null>(null);
   const [editingItem, setEditingItem] = useState<WBSItem | null>(null);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
@@ -263,86 +262,20 @@ const ScheduleDetailPage = () => {
   }, [scheduleId]);
 
   const fetchSchedule = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        router.push("/auth/login");
-        return;
-      }
-
-      const response = await axios.get(`/api/schedules/${scheduleId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      setSchedule(response.data.schedule);
-    } catch (error) {
-      console.error("Failed to fetch schedule:", error);
-      toast.error("Failed to load schedule");
-    } finally {
-      setLoading(false);
-    }
+    // notConnected: loads the schedule. Until then there is none, so the page
+    // shows its empty state.
   };
 
   const fetchWBSData = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(`/api/schedules/${scheduleId}/wbs`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      // Transform and build tree
-      const transformWBSData = (items: any[]): WBSItem[] => {
-        return items.map(item => ({
-          id: item.wbs_id.toString(),
-          type: 'wbs',
-          title: item.name,
-          description: item.description,
-          budget: item.budget?.planned_amount || 0, // use ScheduleBudget
-          start_date: item.start_date,
-          end_date: item.end_date,
-          children: [], // children will be set by buildWBSTree
-          expanded: true,
-          level: item.level,
-          wbs_code: item.wbs_code,
-          parent_wbs_id: item.parent_wbs_id?.toString(),
-          tasks: (item.tasks || []).map((task: any) => ({
-            ...task,
-            budget: task.budget?.planned_amount || 0,
-          })), // Attach tasks with correct budget
-        }));
-      };
-      const flatData = transformWBSData(response.data || []);
-      const tree = buildWBSTree(flatData);
-      setWbsItems(tree);
-    } catch (error) {
-      console.error("Failed to fetch WBS data:", error);
-      setWbsItems([]);
-    }
+    // notConnected: loads the schedule's WBS items.
   };
 
   const fetchTeamMembers = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(`/api/schedules/${scheduleId}/team-members`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setTeamMembers(response.data);
-    } catch (error) {
-      console.error("Failed to fetch team members:", error);
-      setTeamMembers([]);
-    }
+    // notConnected: loads the schedule's team members.
   };
 
   const fetchAllTasks = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(`/api/schedules/${scheduleId}/tasks`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setAllTasks(response.data || []);
-    } catch (error) {
-      console.error("Failed to fetch tasks:", error);
-      setAllTasks([]);
-    }
+    // notConnected: loads every task in the schedule.
   };
 
   const toggleExpanded = (itemId: string) => {
@@ -398,79 +331,8 @@ const ScheduleDetailPage = () => {
   };
 
   const saveInlineEdit = async (item: WBSItem | any, field: string, value: string) => {
-    try {
-      // Date validation: ensure start_date <= end_date
-      let newStart = item.start_date;
-      let newEnd = item.end_date;
-      if (field === 'start_date') {
-        newStart = value;
-      } else if (field === 'end_date') {
-        newEnd = value;
-      }
-      if (newStart && newEnd && new Date(newStart) > new Date(newEnd)) {
-        toast.error('Start date cannot be after end date.');
-        return;
-      }
-      const token = localStorage.getItem("token");
-      const payload: any = {};
-
-      if (field === 'budget') {
-        payload.budget_amount = parseFloat(value) || 0;
-      } else if (field === 'start_date') {
-        payload.start_date = value;
-      } else if (field === 'end_date') {
-        payload.end_date = value;
-      }
-
-      // If editing a task budget
-      if (item.id && typeof item.id === 'string' && item.id.startsWith('task-') && field === 'budget') {
-        await axios.put(`/api/schedules/${scheduleId}/tasks/${item.task_id}`, { budget: parseFloat(value) || 0 }, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        // Update local state (optional: refetch WBS data for accuracy)
-        await fetchWBSData();
-        setEditingField(null);
-        setEditValue("");
-        toast.success("Task budget updated successfully");
-        return;
-      }
-      // If editing a task start_date or end_date
-      if (item.id && typeof item.id === 'string' && item.id.startsWith('task-') && (field === 'start_date' || field === 'end_date')) {
-        await axios.put(`/api/schedules/${scheduleId}/tasks/${item.task_id}`, payload, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        await fetchWBSData();
-        setEditingField(null);
-        setEditValue("");
-        toast.success("Task date updated successfully");
-        return;
-      }
-      // Otherwise, update WBS as before
-      await axios.put(`/api/schedules/${scheduleId}/wbs/${item.id}`, payload, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      // Update local state
-      const updateItemInTree = (items: WBSItem[]): WBSItem[] => {
-        return items.map(wbsItem => {
-          if (wbsItem.id === item.id) {
-            return { ...wbsItem, [field === 'budget' ? 'budget' : field]: field === 'budget' ? parseFloat(value) || 0 : value };
-          }
-          if (wbsItem.children) {
-            return { ...wbsItem, children: updateItemInTree(wbsItem.children) };
-          }
-          return wbsItem;
-        });
-      };
-
-      setWbsItems(updateItemInTree(wbsItems));
-      setEditingField(null);
-      setEditValue("");
-      toast.success("WBS item updated successfully");
-    } catch (error) {
-      console.error("Failed to update WBS item or task budget:", error);
-      toast.error("Failed to update WBS item or task budget");
-    }
+    setEditingField(null);
+    notConnected("Saving the change");
   };
 
   const handleKeyPress = (e: React.KeyboardEvent, item: WBSItem, field: string) => {
@@ -492,43 +354,8 @@ const ScheduleDetailPage = () => {
   };
 
   const handleDeleteConfirm = async () => {
-    if (!itemToDelete) return;
-
-    setDeletingItem(itemToDelete.id);
-    try {
-      const token = localStorage.getItem("token");
-
-      switch (itemToDelete.type) {
-        case 'wbs':
-          await axios.delete(`/api/schedules/${scheduleId}/wbs/${itemToDelete.id}`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          toast.success("WBS item deleted successfully");
-          fetchWBSData();
-          break;
-        case 'task':
-          await axios.delete(`/api/schedules/${scheduleId}/tasks/${itemToDelete.id}`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          toast.success("Task deleted successfully");
-          fetchWBSData();
-          break;
-        case 'team-member':
-          await axios.delete(`/api/schedules/${scheduleId}/team-members/${itemToDelete.id}`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          toast.success("Team member removed successfully");
-          fetchTeamMembers();
-          break;
-      }
-    } catch (error: any) {
-      console.error('Delete error:', error);
-      toast.error(error.response?.data?.error || "Failed to delete item");
-    } finally {
-      setDeletingItem(null);
-      setShowDeleteConfirmation(false);
-      setItemToDelete(null);
-    }
+    setShowDeleteConfirmation(false);
+    notConnected("Deleting");
   };
 
   const handleDeleteCancel = () => {
@@ -875,101 +702,16 @@ const ScheduleDetailPage = () => {
     end_date: string;
     parent_wbs_id?: number | null;
   }) => {
-    try {
-      setCreatingWBS(true);
-
-      // Validation: Check if level 1 already exists (root level)
-      if (formData.level === 1) {
-        const flattenWBS = (items: WBSItem[]): WBSItem[] => {
-          let result: WBSItem[] = [];
-          items.forEach((item) => {
-            result.push(item);
-            if (item.children) {
-              result = result.concat(flattenWBS(item.children));
-            }
-          });
-          return result;
-        };
-
-        const allWBSItems = flattenWBS(wbsItems);
-        const hasRootLevel = allWBSItems.some(
-          (item: WBSItem) => item.level === 1
-        );
-        if (hasRootLevel) {
-          toast.error("A Level 1 (Root) WBS already exists for this schedule. You can only have one root level.");
-          return;
-        }
-      }
-
-      const payload = {
-        name: formData.name,
-        description: formData.description,
-        level: formData.level,
-        start_date: formData.start_date,
-        end_date: formData.end_date,
-        ...(formData.parent_wbs_id && {
-          parent_wbs_id: formData.parent_wbs_id,
-        }),
-      };
-
-      const token = localStorage.getItem("token");
-      const response = await axios.post(`/api/schedules/${scheduleId}/wbs`, payload, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      // Refresh WBS data
-      await fetchWBSData();
-      setShowWBSModal(false);
-      toast.success("WBS item created successfully");
-    } catch (error) {
-      console.error("Failed to create WBS:", error);
-      toast.error("Failed to create WBS item");
-    } finally {
-      setCreatingWBS(false);
-    }
+    notConnected("Creating the WBS item");
   };
 
   const createScheduleTask = async (formData: any) => {
-    try {
-      setCreatingTask(true);
-      const token = localStorage.getItem("token");
-      await axios.post(`/api/schedules/${scheduleId}/tasks`, {
-        wbs_id: formData.wbs_id,
-        name: formData.name,
-        description: formData.description,
-        start_date: formData.start_date,
-        end_date: formData.end_date,
-        priority: formData.priority,
-        estimated_hours: Number(formData.estimated_hours), // new
-        is_milestone: formData.is_milestone, // new
-        is_critical_path: formData.is_critical_path, // new
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      await fetchWBSData();
-      setShowTaskModal(false);
-      toast.success("Task created successfully");
-    } catch (error) {
-      console.error("Failed to create task:", error);
-      toast.error("Failed to create task");
-    } finally {
-      setCreatingTask(false);
-    }
+    notConnected("Creating the task");
   };
 
   // Fetch all users for the select
   const fetchAllUsers = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(`/api/schedules/${scheduleId}/team-members/available`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      console.log("Available users response:", response.data);
-      setAllUsers(response.data || []);
-    } catch (error) {
-      console.error("Failed to fetch available users:", error);
-      setAllUsers([]);
-    }
+    // notConnected: loads the users who can join the team.
   };
 
   // Fetch users when component mounts and when modal opens
@@ -985,15 +727,7 @@ const ScheduleDetailPage = () => {
 
   // Function to fetch available resources for the schedule
   const fetchAvailableResources = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`/api/schedules/${scheduleId}/resources/available`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setAvailableResources(response.data || []);
-    } catch (error) {
-      setAvailableResources([]);
-    }
+    // notConnected: loads the resources that can be assigned.
   };
 
   // Handler to open resource assignment modal for a task
@@ -1006,18 +740,7 @@ const ScheduleDetailPage = () => {
 
   // Handler for saving resource assignment
   const handleResourceAssign = async (data: any) => {
-    try {
-      const token = localStorage.getItem('token');
-      await axios.post(`/api/schedules/${scheduleId}/tasks/${resourceModalTask.task_id}/resource-assignments`, data, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      toast.success('Resource assigned successfully');
-      setShowResourceModal(false);
-      setResourceModalTask(null);
-      fetchWBSData();
-    } catch (error) {
-      toast.error('Failed to assign resource');
-    }
+    notConnected("Assigning the resource");
   };
 
   // Handler to open dependency modal for a task
@@ -1032,93 +755,25 @@ const ScheduleDetailPage = () => {
   };
 
   // Fetch approvals and current user
-  useEffect(() => {
-    async function fetchApprovalsAndUser() {
-      try {
-        const token = localStorage.getItem('token');
-        const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
-        const approvalsRes = await axios.get(`/api/schedules/${scheduleId}/approval`, { headers: authHeader });
-        setApprovals(approvalsRes.data);
-        // If there are any approvals, set readonly
-        setReadonly(approvalsRes.data.length > 0);
-        // Fetch current user
-        const userRes = await axios.get('/api/auth/me', { headers: authHeader });
-        setCurrentUser(userRes.data.user);
-        // Find if this user has a pending approval
-        const pending = approvalsRes.data.find((a: any) => a.user_id === userRes.data.user.user_id && a.status === 'PENDING');
-        setUserApproval(pending || null);
-      } catch (e) {
-        // ignore
-      }
-    }
-    fetchApprovalsAndUser();
-  }, [scheduleId]);
-
   // After fetching the schedule (which now includes approvals):
-  useEffect(() => {
-    async function fetchScheduleAndUser() {
-      try {
-        const token = localStorage.getItem('token');
-        const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
-        // Fetch schedule (with approvals)
-        const scheduleRes = await axios.get(`/api/schedules/${scheduleId}`, { headers: authHeader });
-        setSchedule(scheduleRes.data.schedule);
-        // Fetch current user
-        const userRes = await axios.get('/api/auth/me', { headers: authHeader });
-        setCurrentUser(userRes.data.user);
-        // Debug: log the data
-        console.log('Schedule approvals:', scheduleRes.data.schedule.approvals);
-        console.log('Current user:', userRes.data.user);
-        // Find if this user has a pending approval
-        const pending = scheduleRes.data.schedule.approvals?.find((a: any) => a.user_id === userRes.data.user.user_id && a.status === 'PENDING');
-        console.log('Pending approval found:', pending);
-        setUserApproval(pending || null);
-        // Set readonly if there are any approvals
-        setReadonly(scheduleRes.data.schedule.approvals?.length > 0);
-      } catch (e) {
-        console.error('Error fetching schedule and user:', e);
-      }
-    }
-    fetchScheduleAndUser();
-  }, [scheduleId]);
+  // notConnected: the schedule's approvals, the signed-in user and their pending
+  // approval (which makes the schedule read-only) would be loaded here.
 
   // Handler for approve
   const handleApprove = async () => {
     if (!userApproval) return;
-    try {
-      const token = localStorage.getItem('token');
-      const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
-      await axios.post(`/api/schedules/${scheduleId}/approval/${userApproval.id}/approve`, {}, { headers: authHeader });
-      toast.success('Approval granted!');
-      // Refresh schedule and approvals
-      const scheduleRes = await axios.get(`/api/schedules/${scheduleId}`, { headers: authHeader });
-      setSchedule(scheduleRes.data.schedule);
-      setUserApproval(null);
-    } catch (e) {
-      toast.error('Failed to approve');
-    }
+    notConnected("Approving the schedule");
   };
 
   // Handler for reject
   const handleReject = async () => {
     if (!userApproval) return;
-    try {
-      const token = localStorage.getItem('token');
-      const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
-      await axios.post(`/api/schedules/${scheduleId}/approval/${userApproval.id}/reject`, {}, { headers: authHeader });
-      toast.success('Approval rejected.');
-      // Refresh schedule and approvals
-      const scheduleRes = await axios.get(`/api/schedules/${scheduleId}`, { headers: authHeader });
-      setSchedule(scheduleRes.data.schedule);
-      setUserApproval(null);
-    } catch (e) {
-      toast.error('Failed to reject');
-    }
+    notConnected("Rejecting the schedule");
   };
 
   if (loading) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout
           title="Schedule Details"
           backHref="/scheduler"
@@ -1128,13 +783,13 @@ const ScheduleDetailPage = () => {
             <Spinner size={64} className="text-bright-primary" />
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
   if (!schedule) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout
           title="Schedule Not Found"
           backHref="/scheduler"
@@ -1147,7 +802,7 @@ const ScheduleDetailPage = () => {
             </Button>
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
@@ -1202,7 +857,7 @@ const ScheduleDetailPage = () => {
   ];
 
   return (
-    <ProtectedRoute>
+    <>
       <DashboardLayout
         title={schedule.name}
         subtitle={schedule.description}
@@ -1362,24 +1017,7 @@ const ScheduleDetailPage = () => {
                       required: false,
                     },
                   ]}
-                  onSubmit={async (data) => {
-                    try {
-                      const token = localStorage.getItem("token");
-                      await axios.post(`/api/schedules/${scheduleId}/team-members`, {
-                        resource_id: data.user_id,
-                        role: data.role,
-                        department: data.department,
-                        workload: parseFloat(data.workload),
-                        is_lead: data.is_lead === "true",
-                      }, {
-                        headers: { Authorization: `Bearer ${token}` }
-                      });
-                      toast.success("Team member added successfully");
-                      fetchTeamMembers();
-                    } catch (error: any) {
-                      toast.error(error.response?.data?.error || "Failed to add team member");
-                    }
-                  }}
+                  onSubmit={async () => notConnected("Adding a team member")}
                   triggerButton={
                     <button
                       type="button"
@@ -1529,31 +1167,7 @@ const ScheduleDetailPage = () => {
                 </div>
               </div>
               <Button
-                onClick={async () => {
-                  setAddingMember(true);
-                  try {
-                    const token = localStorage.getItem("token");
-                    await axios.post(`/api/schedules/${scheduleId}/team-members`, {
-                      resource_id: selectedUserId,
-                      role: "Team Member",
-                      department: "General",
-                      workload: 100,
-                      is_lead: false,
-                    }, {
-                      headers: { Authorization: `Bearer ${token}` }
-                    });
-                    toast.success("Team member added");
-                    setShowAddTeamMemberModal(false);
-                    setSelectedUserId("");
-                    setAvailabilityStart("");
-                    setAvailabilityEnd("");
-                    fetchTeamMembers();
-                  } catch (error) {
-                    toast.error("Failed to add team member");
-                  } finally {
-                    setAddingMember(false);
-                  }
-                }}
+                onClick={() => notConnected("Adding a team member")}
                 disabled={!selectedUserId || !availabilityStart || !availabilityEnd || addingMember}
                 className="w-full mt-2"
               >
@@ -1587,27 +1201,9 @@ const ScheduleDetailPage = () => {
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setShowAssignModal(false)} disabled={assigning}>Cancel</Button>
                 <Button
-                  onClick={async () => {
+                  onClick={() => {
                     if (!selectedAssignUser) return;
-                    setAssigning(true);
-                    try {
-                      const token = localStorage.getItem("token");
-                      await axios.post(`/api/schedules/${scheduleId}/tasks/${assigningTask.task_id}/assign`, {
-                        user_id: selectedAssignUser
-                      }, {
-                        headers: { Authorization: `Bearer ${token}` }
-                      });
-                      toast.success("Team member assigned");
-                      setShowAssignModal(false);
-                      setAssigningTask(null);
-                      setSelectedAssignUser("");
-                      // Refresh WBS/tasks
-                      fetchWBSData();
-                    } catch (error: any) {
-                      toast.error(error.response?.data?.error || "Failed to assign team member");
-                    } finally {
-                      setAssigning(false);
-                    }
+                    notConnected("Assigning the team member");
                   }}
                   disabled={!selectedAssignUser || assigning}
                 >
@@ -1707,7 +1303,7 @@ const ScheduleDetailPage = () => {
         scheduleId={parseInt(scheduleId)}
         onSuccess={fetchSchedule}
       />
-    </ProtectedRoute>
+    </>
   );
 };
 
@@ -2362,46 +1958,10 @@ const ScheduleApprovalModal = ({
   const [form, setForm] = useState<{ [key: string]: string }>({ PJM: '', FIN: '' });
   const [existingApprovals, setExistingApprovals] = useState<any[]>([]);
   const [creatingApprovals, setCreatingApprovals] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (!open) return;
-    async function fetchData() {
-      setLoading(true);
-      try {
-        const token = localStorage.getItem('token');
-        const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
-        // Fetch schedule details (to get creator and manager)
-        const scheduleRes = await axios.get(`/api/schedules/${scheduleId}`, { headers: authHeader });
-        const schedule = scheduleRes.data;
-        // Fetch existing approvals
-        const approvalsRes = await axios.get(`/api/schedules/${scheduleId}/approval`, { headers: authHeader });
-        setExistingApprovals(approvalsRes.data);
-        // Fetch all users
-        const usersRes = await axios.get(`/api/users`, { headers: authHeader });
-        const allUsers = usersRes.data;
-        // Debug: log all users and their roles
-        console.log('All users:', allUsers.map((u: any) => ({ id: u.user_id, username: u.username, role: u.role?.name })));
-        // Case-insensitive, robust role matching
-        const findRole = (user: any, role: string) => user.role?.name?.toLowerCase() === role;
-        const usersByRoleObj: Record<string, any[]> = {
-          FIN: allUsers.filter((u: any) => findRole(u, 'fin')),
-          PJM: allUsers.filter((u: any) => findRole(u, 'pjm') || findRole(u, 'project manager')),
-        };
-        setUsersByRole(usersByRoleObj);
-        setForm((f) => ({
-          ...f,
-          PJM: '',
-          FIN: '',
-        }));
-      } catch (e) {
-        toast.error('Failed to load schedule or users');
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
-  }, [open, scheduleId]);
+  // notConnected: the schedule, its existing approvals and the PJM/Finance users
+  // to pick from would be loaded here.
 
   const handleChange = (role: string, userId: string) => {
     setForm((f) => ({ ...f, [role]: userId }));
@@ -2412,31 +1972,7 @@ const ScheduleApprovalModal = ({
       toast.error('Please select a user for both PJM and Finance.');
       return;
     }
-    setCreatingApprovals(true);
-    try {
-      const token = localStorage.getItem('token');
-      const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
-      const userIds = [parseInt(form.PJM), parseInt(form.FIN)];
-      const response = await axios.post(`/api/schedules/${scheduleId}/approval`, { userIds }, { headers: authHeader });
-      toast.success(response.data.message || 'Approvals created!');
-      // Refresh existing approvals
-      const approvalsRes = await axios.get(`/api/schedules/${scheduleId}/approval`, { headers: authHeader });
-      setExistingApprovals(approvalsRes.data);
-
-      // Call onSuccess callback to refresh schedule data in parent
-      if (onSuccess) {
-        onSuccess();
-      }
-
-      // Close modal automatically after successful approval
-      setTimeout(() => {
-        onClose();
-      }, 1000); // Small delay to show success message
-    } catch (error: any) {
-      toast.error('Failed to create approvals');
-    } finally {
-      setCreatingApprovals(false);
-    }
+    notConnected("Requesting approvals");
   };
 
   const hasApprovalForRole = (roleKey: string) => {

@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { toast } from "sonner";
 import {
     CheckCircle,
@@ -14,6 +13,7 @@ import {
 } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Spinner } from "@/components/ui/spinner";
+import { notConnected } from "@/lib/not-connected";
 
 interface ApprovalWorkflowModalProps {
     isOpen: boolean;
@@ -35,23 +35,8 @@ interface ApprovalWorkflowModalProps {
     requesterUserId?: number | null;
 }
 
-const authHeader = () => ({
-    Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("token") : ""}`,
-});
-
 const formatMoney = (n: number) =>
     `OMR ${n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-
-function pickLatestByStep(approvals: any[]): any[] {
-    const byStep = new Map<number, any>();
-    for (const approval of approvals) {
-        const existing = byStep.get(approval.step);
-        if (!existing || approval.id > existing.id) {
-            byStep.set(approval.step, approval);
-        }
-    }
-    return Array.from(byStep.values()).sort((a, b) => a.step - b.step);
-}
 
 export function ApprovalWorkflowModal({
     isOpen,
@@ -66,40 +51,19 @@ export function ApprovalWorkflowModal({
     currentBudgetAmount,
     requesterUserId,
 }: ApprovalWorkflowModalProps) {
-    const [existingApprovals, setExistingApprovals] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    // notConnected: the project's approval steps would be loaded here (the latest
+    // record per step, filtered by approvalType). Until then there are none.
+    const existingApprovals: any[] = [];
+    const loading = false;
     const [actionState, setActionState] = useState<
         Record<number, { loading: boolean; showComments: boolean; comments: string }>
     >({});
-    const [reRequestLoading, setReRequestLoading] = useState(false);
+    const reRequestLoading = false;
     // Budget re-submit state (used after REVISION_REQUESTED on a BUDGET_CHANGE)
     const [revisedBudget, setRevisedBudget] = useState("");
-    const [reSubmitLoading, setReSubmitLoading] = useState(false);
+    const reSubmitLoading = false;
 
     const isBudgetChange = approvalType === "BUDGET_CHANGE";
-
-    const refreshApprovals = async () => {
-        try {
-            const res = await axios.get(`/api/projects/${projectId}/approval`, {
-                headers: authHeader(),
-            });
-            // Filter by type if specified
-            const all: any[] = res.data;
-            const filtered = approvalType
-                ? all.filter((a) => a.type === approvalType)
-                : all;
-            // Keep only latest record per step to avoid showing stale historical cycles.
-            setExistingApprovals(pickLatestByStep(filtered));
-        } catch {
-            toast.error("Failed to load approvals");
-        }
-    };
-
-    useEffect(() => {
-        if (!isOpen || !projectId) return;
-        setLoading(true);
-        refreshApprovals().finally(() => setLoading(false));
-    }, [isOpen, projectId]);
 
     const stepApproval = (step: number) =>
         existingApprovals.find((a: any) => a.step === step);
@@ -144,72 +108,28 @@ export function ApprovalWorkflowModal({
             toast.error("Please enter revision notes before requesting changes.");
             return;
         }
-        setActionState((s) => ({ ...s, [id]: { ...s[id], loading: true } }));
-        try {
-            await axios.patch(
-                `/api/projects/${projectId}/approval/${id}`,
-                { status, comments },
-                { headers: authHeader() }
-            );
-            toast.success(
-                status === "APPROVED"
-                    ? "Approved successfully!"
-                    : status === "REJECTED"
-                    ? "Rejected."
-                    : "Revision requested — creator will be notified."
-            );
-            await refreshApprovals();
-            onApprovalUpdated?.();
-        } catch (error: any) {
-            toast.error(error.response?.data?.error ?? "Action failed");
-        } finally {
-            setActionState((s) => ({
-                ...s,
-                [id]: { ...s[id], loading: false, showComments: false, comments: "" },
-            }));
-        }
+        notConnected(
+            status === "APPROVED"
+                ? "Approving"
+                : status === "REJECTED"
+                ? "Rejecting"
+                : "Requesting a revision"
+        );
+        setActionState((s) => ({
+            ...s,
+            [id]: { ...s[id], loading: false, showComments: false, comments: "" },
+        }));
     };
 
-    const handleReRequestReview = async () => {
-        setReRequestLoading(true);
-        try {
-            await axios.post(
-                `/api/projects/${projectId}/approval/re-request`,
-                {},
-                { headers: authHeader() }
-            );
-            toast.success("Re-review requested. The reviewer has been notified.");
-            await refreshApprovals();
-            onApprovalUpdated?.();
-        } catch (error: any) {
-            toast.error(error.response?.data?.error ?? "Failed to request re-review");
-        } finally {
-            setReRequestLoading(false);
-        }
-    };
+    const handleReRequestReview = () => notConnected("Requesting a re-review");
 
-    const handleBudgetReSubmit = async () => {
+    const handleBudgetReSubmit = () => {
         const parsed = parseFloat(revisedBudget);
         if (!revisedBudget || isNaN(parsed) || parsed <= 0) {
             toast.error("Please enter a valid budget amount");
             return;
         }
-        setReSubmitLoading(true);
-        try {
-            await axios.post(
-                `/api/projects/${projectId}/approval/re-request`,
-                { pendingBudgetAmount: parsed, approvalType: "BUDGET_CHANGE" },
-                { headers: authHeader() }
-            );
-            toast.success("Revised budget re-submitted for PMO review.");
-            setRevisedBudget("");
-            await refreshApprovals();
-            onApprovalUpdated?.();
-        } catch (error: any) {
-            toast.error(error.response?.data?.error ?? "Failed to re-submit budget change");
-        } finally {
-            setReSubmitLoading(false);
-        }
+        notConnected("Re-submitting the budget change");
     };
 
     const hasRevisionRequested = existingApprovals.some(

@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import { Save } from "lucide-react";
 import {
   CancelButton,
@@ -19,7 +18,7 @@ import {
 } from "@/components/ui/form-shell";
 import { Dropdown } from "@/components/ui/dropdown";
 import { toast } from "sonner";
-import axios from "@/lib/axios";
+import { notConnected } from "@/lib/not-connected";
 
 
 interface CreateScheduleForm {
@@ -36,7 +35,7 @@ interface CreateScheduleForm {
 
 const CreateSchedulePage = () => {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const loading = false;
   const [formData, setFormData] = useState<CreateScheduleForm>({
     name: "",
     description: "",
@@ -49,9 +48,10 @@ const CreateSchedulePage = () => {
     eps_level_id: undefined,
   });
 
-  const [portfolios, setPortfolios] = useState<Array<{ portfolio_id: number; name: string }>>([]);
-  const [epsLevels, setEpsLevels] = useState<Array<{ eps_id: number; name: string; level: number }>>([]);
-  const [loadingData, setLoadingData] = useState(true);
+  // notConnected: portfolios and EPS levels would be loaded here.
+  const [portfolios] = useState<Array<{ portfolio_id: number; name: string }>>([]);
+  const [epsLevels] = useState<Array<{ eps_id: number; name: string; level: number }>>([]);
+  const loadingData = false;
 
   const handleInputChange = (field: keyof CreateScheduleForm, value: string | number | undefined) => {
     setFormData(prev => ({
@@ -59,40 +59,6 @@ const CreateSchedulePage = () => {
       [field]: value
     }));
   };
-
-  // Fetch portfolios and EPS levels on component mount
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          router.push("/auth/login");
-          return;
-        }
-
-        // Fetch portfolios
-        const portfoliosResponse = await axios.get("/api/portfolios", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        console.log("Portfolios response:", portfoliosResponse.data);
-        setPortfolios(portfoliosResponse.data || []);
-
-        // Fetch EPS levels
-        const epsResponse = await axios.get("/api/eps", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        console.log("EPS response:", epsResponse.data);
-        setEpsLevels(epsResponse.data || []);
-      } catch (error) {
-        console.error("Failed to fetch data:", error);
-        toast.error("Failed to load portfolios and EPS levels");
-      } finally {
-        setLoadingData(false);
-      }
-    };
-
-    fetchData();
-  }, [router]);
 
   const validateForm = () => {
     if (!formData.name.trim()) {
@@ -130,37 +96,14 @@ const CreateSchedulePage = () => {
     return true;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) {
       return;
     }
 
-    setLoading(true);
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        router.push("/auth/login");
-        return;
-      }
-
-      const response = await axios.post("/api/schedules", {
-        ...formData,
-        estimated_budget: parseFloat(formData.estimated_budget) || 0
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      toast.success("Schedule created successfully!");
-      router.push(`/scheduler/${response.data.schedule.schedule_id}`);
-    } catch (error: any) {
-      console.error("Failed to create schedule:", error);
-      const errorMessage = error.response?.data?.message || "Failed to create schedule";
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
+    notConnected("Creating the schedule");
   };
 
   // Derived once so the summary and the submitted payload cannot disagree.
@@ -208,7 +151,7 @@ const CreateSchedulePage = () => {
   ];
 
   return (
-    <ProtectedRoute>
+    <>
       <DashboardLayout hideHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <PageHeader
@@ -422,7 +365,7 @@ const CreateSchedulePage = () => {
           </FormFooter>
         </form>
       </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 };
 

@@ -6,18 +6,19 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const compat = new FlatCompat({ baseDirectory: __dirname });
 
 /**
- * Imports the client must never make. The client is a pure frontend: it talks
- * to the backend over HTTP (/api for the legacy app, /backend for the new one),
- * so database and server code have no business in its bundle.
+ * Imports the client must never make. The client is a pure frontend with no
+ * backend connected yet: database and server code have no business in its
+ * bundle, and the old HTTP client is gone. The integration brings its own
+ * API layer (and loosens these rules for it).
  */
 const forbiddenEverywhere = {
   paths: [
-    { name: "@prisma/client", message: "The client has no database access. Use the enums in @/types/enums and call the API." },
+    { name: "@prisma/client", message: "The client has no database access. Use the enums in @/types/enums." },
+    { name: "axios", message: "The client is not connected to a backend yet. Use notConnected() from @/lib/not-connected." },
     { name: "react-hot-toast", message: "Use toast from 'sonner' (the <Toaster /> in the root layout)." },
   ],
   patterns: [
-    { group: ["@prisma/*"], message: "The client has no database access. Call the API instead." },
-    { group: ["@/legacy-server", "@/legacy-server/*"], message: "Server code lives in PMO-Legacy-API. Call it over /api instead." },
+    { group: ["@prisma/*"], message: "The client has no database access." },
   ],
 };
 
@@ -41,6 +42,21 @@ const themeTokenRule = [
   },
 ];
 
+/**
+ * No backend calls until the integration: fetch, XMLHttpRequest and EventSource
+ * would reach a server that is not there. Use notConnected() instead.
+ */
+const noBackendCallsRule = [
+  {
+    selector: "CallExpression[callee.name='fetch']",
+    message: "The client is not connected to a backend yet. Use notConnected() from @/lib/not-connected.",
+  },
+  {
+    selector: "NewExpression[callee.name=/^(XMLHttpRequest|EventSource|WebSocket)$/]",
+    message: "The client is not connected to a backend yet. Use notConnected() from @/lib/not-connected.",
+  },
+];
+
 const eslintConfig = [
   { ignores: [".next/**", "node_modules/**", "dist/**", "next-env.d.ts"] },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
@@ -60,7 +76,7 @@ const eslintConfig = [
     files: ["src/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": ["error", forbiddenEverywhere],
-      "no-restricted-syntax": themeTokenRule,
+      "no-restricted-syntax": [...themeTokenRule, ...noBackendCallsRule],
     },
   },
   {

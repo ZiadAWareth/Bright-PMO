@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -15,10 +15,11 @@ import { Spinner } from "@/components/ui/spinner";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
-  const userIdRef = useRef<number | null>(null); // Use a ref to keep track of user ID
-  const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState(false);
+  // notConnected: the signed-in user's profile (to prefill the form) would be
+  // loaded here. Until then the form starts empty.
+  const [user] = useState<User | null>(null);
+  const loading = false;
+  const updating = false;
   
   const [formData, setFormData] = useState({
     firstName: "",
@@ -31,49 +32,6 @@ export default function ProfilePage() {
     confirmPassword: "",
   });
 
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        // Authentication is handled by HTTP-only cookies, no need to check localStorage
-        const response = await axios.get("/api/auth/me", {
-          // Cookies are automatically sent with the request
-        });
-
-        console.log("API Response from /api/auth/me:", response.data);
-
-        if (response.data && response.data.user) {
-          const userData = response.data.user;
-          console.log("User data:", userData);
-          console.log("User ID:", userData.user_id);
-          
-          // Store the user ID in the ref
-          userIdRef.current = userData.user_id;
-          
-          setUser(userData);
-          setFormData({
-            firstName: userData.account?.first_name || "",
-            lastName: userData.account?.last_name || "",
-            email: userData.email || "",
-            phone: userData.account?.phone_number || "",
-            department: userData.account?.department || "",
-            currentPassword: "",
-            newPassword: "",
-            confirmPassword: "",
-          });
-        } else {
-          toast.error("Invalid user data received");
-        }
-      } catch (error) {
-        console.error("Failed to fetch profile:", error);
-        toast.error("Failed to load profile information");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUserProfile();
-  }, [router]);
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData({
@@ -82,91 +40,18 @@ export default function ProfilePage() {
     });
   };
 
-  const handleUpdateProfile = async (e: React.FormEvent) => {
+  const handleUpdateProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    setUpdating(true);
-    
-    try {
-      // Authentication is handled by HTTP-only cookies
-
-      // Use the userId from the ref
-      const userId = userIdRef.current;
-      console.log("Current user ID for API call:", userId);
-      
-      if (!userId) {
-        toast.error("User ID is not available. Please reload the page.");
-        setUpdating(false);
-        return;
-      }
-
-      const response = await axios.put(
-        `/api/users/${userId}`,
-        {
-          account: {
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            phone_number: formData.phone,
-            department: formData.department,
-          },
-        }
-      );
-
-      if (response.status === 200) {
-        toast.success("Profile updated successfully");
-      }
-    } catch (error) {
-      console.error("Failed to update profile:", error);
-      toast.error("Failed to update profile");
-    } finally {
-      setUpdating(false);
-    }
+    notConnected("Updating your profile");
   };
 
-  const handleUpdatePassword = async (e: React.FormEvent) => {
+  const handleUpdatePassword = (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (formData.newPassword !== formData.confirmPassword) {
       toast.error("New passwords don't match");
       return;
     }
-    
-    setUpdating(true);
-    
-    try {
-      // Authentication is handled by HTTP-only cookies
-
-      // Use the userId from the ref
-      const userId = userIdRef.current;
-      
-      if (!userId) {
-        toast.error("User ID is not available. Please reload the page.");
-        setUpdating(false);
-        return;
-      }
-
-      const response = await axios.put(
-        `/api/users/${userId}/password`,
-        {
-          currentPassword: formData.currentPassword,
-          newPassword: formData.newPassword,
-        }
-      );
-
-      if (response.status === 200) {
-        toast.success("Password updated successfully");
-        setFormData({
-          ...formData,
-          currentPassword: "",
-          newPassword: "",
-          confirmPassword: "",
-        });
-      }
-    } catch (error) {
-      console.error("Failed to update password:", error);
-      toast.error("Failed to update password. Please check your current password.");
-    } finally {
-      setUpdating(false);
-    }
+    notConnected("Changing your password");
   };
 
   if (loading) {

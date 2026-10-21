@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { X, Save, AlertCircle } from "lucide-react";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
 import {
     Dialog,
@@ -120,57 +120,22 @@ export default function AddRiskModal({
     const isMultiProjectMode = !!projects;
 
     const [form, setForm] = useState<RiskForm>(defaultForm);
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const isSubmitting = false;
     const [error, setError] = useState<string | null>(null);
-    const [users, setUsers] = useState<User[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [project, setProject] = useState<ProjectDetails | null>(null);
+    // notConnected: the users (risk owners) and, for a single project, the
+    // project would be loaded here. Until then there are none.
+    const [users] = useState<User[]>([]);
+    const loading = false;
+    const [project] = useState<ProjectDetails | null>(null);
     const [dateError, setDateError] = useState<string>("");
 
     useEffect(() => {
         if (isOpen) {
-            fetchUsers();
-            if (isSingleProjectMode) {
-                fetchProject();
-            }
             setForm(defaultForm);
             setError(null);
             setDateError("");
         }
     }, [isOpen]);
-
-    const fetchUsers = async () => {
-        setLoading(true);
-        try {
-            const token = localStorage.getItem("token");
-            const response = await axios.get("/api/users", {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-            setUsers(response.data);
-        } catch (error) {
-            console.error("Error fetching users:", error);
-            toast.error("Failed to load users");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const fetchProject = async () => {
-        try {
-            const token = localStorage.getItem("token");
-            const response = await axios.get(`/api/projects/${projectId}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-            setProject(response.data);
-        } catch (error) {
-            console.error("Error fetching project:", error);
-            toast.error("Failed to load project details");
-        }
-    };
 
     const validateDate = (dateValue: string) => {
         if (!project) return true;
@@ -219,7 +184,7 @@ export default function AddRiskModal({
         return impactValue * probabilityValue;
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
 
@@ -246,48 +211,7 @@ export default function AddRiskModal({
             }
         }
 
-        setIsSubmitting(true);
-
-        try {
-            const token = localStorage.getItem("token");
-            const calculatedScore = calculateRiskScore(
-                form.impact,
-                form.probability
-            );
-            let riskLevel: string = "low";
-            if (calculatedScore >= 7) riskLevel = "high";
-            else if (calculatedScore >= 4) riskLevel = "medium";
-
-            const riskData = {
-                ...form,
-                riskLevel,
-                currentStatus: "Open",
-                ...(isSingleProjectMode && { project_id: parseInt(projectId!) }),
-            };
-
-            await axios.post(
-                `/api/risks`,
-                { ...riskData },
-                {
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
-            toast.success("Risk created successfully");
-            onSuccess();
-            onClose();
-        } catch (error: any) {
-            console.error("Error creating risk:", error);
-            const errorMessage = error.response?.data?.error || "Failed to create risk";
-            setError(errorMessage);
-            if (isSingleProjectMode) {
-                toast.error(errorMessage);
-            }
-        } finally {
-            setIsSubmitting(false);
-        }
+        notConnected("Creating a risk");
     };
 
     const handleClose = () => {

@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { toast } from "sonner";
+import { notConnected } from "@/lib/not-connected";
 import { DollarSign, UserCheck } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { TeamUserSelect } from "@/features/team/components/TeamUserSelect";
@@ -25,10 +25,6 @@ interface BudgetChangeApprovalModalProps {
     onSubmitted: () => void;
 }
 
-const authHeader = () => ({
-    Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("token") : ""}`,
-});
-
 const formatOMR = (n: number) =>
     `OMR ${n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
@@ -44,10 +40,12 @@ export function BudgetChangeApprovalModal({
     const [reason, setReason] = useState("");
     const [selectedPmoId, setSelectedPmoId] = useState("");
     const [selectedFinId, setSelectedFinId] = useState("");
-    const [pmoUsers, setPmoUsers] = useState<UserOption[]>([]);
-    const [finUsers, setFinUsers] = useState<UserOption[]>([]);
-    const [loadingUsers, setLoadingUsers] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
+    // notConnected: PMO and Finance approvers would be loaded from the users list
+    // (roles PMO/DIR/ADMIN and FIN). Until then there are none to pick.
+    const pmoUsers: UserOption[] = [];
+    const finUsers: UserOption[] = [];
+    const loadingUsers = false;
+    const submitting = false;
 
     // Reset form when modal closes
     useEffect(() => {
@@ -59,41 +57,7 @@ export function BudgetChangeApprovalModal({
         }
     }, [isOpen]);
 
-    // Fetch PMO and Finance users when modal opens
-    useEffect(() => {
-        if (!isOpen) return;
-        const fetchUsers = async () => {
-            setLoadingUsers(true);
-            try {
-                const res = await axios.get("/api/users", { headers: authHeader() });
-                const all: UserOption[] = res.data;
-
-                const pmo = all.filter((u) =>
-                    ["pmo", "dir", "admin", "administrator"].includes(
-                        u.role?.name?.toLowerCase() ?? ""
-                    )
-                );
-                const fin = all.filter(
-                    (u) => u.role?.name?.toLowerCase() === "fin"
-                );
-
-                setPmoUsers(pmo);
-                setFinUsers(fin);
-
-                // Auto-select PMO if there is only one candidate
-                if (pmo.length === 1) {
-                    setSelectedPmoId(pmo[0].user_id.toString());
-                }
-            } catch {
-                toast.error("Failed to load approvers");
-            } finally {
-                setLoadingUsers(false);
-            }
-        };
-        fetchUsers();
-    }, [isOpen]);
-
-    const handleSubmit = async () => {
+    const handleSubmit = () => {
         const parsed = parseFloat(newBudgetAmount);
         if (!newBudgetAmount || isNaN(parsed) || parsed <= 0) {
             toast.error("Please enter a valid budget amount");
@@ -104,27 +68,7 @@ export function BudgetChangeApprovalModal({
             return;
         }
 
-        setSubmitting(true);
-        try {
-            await axios.post(
-                `/api/projects/${projectId}/approval`,
-                {
-                    type: "BUDGET_CHANGE",
-                    pendingBudgetAmount: parsed,
-                    userIds: [parseInt(selectedPmoId), parseInt(selectedFinId)],
-                },
-                { headers: authHeader() }
-            );
-            toast.success("Budget change submitted for approval");
-            onClose();
-            onSubmitted();
-        } catch (err: any) {
-            toast.error(
-                err?.response?.data?.error ?? "Failed to submit budget change"
-            );
-        } finally {
-            setSubmitting(false);
-        }
+        notConnected("Submitting the budget change");
     };
 
     const singlePmo = pmoUsers.length === 1 ? pmoUsers[0] : null;

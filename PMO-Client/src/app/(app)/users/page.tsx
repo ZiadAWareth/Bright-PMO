@@ -11,7 +11,6 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import axios from "axios";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { FilterBar, FilterSelect } from "@/components/ui/filter-bar";
@@ -89,8 +88,9 @@ const EMPTY_FILTERS: FilterState = {
 export default function UsersPage() {
   const router = useRouter();
 
-  const [users, setUsers] = useState<UserWorkload[]>([]);
-  const [loading, setLoading] = useState(true);
+  // notConnected: users with their workload would be loaded here.
+  const [users] = useState<UserWorkload[]>([]);
+  const loading = false;
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
   const [view, setView] = useState<ListViewMode>("list");
   const [page, setPage] = useState(0);
@@ -100,24 +100,6 @@ export default function UsersPage() {
     () => setPage(0),
     [debouncedSearch, filters.department, filters.role, filters.capacity],
   );
-
-  useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        const res = await axios.get("/api/users/workload", {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        });
-        setUsers(Array.isArray(res.data) ? res.data : []);
-      } catch (error) {
-        console.error("Error fetching users workload:", error);
-        toast.error("Failed to load users");
-        setUsers([]);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
 
   const departments = useMemo(
     () =>

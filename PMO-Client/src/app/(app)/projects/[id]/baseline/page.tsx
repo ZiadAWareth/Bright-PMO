@@ -11,7 +11,6 @@ import {
   XCircle,
   MinusCircle,
 } from "lucide-react";
-import axios from "axios";
 
 const metricDefinitions = [
   {
@@ -227,36 +226,7 @@ const BaselinePage = () => {
     }
   }, []);
 
-  useEffect(() => {
-    if (projectId) {
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      // Fetch project metrics
-      fetch(`/api/projects/${projectId}/metrics`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          setMetrics(data);
-          console.log("Project Metrics:", data);
-        })
-        .catch((err) => {
-          console.error("Error fetching metrics:", err);
-        });
-      // Fetch project benchmark
-      fetch(`/api/projects/${projectId}/benchmark`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          setBenchmark(data);
-          console.log("Project Benchmark:", data);
-        })
-        .catch((err) => {
-          console.error("Error fetching benchmark:", err);
-        });
-    }
-  }, [projectId]);
+  // notConnected: the project's metrics and its benchmark would be loaded here.
 
   useEffect(() => {
     if (metrics && benchmark) {
@@ -348,30 +318,9 @@ const BaselinePage = () => {
     }
   };
 
-  const handleNext = async () => {
-    setLoading(true);
-    try {
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      await axios.patch(
-        `/api/projects/${projectId}/setup`,
-        { baseline: true },
-        token
-          ? {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          : undefined
-      );
-      setDone(true);
-      router.push(`/projects/${projectId}/approval?from=previous`); // Or `/projects/${projectId}/setup` if you want to go to setup overview
-    } catch (e) {
-      // Optionally handle error
-    } finally {
-      setLoading(false);
-    }
+  const handleNext = () => {
+    // notConnected: marks the baseline step complete in the project setup.
+    router.push(`/projects/${projectId}/approval?from=previous`);
   };
 
   return (

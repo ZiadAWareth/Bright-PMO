@@ -27,9 +27,8 @@ import {
     Lock,
 } from "lucide-react";
 import { ProjectWithRelations } from "@/features/projects/types";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import { Spinner } from "@/components/ui/spinner";
 import { Dropdown } from "@/components/ui/dropdown";
 import { FilterBar, FilterSelect } from "@/components/ui/filter-bar";
@@ -84,10 +83,11 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
     const router = useRouter();
     const [activeView, setActiveView] = useState("technical");
     const [project, setProject] = useState<ProjectWithRelations | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [projectId, setProjectId] = useState<string>("");
-    const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-    const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+    // Every view is open until roles come from the backend.
+    const [currentUserId] = useState<number | null>(null);
+    const [currentUserRole] = useState<string | null>("admin");
     const [tasks, setTasks] = useState<Task[]>([]);
     const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
 
@@ -246,169 +246,7 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
         getParams();
     }, [params]);
 
-    useEffect(() => {
-        const fetchCurrentUser = async () => {
-            try {
-                const token = localStorage.getItem("token");
-                if (!token) return;
-
-                const response = await axios.get("/api/auth/me", {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
-
-                if (response.data && response.data.user) {
-                    setCurrentUserId(response.data.user.user_id);
-                    // Set user role - check if user has admin role
-                    if (
-                        response.data.user.role &&
-                        response.data.user.role.name
-                    ) {
-                        const roleName =
-                            response.data.user.role.name.toLowerCase();
-                        setCurrentUserRole(roleName);
-                        console.log("User role detected:", roleName); // Debug logging
-                    } else {
-                        console.log("No role found for user"); // Debug logging
-                    }
-                }
-            } catch (error) {
-                console.error("Error fetching current user:", error);
-            }
-        };
-
-        fetchCurrentUser();
-    }, []);
-
-    useEffect(() => {
-        if (!projectId) return;
-
-        const fetchProject = async () => {
-            setLoading(true);
-            try {
-                const response = await axios.get(`/api/projects/${projectId}`, {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                        )}`,
-                    },
-                });
-
-                setProject(response.data);
-
-                // 🔍 DEBUG: Log all tasks with their dependencies
-                console.log("=== TASK DEPENDENCY DEBUG ===");
-                console.log("Total tasks in project:", response.data.tasks?.length);
-                response.data.tasks?.forEach((task: Task) => {
-                    console.log(`\n📋 Task: ${task.name} (ID: ${task.task_id})`);
-                    console.log("  Status:", task.status);
-                    console.log("  Successor Dependencies (tasks this depends on):", task.successor_dependencies);
-                    if (task.successor_dependencies && task.successor_dependencies.length > 0) {
-                        task.successor_dependencies.forEach((dep) => {
-                            console.log(`    ➡️ Depends on: ${dep.predecessor.name} (ID: ${dep.predecessor_task_id})`);
-                            console.log(`       Type: ${dep.dependency_type}, Status: ${dep.predecessor.status}`);
-                        });
-                    } else {
-                        console.log("    ✅ No predecessor dependencies");
-                    }
-                });
-                console.log("=== END DEBUG ===\n");
-
-                // Role-based task filtering
-                let tasksToShow = [];
-
-                console.log(
-                    "Filtering tasks for role:",
-                    currentUserRole,
-                    "User ID:",
-                    currentUserId
-                ); // Debug logging
-                console.log(
-                    "Is admin/manager:",
-                    isAdminOrManager(currentUserRole)
-                ); // Debug logging
-                console.log(
-                    "Is technical team:",
-                    isTechnicalTeamMember(currentUserRole)
-                ); // Debug logging
-                console.log(
-                    "Total tasks available:",
-                    response.data.tasks?.length
-                ); // Debug logging
-
-                if (isAdminOrManager(currentUserRole)) {
-                    // Admins and project managers see all tasks in the project
-                    tasksToShow = response.data.tasks || [];
-                    console.log(
-                        "Showing all tasks for admin/manager:",
-                        tasksToShow.length
-                    ); // Debug logging
-                } else if (isTechnicalTeamMember(currentUserRole)) {
-                    // Technical team members see only tasks assigned to them
-                    console.log(
-                        "Filtering tasks for technical user. Available tasks:"
-                    ); // Debug logging
-                    response.data.tasks?.forEach(
-                        (task: Task, index: number) => {
-                            console.log(
-                                `Task ${index + 1}:`,
-                                task.name,
-                                "Assigned users:",
-                                task.assigned_users?.map((a) => a.user.user_id)
-                            );
-                        }
-                    );
-
-                    tasksToShow =
-                        response.data.tasks?.filter((task: Task) =>
-                            task.assigned_users?.some(
-                                (assignment) =>
-                                    assignment.user.user_id === currentUserId
-                            )
-                        ) || [];
-
-                    // TEMPORARY: If no assigned tasks found, show all tasks for debugging
-                    if (
-                        tasksToShow.length === 0 &&
-                        response.data.tasks?.length > 0
-                    ) {
-                        console.log(
-                            "⚠️ No assigned tasks found, showing all tasks for debugging"
-                        );
-                        tasksToShow = response.data.tasks;
-                    }
-                    console.log(
-                        "Showing filtered tasks for technical user:",
-                        tasksToShow.length
-                    ); // Debug logging
-                    console.log(
-                        "Tasks assigned to current user:",
-                        tasksToShow.map((t: Task) => t.name)
-                    ); // Debug logging
-                } else {
-                    // Default case - show all tasks for other roles (fallback)
-                    tasksToShow = response.data.tasks || [];
-                    console.log(
-                        "Showing all tasks (default):",
-                        tasksToShow.length
-                    ); // Debug logging
-                }
-
-                setTasks(tasksToShow);
-                setFilteredTasks(tasksToShow);
-            } catch (error) {
-                console.error("Error fetching project data:", error);
-                toast.error("Failed to load project data");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (currentUserId && currentUserRole) {
-            fetchProject();
-        }
-    }, [projectId, currentUserId, currentUserRole]);
+    // notConnected: the project and its tasks would be loaded here.
 
     // Filter and sort tasks
     useEffect(() => {
@@ -524,55 +362,7 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
 
     const submitProgressUpdate = async (data: Record<string, any>) => {
         if (!selectedTask) return;
-
-        setIsUpdatingProgress(true);
-
-        try {
-            const response = await axios.put(
-                `/api/tasks/${selectedTask.task_id}`,
-                {
-                    progress_percentage: parseInt(data.progress_percentage),
-                    status: data.status,
-                    actual_hours: data.actual_hours
-                        ? parseFloat(data.actual_hours)
-                        : undefined,
-                },
-                {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                        )}`,
-                    },
-                }
-            );
-
-            if (response.status === 200) {
-                // Update the task in the local state
-                const updatedTasks = tasks.map((task) =>
-                    task.task_id === selectedTask.task_id
-                        ? { ...task, ...response.data }
-                        : task
-                );
-                setTasks(updatedTasks);
-
-                setShowProgressModal(false);
-                setSelectedTask(null);
-                toast.success("Task progress updated successfully");
-            }
-        } catch (error: any) {
-            console.error("Error updating task progress:", error);
-            const errorData = error.response?.data;
-            if (errorData?.reasons && Array.isArray(errorData.reasons) && errorData.reasons.length > 0) {
-                // Show detailed dependency error messages
-                const errorMessage = errorData.error || "Cannot update task status";
-                const reasons = errorData.reasons.join(". ");
-                toast.error(`${errorMessage}: ${reasons}`);
-            } else {
-                toast.error(errorData?.error || "Failed to update task progress");
-            }
-        } finally {
-            setIsUpdatingProgress(false);
-        }
+        notConnected("Updating progress");
     };
 
     const isTaskOverdue = (endDate: string) => {
@@ -592,7 +382,7 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
 
     if (loading) {
         return (
-            <ProtectedRoute>
+            <>
                 <DashboardLayout
                     title={getPageTitle()}
                     onViewChange={setActiveView}
@@ -602,13 +392,13 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                         <Spinner size={48} className="text-bright-primary" />
                     </div>
                 </DashboardLayout>
-            </ProtectedRoute>
+            </>
         );
     }
 
     if (!project) {
         return (
-            <ProtectedRoute>
+            <>
                 <DashboardLayout
                     title={getPageTitle()}
                     onViewChange={setActiveView}
@@ -630,12 +420,12 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                         </button>
                     </div>
                 </DashboardLayout>
-            </ProtectedRoute>
+            </>
         );
     }
 
     return (
-        <ProtectedRoute>
+        <>
             <DashboardLayout
                 title={getPageTitle()}
                 subtitle={getPageDescription()}
@@ -1319,7 +1109,7 @@ const MyTasksPage = ({ params }: { params: Promise<{ id: string }> }) => {
                     </Modal>
                 )}
             </DashboardLayout>
-        </ProtectedRoute>
+        </>
     );
 };
 

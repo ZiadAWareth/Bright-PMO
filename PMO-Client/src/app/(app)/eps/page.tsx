@@ -12,11 +12,9 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
-import axios from "axios";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import { FilterBar, FilterSelect } from "@/components/ui/filter-bar";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ViewToggle, type ListViewMode } from "@/components/ui/view-toggle";
@@ -45,12 +43,7 @@ import {
 } from "@/components/ui/entity-card";
 import { useDebounce } from "@/hooks/useDebounce";
 import { DeleteEpsDialog } from "@/features/eps/components/DeleteEpsDialog";
-import useCurrentUser from "@/features/auth/hooks/useCurrentUser";
-
-interface CurrentUser {
-  user_id: number;
-  role?: { role_name?: string; name?: string };
-}
+import { notConnected } from "@/lib/not-connected";
 
 interface EPS {
   eps_id: number;
@@ -69,7 +62,6 @@ interface EPS {
 }
 
 const PAGE_SIZE = 12;
-const MANAGE_ROLES = ["PMO", "PJM", "ADMIN"];
 const COLUMNS = [
   "Name",
   "Level",
@@ -113,9 +105,9 @@ interface Row {
 export default function EPSPage() {
   const router = useRouter();
 
-  const [user, setUser] = useState<CurrentUser | null>(null);
-  const [epsList, setEpsList] = useState<EPS[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // notConnected: the EPS hierarchy would be loaded here.
+  const [epsList] = useState<EPS[]>([]);
+  const isLoading = false;
 
   const [search, setSearch] = useState("");
   const [level, setLevel] = useState("all");
@@ -128,79 +120,13 @@ export default function EPSPage() {
   const [childCount, setChildCount] = useState(0);
   const [descendantCount, setDescendantCount] = useState(0);
   const [useCascadeDelete, setUseCascadeDelete] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const isDeleting = false;
 
   useEffect(() => setPage(0), [debouncedSearch, level, view]);
 
-  /*
-   * The role comes from the shared cache rather than this page's own
-   * /api/auth/me call, which resolves a beat after the first paint. That delay
-   * was visible: `manageAllowed` was false while `user` was still null, so the
-   * "New EPS" button rendered *disabled* and then enabled itself, which reads
-   * as a broken control rather than a loading one.
-   *
-   * `roleLoading` keeps "not known yet" distinct from "not permitted" so
-   * callers can render neither state until the answer is real.
-   *
-   * MANAGE_ROLES is narrower than ROUTE_ROLES["/eps"] on purpose: DIR may open
-   * the screen but not restructure the hierarchy.
-   */
-  const { userRole, roleLoading } = useCurrentUser();
-
-  const canManage = () => {
-    if (roleLoading) return false;
-    const roleName =
-      userRole ?? user?.role?.role_name ?? user?.role?.name;
-    return Boolean(roleName && MANAGE_ROLES.includes(roleName));
-  };
-
-  const fetchEps = async () => {
-    try {
-      setIsLoading(true);
-      const res = await axios.get("/api/eps", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      });
-      if (!Array.isArray(res.data)) {
-        toast.error("Invalid data format received from server");
-        setEpsList([]);
-        return;
-      }
-      // The API has returned partial rows in the past; normalise so the table
-      // never has to guard every cell.
-      setEpsList(
-        res.data
-          .filter((e) => e && e.eps_id && e.name)
-          .map((e) => ({
-            ...e,
-            eps_code: e.eps_code || `EPS-${e.eps_id}`,
-            description: e.description ?? null,
-            level: e.level || 1,
-            parent_eps_id: e.parent_eps_id ?? null,
-            projects: Array.isArray(e.projects) ? e.projects : [],
-          })),
-      );
-    } catch (e) {
-      const err = e as { response?: { data?: { error?: string } } };
-      toast.error(err.response?.data?.error ?? "Failed to fetch EPS data");
-      setEpsList([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await axios.get("/api/auth/me", {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        });
-        setUser(res.data.user);
-      } catch {
-        // Permission-gated actions stay hidden if we cannot identify the user.
-      }
-    })();
-    void fetchEps();
-  }, []);
+  // Every action is open until roles come from the backend.
+  const roleLoading = false;
+  const canManage = () => true;
 
   const matches = (eps: EPS) => {
     const term = debouncedSearch.trim().toLowerCase();
@@ -290,10 +216,6 @@ export default function EPSPage() {
   };
 
   const requireManage = (action: string) => {
-    if (!user?.role) {
-      toast.error("Please wait for the page to finish loading.");
-      return false;
-    }
     if (!canManage()) {
       toast.error(`You don't have permission to ${action} EPS entries`);
       return false;
@@ -309,49 +231,10 @@ export default function EPSPage() {
     setEpsToDelete(eps);
   };
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = () => {
     if (!epsToDelete) return;
-    setIsDeleting(true);
-    try {
-      const url = useCascadeDelete
-        ? `/api/eps/${epsToDelete.eps_id}?cascade=true`
-        : `/api/eps/${epsToDelete.eps_id}`;
-      const res = await axios.delete(url, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      });
-      if (res.status === 200) {
-        await fetchEps();
-        toast.success(
-          useCascadeDelete && res.data?.deletedCount
-            ? `Deleted ${res.data.deletedCount} EPS ${res.data.deletedCount === 1 ? "entry" : "entries"}`
-            : "EPS deleted",
-        );
-        setEpsToDelete(null);
-      }
-    } catch (e) {
-      const err = e as {
-        response?: {
-          data?: {
-            error?: string;
-            message?: string;
-            requiresCascade?: boolean;
-            totalChildCount?: number;
-          };
-        };
-      };
-      if (err.response?.data?.requiresCascade) {
-        setDescendantCount(err.response.data.totalChildCount ?? childCount);
-        toast.error(
-          err.response.data.message ??
-            err.response.data.error ??
-            "Cascade required",
-        );
-      } else {
-        toast.error(err.response?.data?.error ?? "Failed to delete EPS");
-      }
-    } finally {
-      setIsDeleting(false);
-    }
+    setEpsToDelete(null);
+    notConnected("Deleting the EPS");
   };
 
   const manageAllowed = canManage();
@@ -445,7 +328,7 @@ export default function EPSPage() {
   };
 
   return (
-    <ProtectedRoute>
+    <>
       <DashboardLayout
         title="EPS"
         subtitle="Enterprise project structure — the hierarchy every project hangs from."
@@ -676,6 +559,6 @@ export default function EPSPage() {
           onCascadeDeleteChange={setUseCascadeDelete}
         />
       </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 }

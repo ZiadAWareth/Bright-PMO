@@ -3,10 +3,9 @@
 import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Save } from "lucide-react";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import {
   CancelButton,
   Field,
@@ -55,15 +54,13 @@ export default function NewTimesheetPage() {
   // already chosen, e.g. /timesheet/new?project=12.
   const presetProject = searchParams?.get("project") ?? "";
 
-  const [currentUser, setCurrentUser] = useState<{
-    user_id?: number;
-    role?: { name?: string };
-  } | null>(null);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
+  // notConnected: the projects and (for managers) the users to log time for
+  // would be loaded here. Until then there are none to pick.
+  const [projects] = useState<Project[]>([]);
+  const [users] = useState<User[]>([]);
 
-  const [loadingData, setLoadingData] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const loadingData = false;
+  const submitting = false;
   const [error, setError] = useState<string | null>(null);
 
   const [selectedUser, setSelectedUser] = useState("");
@@ -71,53 +68,8 @@ export default function NewTimesheetPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  const canViewAll =
-    Boolean(currentUser?.role?.name) &&
-    ["ADMIN", "PMO", "PJM"].includes(currentUser!.role!.name!);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      const auth = {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      };
-
-      try {
-        const meRes = await axios.get("/api/auth/me", auth);
-        if (cancelled) return;
-        const me = meRes.data?.user ?? meRes.data;
-        setCurrentUser(me);
-
-        const isPrivileged =
-          Boolean(me?.role?.name) &&
-          ["ADMIN", "PMO", "PJM"].includes(me.role.name);
-
-        const [projectRes, userRes] = await Promise.all([
-          axios.get("/api/projects", auth).catch(() => ({ data: [] })),
-          isPrivileged
-            ? axios.get("/api/users", auth).catch(() => ({ data: [] }))
-            : Promise.resolve({ data: [] }),
-        ]);
-        if (cancelled) return;
-
-        setProjects(Array.isArray(projectRes.data) ? projectRes.data : []);
-        setUsers(Array.isArray(userRes.data) ? userRes.data : []);
-
-        // A non-privileged user can only log their own time, so the owner is
-        // fixed; a privileged one picks from the list.
-        setSelectedUser(me?.user_id ? String(me.user_id) : "");
-      } catch {
-        if (!cancelled) toast.error("Could not load projects");
-      } finally {
-        if (!cancelled) setLoadingData(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  // Every option is open until roles come from the backend.
+  const canViewAll = true;
 
   // Default to the current week, which is what a new timesheet almost always
   // covers.
@@ -154,7 +106,7 @@ export default function NewTimesheetPage() {
     return null;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     const problem = validate();
@@ -164,73 +116,11 @@ export default function NewTimesheetPage() {
     }
 
     setError(null);
-    setSubmitting(true);
-    try {
-      const auth = {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      };
-
-      // A timesheet is unique per user, project and period, so check before
-      // creating rather than surfacing a database error afterwards.
-      const checkUrl = canViewAll
-        ? "/api/timesheets?view_all=true"
-        : "/api/timesheets";
-      const existing = await axios.get(checkUrl, auth);
-      const clash = (
-        Array.isArray(existing.data) ? existing.data : []
-      ).find(
-        (ts: {
-          user?: { user_id?: number };
-          project_id: number;
-          start_date: string;
-        }) =>
-          (canViewAll ? ts.user?.user_id === parseInt(selectedUser) : true) &&
-          ts.project_id === parseInt(selectedProject) &&
-          new Date(ts.start_date).toDateString() ===
-            new Date(startDate).toDateString(),
-      );
-
-      if (clash) {
-        const message =
-          "A timesheet already exists for this user and date range.";
-        setError(message);
-        toast.error(message);
-        return;
-      }
-
-      const payload: Record<string, unknown> = {
-        project_id: parseInt(selectedProject),
-        start_date: startDate,
-        end_date: endDate,
-        status: "DRAFT",
-      };
-
-      // Only send user_id when creating on someone else's behalf.
-      if (canViewAll && selectedUser !== String(currentUser?.user_id ?? "")) {
-        payload.user_id = parseInt(selectedUser);
-      }
-
-      const res = await axios.post("/api/timesheets", payload, auth);
-
-      toast.success("Timesheet created");
-      router.push(`/timesheet/${res.data.timesheet_id}`);
-    } catch (e) {
-      const err = e as {
-        response?: { data?: { error?: string; message?: string } };
-      };
-      const message =
-        err.response?.data?.error ??
-        err.response?.data?.message ??
-        "Failed to create timesheet";
-      setError(message);
-      toast.error(message);
-    } finally {
-      setSubmitting(false);
-    }
+    notConnected("Creating the timesheet");
   };
 
   return (
-    <ProtectedRoute>
+    <>
       <DashboardLayout hideHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <PageHeader
@@ -343,6 +233,6 @@ export default function NewTimesheetPage() {
           </FormFooter>
         </form>
       </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 }

@@ -1,4 +1,4 @@
-/** Response shapes for the four `/api/analytics/dashboard/*` endpoints. */
+/** Data shapes for the analytics dashboard sections (stats, charts, pulse, activity). */
 
 export interface Metric {
   value: string;

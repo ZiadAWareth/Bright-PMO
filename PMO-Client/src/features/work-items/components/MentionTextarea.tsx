@@ -40,8 +40,10 @@ const MentionTextarea: React.FC<MentionTextareaProps> = ({
   rows = 3,
   className = ""
 }) => {
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  // notConnected: the project's team members (who can be @mentioned) would be
+  // loaded here. Until then there is nobody to mention.
+  const [teamMembers] = useState<TeamMember[]>([]);
+  const isLoading = false;
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<MentionSuggestion[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -52,41 +54,6 @@ const MentionTextarea: React.FC<MentionTextareaProps> = ({
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
   // Fetch team members
-  useEffect(() => {
-    const fetchTeamMembers = async () => {
-      if (!projectId) {
-        console.warn('MentionTextarea: No projectId provided');
-        return;
-      }
-      
-      setIsLoading(true);
-      try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`/api/projects/${projectId}/team-members`, {
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          console.log('MentionTextarea: Fetched team members', data?.length || 0);
-          setTeamMembers(data || []);
-        } else {
-          console.error('MentionTextarea: Failed to fetch team members', response.status, response.statusText);
-          setTeamMembers([]);
-        }
-      } catch (error) {
-        console.error('MentionTextarea: Error fetching team members:', error);
-        setTeamMembers([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchTeamMembers();
-  }, [projectId]);
 
   // Create mention suggestions
   const mentionOptions = useMemo(() => {

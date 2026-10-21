@@ -1,5 +1,6 @@
 "use client";
 
+import { notConnected } from "@/lib/not-connected";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
@@ -41,10 +42,6 @@ import {
   UserPlus,
 } from "lucide-react";
 import { ProjectType } from "@/features/projects/types";
-import axios from "axios";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
-import { useDepartments } from "@/features/team/hooks/useDepartments";
-import { useEmployees } from "@/features/team/hooks/useEmployees";
 import { SearchableDropdown } from "@/components/form/SearchableDropdown";
 import { Spinner } from "@/components/ui/spinner";
 import { UserAvatar, personName } from "@/components/ui/person-cell";
@@ -258,8 +255,12 @@ const ProjectCreatePage = () => {
   const [documentToDelete, setDocumentToDelete] = useState<any>(null);
   const [showExportModal, setShowExportModal] = useState(false);
   const validationMessageRef = useRef<HTMLDivElement>(null);
-  const { departments, loading: departmentsLoading } = useDepartments();
-  const { employees, loading: employeesLoading } = useEmployees({ limit: 200 });
+  // notConnected: departments and employees came from the HR service. Until
+  // the integration there are none to pick from.
+  const [departments] = useState<any[]>([]);
+  const departmentsLoading = false;
+  const [employees] = useState<any[]>([]);
+  const employeesLoading = false;
   const [departmentSearchTerm, setDepartmentSearchTerm] = useState("");
   const [pmSearchTerm, setPmSearchTerm] = useState("");
   const [pmSource, setPmSource] = useState<"pmo" | "hr">("pmo");
@@ -765,51 +766,9 @@ const ProjectCreatePage = () => {
     setShowPMSelection(false);
   };
 
-  const assignProjectManagerFromEmployee = async (emp: any) => {
-    setPmEnsuringUser(true);
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        alert("Please log in to assign a project manager from HR.");
-        return;
-      }
-      const res = await fetch("/api/users/from-hr-employee", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          idp_user_id: emp?._id ?? emp?.id,
-          email: emp?.email,
-          first_name: emp?.first_name ?? emp?.firstName,
-          last_name: emp?.last_name ?? emp?.lastName,
-          department: emp?.department ?? "General",
-        }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error ?? "Failed to create PMO user from HR");
-      }
-      const user = await res.json();
-      assignProjectManager({
-        user_id: user.user_id,
-        email: user.email,
-        account: {
-          first_name: user.account?.first_name ?? emp?.first_name ?? emp?.firstName,
-          last_name: user.account?.last_name ?? emp?.last_name ?? emp?.lastName,
-          department: user.account?.department ?? emp?.department ?? "",
-        },
-        role: { name: user.role?.name ?? "PJM" },
-      });
-    } catch (e) {
-      console.error(e);
-      alert(e instanceof Error ? e.message : "Failed to add project manager from HR.");
-    } finally {
-      setPmEnsuringUser(false);
-      setShowPMSelection(false);
-      setPmSearchTerm("");
-    }
+  const assignProjectManagerFromEmployee = async (_emp: any) => {
+    // notConnected: creates a PMO user for the HR employee, then assigns them.
+    notConnected("Assigning a project manager from HR");
   };
 
   // Filter users based on search query - show all users if no search query
@@ -1171,218 +1130,23 @@ const ProjectCreatePage = () => {
 
   // Form submission
   const handleSubmit = async () => {
-    try {
-      setIsSubmitting(true);
-      // Validate required fields
-      if (
-        !formData.name ||
-        !formData.portfolio ||
-        !formData.epsLevel ||
-        !formData.startDate
-      ) {
-        alert(
-          "Please fill in all required fields: Project Name, Portfolio, EPS Level, and Start Date"
-        );
-        setIsSubmitting(false);
-        return;
-      }
-
-      const token = localStorage.getItem("token");
-      if (!token) {
-        alert("Authentication token not found. Please log in.");
-        setIsSubmitting(false);
-        return;
-      }
-
-      // First, create the project
-      const apiData = {
-        name: formData.name,
-        description: formData.description,
-        client: formData.client,
-        location: formData.location,
-        start_date: formData.startDate,
-        must_finish_by_date: formData.mustFinishByDate,
-        budget_amount: formData.estimatedBudget,
-        expected_roi: formData.expectedROI,
-        eps_level_id: formData.epsLevel,
-        portfolio_id: formData.portfolio,
-        project_manager: formData.projectManager,
-        project_manager_id: formData.projectManagerId,
-        calendarType: formData.calendarType,
-        customOffDays: formData.customOffDays,
-        team_members: formData.teamMembers.map((member) => ({
-          id: member.id,
-          name: member.name,
-          email: member.email,
-          role: member.role,
-          department: member.department,
-          responsibility: member.responsibility,
-        })),
-        objectives: formData.objectives.filter((obj) => obj.trim() !== ""),
-        success_criteria: formData.successCriteria.filter(
-          (criteria) => criteria.trim() !== ""
-        ),
-        business_justification: formData.businessJustification,
-        strategic_value: formData.strategicValue,
-        market_impact: formData.marketImpact,
-        methodology: formData.methodology,
-        type: formData.type,
-        size: formData.size === "" ? null : formData.size,
-      };
-
-      const response = await fetch("/api/projects", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(apiData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to create project");
-      }
-
-      const result = await response.json();
-      const projectId = result.project.project_id;
-
-      // Then, upload files if any
-      if (uploadFiles.length > 0) {
-        console.log(
-          `Uploading ${uploadFiles.length} files to project ${projectId}`
-        );
-
-        for (const file of uploadFiles) {
-          try {
-            const formData = new FormData();
-            formData.append("file", file);
-            formData.append(
-              "description",
-              `Uploaded during project creation: ${file.name}`
-            );
-            // Upload to project level - no WBS ID needed
-            formData.append("project_id", projectId.toString());
-
-            const uploadResponse = await axios.post(
-              "/api/documents/uploadFile",
-              formData,
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                  "Content-Type": "multipart/form-data",
-                },
-              }
-            );
-
-            if (uploadResponse.status === 200) {
-              console.log(`Successfully uploaded file ${file.name}`);
-            }
-          } catch (error) {
-            console.warn(`Failed to upload file ${file.name}:`, error);
-
-            // Fallback: create document record without file upload
-            try {
-              const documentData = {
-                name: file.name,
-                description: `Uploaded during project creation: ${file.name}`,
-                file_path: `/uploads/projects/${projectId}/${file.name}`,
-                file_type: file.type,
-                size: file.size,
-                uploaded_by: 1,
-                project_id: projectId,
-              };
-
-              const docResponse = await fetch(
-                `/api/projects/${projectId}/documents`,
-                {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                  },
-                  body: JSON.stringify(documentData),
-                }
-              );
-
-              if (docResponse.ok) {
-                console.log(`Created document record for ${file.name}`);
-              }
-            } catch (fallbackError) {
-              console.warn(
-                `Failed to create document record for ${file.name}:`,
-                fallbackError
-              );
-            }
-          }
-        }
-      }
-
-      // Set the created project data and show success modal
-      setCreatedProject(result.project);
-      setShowSuccessModal(true);
-    } catch (error) {
+    // Validate required fields
+    if (
+      !formData.name ||
+      !formData.portfolio ||
+      !formData.epsLevel ||
+      !formData.startDate
+    ) {
       alert(
-        `Error creating project: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
+        "Please fill in all required fields: Project Name, Portfolio, EPS Level, and Start Date"
       );
-    } finally {
-      setIsSubmitting(false);
+      return;
     }
+    // notConnected: creates the project, then uploads its documents.
+    notConnected("Creating the project");
   };
 
-  // Fetch portfolios, EPS levels, and users from API
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          alert("Authentication token not found. Please log in.");
-          return;
-        }
-
-        // Fetch available users
-        const usersResponse = await fetch("/api/users", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        if (usersResponse.ok) {
-          const usersData = await usersResponse.json();
-          setAvailableUsers(usersData);
-        }
-
-        // Fetch portfolios and EPS levels
-        const [portfoliosResponse, epsLevelsResponse] = await Promise.all([
-          fetch("/api/portfolios", {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }),
-          fetch("/api/eps", {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }),
-        ]);
-
-        if (portfoliosResponse.ok) {
-          const portfoliosData = await portfoliosResponse.json();
-          setPortfolios(portfoliosData);
-        }
-        if (epsLevelsResponse.ok) {
-          const epsData = await epsLevelsResponse.json();
-          setEpsLevels(epsData);
-        }
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        alert("Failed to fetch data");
-      }
-    };
-
-    fetchData();
-  }, []);
+  // notConnected: users, portfolios and EPS levels would be loaded here.
 
   // Close PM dropdown when clicking outside
   useEffect(() => {
@@ -3445,7 +3209,7 @@ const ProjectCreatePage = () => {
   };
 
   return (
-    <ProtectedRoute>
+    <>
       
       <DashboardLayout
         hideHeader
@@ -3670,7 +3434,7 @@ const ProjectCreatePage = () => {
           </div>,
           document.body
         )}
-    </ProtectedRoute>
+    </>
   );
 };
 

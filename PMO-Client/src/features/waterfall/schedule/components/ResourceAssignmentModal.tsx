@@ -78,13 +78,15 @@ const ResourceAssignmentModal = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedResourceType, setSelectedResourceType] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [periodAvailability, setPeriodAvailability] = useState<{
+  // notConnected: the selected resource's capacity and planned hours for the
+  // chosen period would be loaded here. Until then no availability is shown.
+  const [periodAvailability] = useState<{
     total_capacity_hours: number;
     total_planned_hours: number;
     planned_utilization_rate: number;
   } | null>(null);
-  const [availabilityLoading, setAvailabilityLoading] = useState(false);
-  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
+  const availabilityLoading = false;
+  const [availabilityError] = useState<string | null>(null);
 
   const availableResources = useMemo(() => {
     let filtered = resources.filter(
@@ -119,54 +121,6 @@ const ResourceAssignmentModal = ({
     return filtered;
   }, [resources, existingAssignments, selectedResourceType, searchQuery]);
 
-  // Fetch resource availability in selected period (equipment and labour)
-  const resourceId = formData.resource_id ? parseInt(formData.resource_id, 10) : null;
-
-  useEffect(() => {
-    const start = formData.start_date;
-    const end = formData.end_date;
-    const validDates = start && end && new Date(start) <= new Date(end);
-    if (!resourceId || !validDates) {
-      setPeriodAvailability(null);
-      setAvailabilityError(null);
-      return;
-    }
-    let cancelled = false;
-    setAvailabilityLoading(true);
-    setAvailabilityError(null);
-    const params = new URLSearchParams({ start_date: start, end_date: end });
-    fetch(`/api/resources/${resourceId}/workload?${params}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to load availability");
-        return res.json();
-      })
-      .then((data) => {
-        if (cancelled) return;
-        const u = data?.utilization_summary;
-        if (u != null) {
-          setPeriodAvailability({
-            total_capacity_hours: u.total_capacity_hours ?? 0,
-            total_planned_hours: u.total_planned_hours ?? 0,
-            planned_utilization_rate: u.planned_utilization_rate ?? 0,
-          });
-        } else {
-          setPeriodAvailability(null);
-        }
-        setAvailabilityError(null);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setPeriodAvailability(null);
-          setAvailabilityError("Could not load availability");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setAvailabilityLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [resourceId, formData.start_date, formData.end_date]);
 
   const resourceTypes = useMemo(() => {
     const availableResourcesForCounting = resources.filter(

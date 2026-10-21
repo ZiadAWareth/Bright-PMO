@@ -54,7 +54,7 @@ import {
   ArrowLeft,
   Save,
 } from "lucide-react";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import WBSTemplateManager from "@/features/waterfall/wbs/components/WBSTemplateManager";
 import CreateWBSForm from "@/features/waterfall/wbs/components/CreateWBSForm";
 import { Dropdown } from "@/components/ui/dropdown";
@@ -111,8 +111,8 @@ const ProjectWBSPage = () => {
   const router = useRouter();
   const params = useParams();
   const projectId = params.id as string;
+  // Every view is open until roles come from the backend.
   const [activeView, setActiveView] = useState("admin");
-  const [userRole, setUserRole] = useState<string | null>(null);
   const [project, setProject] = useState<Project | null>(null);
   const [wbsData, setWbsData] = useState<WBSItem[]>([]);
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
@@ -124,7 +124,7 @@ const ProjectWBSPage = () => {
   const [showDetails, setShowDetails] = useState(false);
   const [selectedWBS, setSelectedWBS] = useState<WBSItem | null>(null);
   const [editingItem, setEditingItem] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [statistics, setStatistics] = useState<{
@@ -158,8 +158,6 @@ const ProjectWBSPage = () => {
     budgetMin: "",
     budgetMax: "",
   });
-  // Fix hydration mismatch by only accessing localStorage after mount
-  const [token, setToken] = useState<string | null>(null);
   // Template modal state
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   // Add at the top of the component, after hooks
@@ -173,86 +171,24 @@ const ProjectWBSPage = () => {
   }, []);
   useEffect(() => {
     setMounted(true);
-    setToken(localStorage.getItem("token"));
   }, []);
-  useEffect(() => {
-    if (mounted && token) {
-      fetchProjectData();
-      fetchWBSData();
-      fetchStatistics();
-      fetchUserRole();
-    }
-  }, [projectId, mounted, token]);
-  const fetchUserRole = async () => {
-    try {
-      const response = await axios.get("/api/auth/me", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setUserRole(response.data.user.role.name);
-      setActiveView(response.data.user.role.name);
-    } catch (err) {
-      console.error("Error fetching user role:", err);
-    }
-  };
+  // notConnected: the project, its WBS tree and its statistics would be loaded here.
   // Helper function to check if user can edit WBS
   const canEditWBS = () => {
-    return userRole === "PJM" || userRole === "PMO" || userRole === "ADMIN";
+    return true;
   };
   const fetchProjectData = async () => {
-    try {
-      const response = await axios
-        .get(`/api/projects/${projectId}`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        })
-        .then((res) => {
-          setProject(res.data);
-        });
-    } catch (error) {
-      console.error("Error fetching project:", error);
-    }
+    // notConnected: loads the project.
   };
   const fetchStatistics = async () => {
-    try {
-      const response = await axios.get(
-        `/api/projects/${projectId}/statistics`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      setStatistics(response.data);
-    } catch (error) {
-      console.error("Error fetching project statistics:", error);
-    }
+    // notConnected: loads the project's WBS statistics.
   };
   const refreshWBSAndStats = async () => {
     await fetchWBSData();
     await fetchStatistics();
   };
   const fetchWBSData = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get(`/api/projects/${projectId}/wbs`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      // Budget already included in response (budget_amount, actual_cost, budgets)
-      const hierarchicalWBS = buildHierarchy(response.data);
-      setWbsData(hierarchicalWBS);
-    } catch (error) {
-      console.error("Error fetching WBS data:", error);
-    } finally {
-      setLoading(false);
-    }
+    // notConnected: loads the project's WBS tree.
   };
   const buildHierarchy = (items: WBSItem[]): WBSItem[] => {
     const itemMap = new Map<number, WBSItem>();
@@ -335,65 +271,7 @@ const ProjectWBSPage = () => {
           return;
         }
       }
-      const payload = {
-        project_id: parseInt(projectId),
-        name: formData.name,
-        description: formData.description,
-        level: formData.level,
-        start_date: formData.start_date,
-        progress_percentage: 0,
-        budget_amount: formData.budget_amount,
-        ...(formData.parent_wbs_id && {
-          parent_wbs_id: formData.parent_wbs_id,
-        }),
-        ...(formData.progress_weight != null && typeof formData.progress_weight === "number" && {
-          progress_weight: formData.progress_weight,
-        }),
-      };
-      const response = await axios.post("/api/wbs", payload, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      // Refresh WBS data and statistics
-      await fetchWBSData();
-      await fetchStatistics();
-      setShowCreateForm(false);
-    } catch (error: any) {
-      console.error("Error creating WBS item:", error);
-      if (error.response) {
-        console.error("Status:", error.response.status);
-        console.error("Response data:", error.response.data);
-        // Handle specific error cases
-        if (error.response.status === 400) {
-          const errorMessage =
-            error.response.data?.message || "Invalid WBS data provided";
-          showError("Validation Error", errorMessage);
-        } else if (error.response.status === 409) {
-          showError(
-            "Duplicate Entry",
-            "A WBS item with similar properties already exists. Please check your data and try again."
-          );
-        } else {
-          showError(
-            "Server Error",
-            `Failed to create WBS item: ${
-              error.response.data?.message || error.response.statusText
-            }`
-          );
-        }
-      } else if (error.request) {
-        showError(
-          "Network Error",
-          "Unable to connect to the server. Please check your internet connection and try again."
-        );
-      } else {
-        showError(
-          "Unexpected Error",
-          "An unexpected error occurred. Please try again."
-        );
-      }
+      notConnected("Creating the WBS item");
     } finally {
       setCreating(false);
     }
@@ -506,53 +384,9 @@ const ProjectWBSPage = () => {
   };
   const handleDeleteConfirm = async () => {
     if (!itemToDelete) return;
-    try {
-      setIsDeleting(true);
-      // Add cascade parameter if the WBS has children
-      const hasChildren =
-        itemToDelete.children && itemToDelete.children.length > 0;
-      const url = hasChildren
-        ? `/api/wbs/${itemToDelete.wbs_id}?cascade=true`
-        : `/api/wbs/${itemToDelete.wbs_id}`;
-      const response = await axios.delete(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      // Refresh WBS data and statistics after successful delete
-      await refreshWBSAndStats();
-      // Close the confirmation dialog
-      setShowDeleteConfirmation(false);
-      setItemToDelete(null);
-      // Show success message
-      const deletedCount = response.data.deletedCount || 1;
-      console.log(
-        `${response.data.message} (${deletedCount} item${
-          deletedCount > 1 ? "s" : ""
-        })`
-      );
-    } catch (error: any) {
-      console.error("Error deleting WBS item:", error);
-      const hasChildren =
-        itemToDelete.children && itemToDelete.children.length > 0;
-      let errorMessage = "Failed to delete WBS item";
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.response?.status === 400) {
-        errorMessage = hasChildren
-          ? "Cannot perform cascading delete. Some child items may be protected or in use."
-          : "Cannot delete WBS item. It may be in use or have dependencies.";
-      } else if (error.response?.status === 404) {
-        errorMessage = "WBS item not found";
-      } else if (error.response?.status === 500) {
-        errorMessage = hasChildren
-          ? "Server error occurred while performing cascading delete"
-          : "Server error occurred while deleting WBS item";
-      }
-      showError("Delete Failed", errorMessage);
-    } finally {
-      setIsDeleting(false);
-    }
+    setShowDeleteConfirmation(false);
+    setItemToDelete(null);
+    notConnected("Deleting the WBS item");
   };
   const handleDeleteCancel = () => {
     setShowDeleteConfirmation(false);
@@ -560,50 +394,8 @@ const ProjectWBSPage = () => {
   };
   const handleBulkDelete = async () => {
     if (selectedItems.length === 0) return;
-    try {
-      setIsDeletingBulk(true);
-      const authToken = localStorage.getItem("token");
-      if (!authToken) {
-        showError("Authentication Required", "Please log in to delete WBS items.");
-        return;
-      }
-      const response = await axios.post(
-        "/api/wbs/bulk-delete",
-        { wbs_ids: selectedItems },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authToken}`,
-          },
-        }
-      );
-      // Refresh WBS data and statistics after successful delete
-      await refreshWBSAndStats();
-      // Clear selection and close dialog
-      setSelectedItems([]);
-      setShowBulkDeleteConfirm(false);
-      // Show success message
-      console.log(
-        `${response.data.message} (${response.data.deletedCount} items deleted)`
-      );
-    } catch (error: any) {
-      console.error("Error bulk deleting WBS items:", error);
-      let errorMessage = "Failed to delete WBS items";
-      if (error.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      } else if (error.response?.status === 400) {
-        errorMessage = "Invalid request. Some items may be root level or have dependencies.";
-      } else if (error.response?.status === 403) {
-        errorMessage = "Insufficient permissions to delete WBS items.";
-      } else if (error.response?.status === 404) {
-        errorMessage = "Some WBS items were not found.";
-      } else if (error.response?.status === 500) {
-        errorMessage = "Server error occurred while deleting WBS items.";
-      }
-      showError("Bulk Delete Failed", errorMessage);
-    } finally {
-      setIsDeletingBulk(false);
-    }
+    setShowBulkDeleteConfirm(false);
+    notConnected("Deleting the selected WBS items");
   };
   const handleBulkDeleteCancel = () => {
     setShowBulkDeleteConfirm(false);
@@ -1077,22 +869,8 @@ const ProjectWBSPage = () => {
   };
   // Add/Update the Next button handler
   const handleNext = async () => {
-    try {
-      await axios.patch(
-        `/api/projects/${projectId}/setup`,
-        { wbs: true },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      router.push(`/projects/${projectId}/schedule?from=previous`);
-    } catch (error) {
-      // Optionally show error to user
-      console.error("Failed to update setup status:", error);
-    }
+    // notConnected: marks the WBS step complete in the project setup.
+    router.push(`/projects/${projectId}/schedule?from=previous`);
   };
   return (
     <>
@@ -1808,54 +1586,7 @@ const EditWBSForm = ({
           return;
         }
       }
-      const payload: any = {
-        name: formData.name,
-        description: formData.description,
-        status: formData.status,
-        start_date: formData.start_date,
-        end_date: formData.end_date,
-        budget_amount: parseFloat(formData.budget_amount.toString()),
-      };
-      if (!hasChildren) {
-        payload.progress_percentage = parseFloat(
-          formData.progress_percentage.toString()
-        );
-      }
-      if (formData.progress_weight !== "" && formData.progress_weight != null) {
-        payload.progress_weight = parseFloat(formData.progress_weight.toString());
-      } else {
-        payload.progress_weight = null;
-      }
-      const response = await axios.put(`/api/wbs/${wbsItem.wbs_id}`, payload, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-      onSave(); // Refresh the WBS data
-      onClose(); // Close the modal
-    } catch (error: any) {
-      if (error.response) {
-        // Extract the actual error message from the API response
-        // API returns error in error.response.data.error or error.response.data.message
-        const errorMessage = 
-          error.response.data?.error || 
-          error.response.data?.message || 
-          error.response.statusText || 
-          'Unknown error';
-        // Show a clear, user-friendly error message
-        showErrorPopup(
-          "Update Failed",
-          errorMessage
-        );
-      } else if (error.request) {
-        showErrorPopup(
-          "Network Error",
-          "Failed to update WBS item: No response from server"
-        );
-      } else {
-        showErrorPopup("Error", `Failed to update WBS item: ${error.message}`);
-      }
+      notConnected("Saving the WBS item");
     } finally {
       setSaving(false);
     }

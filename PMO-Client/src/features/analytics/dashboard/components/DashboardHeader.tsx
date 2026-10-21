@@ -1,7 +1,6 @@
 "use client";
 
 import { CalendarClock, RefreshCw } from "lucide-react";
-import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import { Spinner } from "@/components/ui/spinner";
 
 function formatToday() {
@@ -22,8 +21,6 @@ export function DashboardHeader({
   refreshing: boolean;
   onRefresh: () => void;
 }) {
-  const { userRole, isClient } = useCurrentUser();
-
   return (
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div>
@@ -41,15 +38,6 @@ export function DashboardHeader({
           <CalendarClock className="h-4 w-4 text-bright-primary" aria-hidden="true" />
           {formatToday()}
         </span>
-        {isClient && userRole && (
-          <span className="inline-flex items-center gap-2 rounded-xl bg-bg-surface-alt px-3 py-2 text-xs font-medium text-text-secondary">
-            <span className="h-2 w-2 rounded-full bg-bright-primary" />
-            Signed in as{" "}
-            <strong className="text-text-primary">
-              {userRole.replace(/_/g, " ")}
-            </strong>
-          </span>
-        )}
         <button
           type="button"
           onClick={onRefresh}

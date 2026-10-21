@@ -3,10 +3,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DollarSign, Edit, Eye, FolderOpen, Shield, Trash2 } from "lucide-react";
-import axios from "axios";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import { FilterBar, FilterSelect } from "@/components/ui/filter-bar";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ViewToggle, type ListViewMode } from "@/components/ui/view-toggle";
@@ -14,7 +12,7 @@ import { PersonCell } from "@/components/ui/person-cell";
 import { Spinner } from "@/components/ui/spinner";
 import { useDebounce } from "@/hooks/useDebounce";
 import { PortfolioWithRelations } from "@/features/portfolios/types";
-import useCurrentUser from "@/features/auth/hooks/useCurrentUser";
+import { notConnected } from "@/lib/not-connected";
 import { PortfolioStatus, PortfolioPriority } from "@/types/enums";
 import {
   DeletePortfolioDialog,
@@ -50,8 +48,6 @@ import {
 } from "@/lib/status-tone";
 
 const PAGE_SIZE = 12;
-const VIEW_ROLES = ["PMO", "PJM", "ADMIN", "IT", "DIR"];
-const MANAGE_ROLES = ["PMO", "PJM", "ADMIN", "DIR"];
 const COLUMNS = ["Portfolio", "Status", "Priority", "Manager", "Projects", "Progress"];
 const ACTIVE_STATUSES = [
   "planning",
@@ -82,16 +78,12 @@ const EMPTY_FILTERS: FilterState = {
   tag: "",
 };
 
-const auth = () => ({
-  headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-});
-
 export default function PortfoliosPage() {
   const router = useRouter();
 
-  const [user, setUser] = useState<User | null>(null);
-  const [portfolios, setPortfolios] = useState<PortfolioWithRelations[]>([]);
-  const [loading, setLoading] = useState(true);
+  // notConnected: portfolios would be loaded here.
+  const [portfolios] = useState<PortfolioWithRelations[]>([]);
+  const loading = false;
 
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
   const [view, setView] = useState<ListViewMode>("grid");
@@ -102,59 +94,13 @@ export default function PortfoliosPage() {
     useState<PortfolioWithRelations | null>(null);
   const [deleteProjects, setDeleteProjects] = useState<ProjectInfo[]>([]);
   const [hasActiveProjects, setHasActiveProjects] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const isDeleting = false;
 
-  /*
-   * The role comes from the shared cache, not this page's own /api/auth/me
-   * call. Two reasons: after the first screen of a session the cache answers
-   * synchronously, so the edit, delete and "New portfolio" controls are present
-   * in the first paint instead of popping in a beat later; and `roleLoading`
-   * keeps "not known yet" distinct from "not permitted", which a plain
-   * `user === null` check cannot express.
-   *
-   * The page still fetches the full user separately for `canView`, which needs
-   * the record itself rather than just the role name.
-   */
-  const { userRole, roleLoading } = useCurrentUser();
-  const roleName = userRole ?? user?.role?.role_name ?? user?.role?.name;
-  const canView = Boolean(roleName && VIEW_ROLES.includes(roleName));
-
-  // While the role is unknown, render neither the permitted nor the denied
-  // state — showing the denied one first is what caused the flash.
-  const canManage =
-    !roleLoading && Boolean(roleName && MANAGE_ROLES.includes(roleName));
-  const isAdmin = roleName === "ADMIN";
+  // Every action is open until roles come from the backend.
+  const canManage = true;
+  const isAdmin = true;
 
   useEffect(() => setPage(0), [debouncedSearch, filters.status, filters.priority, filters.tag]);
-
-  const fetchPortfolios = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem("token");
-      if (!token) {
-        toast.error("Authentication token not found. Please log in.");
-        return;
-      }
-      const response = await axios.get("/api/portfolios", auth());
-      setPortfolios(response.data);
-    } catch (error) {
-      console.error("Error fetching portfolios:", error);
-      toast.error("Failed to fetch portfolios");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    axios
-      .get("/api/auth/me", auth())
-      .then((res) => setUser(res.data.user))
-      .catch((error) => {
-        console.error("Error fetching user data:", error);
-        setUser(null);
-      });
-    fetchPortfolios();
-  }, []);
 
   const allTags = useMemo(() => {
     const tags = new Set<string>();
@@ -222,53 +168,10 @@ export default function PortfoliosPage() {
     setHasActiveProjects(false);
   };
 
-  const handleDeleteConfirm = async (forceDelete = false) => {
+  const handleDeleteConfirm = (forceDelete = false) => {
     if (!portfolioToDelete || (hasActiveProjects && !forceDelete)) return;
-
-    setIsDeleting(true);
-    try {
-      const response = await axios.delete(
-        `/api/portfolios/${portfolioToDelete.portfolio_id}${forceDelete ? "?force=true" : ""}`,
-        auth(),
-      );
-
-      if (response.status === 200) {
-        setPortfolios((prev) =>
-          prev.filter(
-            (p) => p.portfolio_id !== portfolioToDelete.portfolio_id,
-          ),
-        );
-        toast.success(
-          forceDelete
-            ? "Portfolio force deleted successfully (including active projects)"
-            : "Portfolio deleted successfully",
-        );
-        closeDeleteDialog();
-      }
-    } catch (error: any) {
-      console.error("Error deleting portfolio:", error);
-      const message =
-        error.response?.data?.message ??
-        error.response?.data?.error ??
-        "Failed to delete portfolio. Please try again.";
-
-      // The server is the authority on what is blocking the delete: when it
-      // rejects with the live list of active projects, show that rather than
-      // the stale set we derived from the row.
-      if (
-        error.response?.status === 403 &&
-        error.response?.data?.activeProjects &&
-        !forceDelete
-      ) {
-        setDeleteProjects(error.response.data.activeProjects);
-        setHasActiveProjects(true);
-      } else {
-        closeDeleteDialog();
-      }
-      toast.error(message);
-    } finally {
-      setIsDeleting(false);
-    }
+    closeDeleteDialog();
+    notConnected("Deleting the portfolio");
   };
 
   const rowActions = (portfolio: PortfolioWithRelations) => (
@@ -362,24 +265,8 @@ export default function PortfoliosPage() {
     );
   };
 
-  // Role gate. Rendered only once the user is known, so a slow /me does not
-  // flash "Access restricted" at someone who does have permission.
-  if (user && !canView) {
-    return (
-      <ProtectedRoute>
-        <DashboardLayout title="Portfolios">
-          <EmptyState
-            icon={<Shield className="h-10 w-10" />}
-            title="Access restricted"
-            message="You don't have permission to view portfolios."
-          />
-        </DashboardLayout>
-      </ProtectedRoute>
-    );
-  }
-
   return (
-    <ProtectedRoute>
+    <>
       <DashboardLayout
         title="Portfolios"
         subtitle="Groups of related projects, with their combined budget and progress."
@@ -614,6 +501,6 @@ export default function PortfoliosPage() {
           </div>
         )}
       </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 }

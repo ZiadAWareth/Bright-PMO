@@ -4,9 +4,8 @@ import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Save, AlertCircle } from "lucide-react";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import { Spinner } from "@/components/ui/spinner";
 import { Dropdown } from "@/components/ui/dropdown";
 import {
@@ -55,11 +54,13 @@ const EPSEditPage = () => {
   const params = useParams();
   const epsId = params.id as string;
 
-  const [user, setUser] = useState<User | null>(null);
-  const [eps, setEps] = useState<EPS | null>(null);
-  const [allEps, setAllEps] = useState<ParentEPS[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // notConnected: the EPS (to prefill the form) and the EPS list (parent
+  // options) would be loaded here. Until then there is no EPS, so the page
+  // shows its empty state.
+  const [eps] = useState<EPS | null>(null);
+  const [allEps] = useState<ParentEPS[]>([]);
+  const loading = false;
+  const isSubmitting = false;
   const [formError, setFormError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
@@ -68,114 +69,6 @@ const EPSEditPage = () => {
     level: 1,
     parent_eps_id: null as number | null,
   });
-
-  // Permission checking function
-  const canManageEPS = () => {
-    if (!user || !user.role) {
-      return false;
-    }
-    const roleName = user.role.role_name || user.role.name;
-    return roleName && ["PMO", "PJM", "ADMIN"].includes(roleName);
-  };
-
-  // Fetch user data function
-  const fetchUserData = async () => {
-    try {
-      const response = await axios.get("/api/auth/me", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-      setUser(response.data.user);
-    } catch (error) {
-      console.error("Failed to fetch user data:", error);
-      toast.error("Failed to load user data");
-      router.push("/eps");
-    }
-  };
-
-  // Fetch EPS data
-  const fetchEpsData = async () => {
-    if (!epsId) return;
-
-    try {
-      const response = await axios.get(`/api/eps/${epsId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-
-      const data = response.data;
-      if (!data || !data.eps_id || !data.name) {
-        toast.error("Invalid EPS data received");
-        router.push("/eps");
-        return;
-      }
-
-      setEps(data);
-      setFormData({
-        name: data.name || "",
-        description: data.description || "",
-        level: data.level || 1,
-        parent_eps_id: data.parent_eps_id || null,
-      });
-    } catch (error: any) {
-      console.error("Error fetching EPS data:", error);
-      const errorMessage = error.response?.data?.error || "Failed to fetch EPS data";
-      toast.error(errorMessage);
-      router.push("/eps");
-    }
-  };
-
-  // Fetch all EPS for parent selection
-  const fetchAllEps = async () => {
-    try {
-      const response = await axios.get("/api/eps", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      });
-
-      if (!Array.isArray(response.data)) {
-        console.error("Invalid EPS list data received:", response.data);
-        setAllEps([]);
-        return;
-      }
-
-      const transformedEps = response.data
-        .filter((eps: any) => eps && eps.eps_id && eps.name && eps.level)
-        .map((eps: EPS) => ({
-          eps_id: eps.eps_id,
-          name: eps.name,
-          level: eps.level,
-        }));
-      setAllEps(transformedEps);
-    } catch (error: any) {
-      console.error("Error fetching all EPS:", error);
-      toast.error("Failed to fetch EPS list");
-      setAllEps([]);
-    }
-  };
-
-  useEffect(() => {
-    fetchUserData();
-  }, []);
-
-  useEffect(() => {
-    if (user) {
-      if (!canManageEPS()) {
-        toast.error("You don't have permission to edit EPS entries");
-        router.push("/eps");
-        return;
-      }
-      fetchEpsData();
-      fetchAllEps();
-    }
-  }, [user, epsId]);
-
-  useEffect(() => {
-    if (eps && allEps.length > 0) {
-      setLoading(false);
-    }
-  }, [eps, allEps]);
 
   const filteredParentEpsList =
     formData.level > 1
@@ -221,7 +114,7 @@ const EPSEditPage = () => {
     return true;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!eps?.eps_id) {
@@ -231,55 +124,7 @@ const EPSEditPage = () => {
 
     if (!validateForm()) return;
 
-    setIsSubmitting(true);
-    setFormError(null);
-
-    try {
-      const payload = {
-        name: formData.name.trim(),
-        description: formData.description.trim() || null,
-        level: Number(formData.level),
-        parent_eps_id: formData.parent_eps_id,
-      };
-
-      const response = await axios.put(`/api/eps/${eps.eps_id}`, payload, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-
-      if (response.status === 200) {
-        toast.success("EPS updated successfully");
-        router.push("/eps");
-      }
-    } catch (error: any) {
-      console.error("Error updating EPS:", error);
-
-      if (error.response?.data?.error) {
-        const errorMessage = error.response.data.error;
-        setFormError(errorMessage);
-        toast.error(errorMessage);
-      } else if (error.response?.status === 401) {
-        setFormError("Authentication failed. Please log in again.");
-        toast.error("Authentication failed. Please log in again.");
-      } else if (error.response?.status === 403) {
-        setFormError("You don't have permission to edit this EPS.");
-        toast.error("You don't have permission to edit this EPS.");
-      } else if (error.response?.status === 409) {
-        // Conflict - duplicate name
-        const errorMessage = error.response.data?.error || "An EPS with this name already exists under the same parent.";
-        setFormError(errorMessage);
-        toast.error(errorMessage);
-      } else if (error.response?.status >= 500) {
-        setFormError("Server error occurred. Please try again later.");
-        toast.error("Server error occurred. Please try again later.");
-      } else {
-        setFormError("Failed to update EPS. Please try again.");
-        toast.error("Failed to update EPS. Please try again.");
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
+    notConnected("Updating the EPS");
   };
 
   const handleChange = (
@@ -313,7 +158,7 @@ const EPSEditPage = () => {
 
   if (loading) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout hideHeader>
           <div className="space-y-6">
             <PageHeader
@@ -330,13 +175,13 @@ const EPSEditPage = () => {
             </div>
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
   if (!eps) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout hideHeader>
           <div className="space-y-6">
             <PageHeader
@@ -364,12 +209,12 @@ const EPSEditPage = () => {
             </FormSection>
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
   return (
-    <ProtectedRoute>
+    <>
       <DashboardLayout hideHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <PageHeader
@@ -514,7 +359,7 @@ const EPSEditPage = () => {
           </FormFooter>
         </form>
       </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 };
 

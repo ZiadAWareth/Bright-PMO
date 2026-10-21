@@ -3,10 +3,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AlertCircle, Save } from "lucide-react";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import {
   CancelButton,
   Field,
@@ -51,9 +50,11 @@ export default function EditProjectVendorPage() {
   const projectId = params?.id as string;
   const vendorId = params?.vendorId as string;
 
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  // notConnected: the vendor (to prefill the form) would be loaded here.
+  // Until then the form starts empty.
+  const loading = false;
+  const notFound = false;
+  const submitting = false;
   const [error, setError] = useState<string | null>(null);
 
   const [name, setName] = useState("");
@@ -65,41 +66,6 @@ export default function EditProjectVendorPage() {
 
   const backHref = `/projects/${projectId}/procurement`;
 
-  useEffect(() => {
-    if (!vendorId) return;
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const res = await axios.get(`/api/vendors/${vendorId}`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        });
-        if (cancelled) return;
-
-        const v = res.data;
-        if (!v) {
-          setNotFound(true);
-          return;
-        }
-
-        setName(v.name ?? "");
-        setCategory(v.category ?? "");
-        setContactPerson(v.contact_person ?? "");
-        setContactInfo(v.contact_info ?? "");
-        setAddress(v.address ?? "");
-        setPerformanceRating(String(v.performance_rating ?? "0"));
-      } catch {
-        if (!cancelled) setNotFound(true);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [vendorId]);
-
   const validate = (): string | null => {
     if (!name.trim()) return "Vendor name is required.";
     if (!contactPerson.trim()) return "Contact person is required.";
@@ -109,7 +75,7 @@ export default function EditProjectVendorPage() {
     return null;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     const problem = validate();
@@ -119,43 +85,12 @@ export default function EditProjectVendorPage() {
     }
 
     setError(null);
-    setSubmitting(true);
-    try {
-      await axios.put(
-        `/api/vendors/${vendorId}`,
-        {
-          name: name.trim(),
-          contact_person: contactPerson.trim(),
-          contact_info: contactInfo.trim(),
-          address: address.trim(),
-          category: category.trim(),
-          performance_rating: parseFloat(performanceRating),
-        },
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        },
-      );
-
-      toast.success("Vendor updated");
-      router.push(`${backHref}?tab=vendors`);
-    } catch (e) {
-      const err = e as {
-        response?: { data?: { error?: string; message?: string } };
-      };
-      const message =
-        err.response?.data?.error ??
-        err.response?.data?.message ??
-        "Failed to update vendor";
-      setError(message);
-      toast.error(message);
-    } finally {
-      setSubmitting(false);
-    }
+    notConnected("Updating the vendor");
   };
 
   if (loading) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout hideHeader>
           <div className="space-y-6">
             <PageHeader
@@ -171,13 +106,13 @@ export default function EditProjectVendorPage() {
             </div>
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
   if (notFound) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout hideHeader>
           <div className="space-y-6">
             <PageHeader
@@ -207,12 +142,12 @@ export default function EditProjectVendorPage() {
             </FormSection>
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
   return (
-    <ProtectedRoute>
+    <>
       <DashboardLayout hideHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <PageHeader
@@ -312,6 +247,6 @@ export default function EditProjectVendorPage() {
           </FormFooter>
         </form>
       </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 }

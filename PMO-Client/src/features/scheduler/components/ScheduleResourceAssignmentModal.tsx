@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { Calendar, Users, Search } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { Spinner } from "@/components/ui/spinner";
 import { Dropdown } from "@/components/ui/dropdown";
 
@@ -67,7 +67,7 @@ const ScheduleResourceAssignmentModal = ({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmitting = false;
   const [selectedResourceType, setSelectedResourceType] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
@@ -125,46 +125,13 @@ const ScheduleResourceAssignmentModal = ({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      const resource_id_raw = formData.resource_id;
-      if (!resource_id_raw || resource_id_raw === "") {
-        setErrors({ general: "Please select a resource from the dropdown." });
-        setIsSubmitting(false);
-        return;
-      }
-      const resource_id = Number(resource_id_raw);
-      const allocation_percentage = formData.allocation_percentage;
-      const planned_hours = formData.planned_hours;
-      const start_date = formData.start_date;
-      const end_date = formData.end_date;
-      const submitData = {
-        resource_id,
-        allocation_percentage,
-        planned_hours,
-        start_date,
-        end_date,
-      };
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-      const res = await axios.post(
-        `/api/schedules/${scheduleId}/tasks/${task.task_id}/assign-resource`,
-        submitData,
-        token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
-      );
-      if (res.status === 201) {
-        onSave(res.data);
-        onClose();
-      } else {
-        setErrors({ general: res.data.error || "Failed to assign resource" });
-      }
-    } catch (err: any) {
-      const backendError = err.response?.data?.error || err.message || "Failed to assign resource";
-      setErrors({ general: backendError });
-    } finally {
-      setIsSubmitting(false);
+    if (!formData.resource_id) {
+      setErrors({ general: "Please select a resource from the dropdown." });
+      return;
     }
+    notConnected("Assigning a resource");
   };
 
   const selectedResource = resources.find(

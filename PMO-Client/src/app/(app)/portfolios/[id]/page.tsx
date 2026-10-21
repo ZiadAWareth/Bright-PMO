@@ -50,12 +50,11 @@ import {
   portfolioStatusTone,
   priorityTone,
 } from "@/lib/status-tone";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { set } from "date-fns";
 import { AddEntityModal } from "@/components/form/AddEntityModal";
 import { UserWithAccount } from "@/features/users/types";
 import { toast } from "sonner";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import ProjectsTab from "@/features/projects/components/ProjectsTab";
 import { Spinner } from "@/components/ui/spinner";
 import { TabRow } from "@/components/ui/tab-row";
@@ -123,45 +122,19 @@ const ProjectDetailsPage = ({
 }) => {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const [user, setUser] = useState<User | null>(null);
     const [activeView, setActiveView] = useState("admin");
     const [activeTab, setActiveTab] = useState("overview");
     const [portfolioId, setPortfolioId] = useState<string>("");
-    const [portfolio, setPortfolio] = useState<PortfolioWithRelations | null>(
-        null
-    );
-    const [loading, setLoading] = useState(true);
+    // notConnected: the portfolio would be loaded here. Until then there is
+    // none, so the page shows its empty state.
+    const [portfolio] = useState<PortfolioWithRelations | null>(null);
+    const loading = false;
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
-    const [isDeleting, setIsDeleting] = useState(false);
+    const isDeleting = false;
 
 
-    // Permission checking functions
-    const canViewPortfolios = () => {
-        const roleName = user?.role?.role_name || user?.role?.name;
-        return (
-            roleName && ["PMO", "PJM", "ADMIN", "IT", "DIR"].includes(roleName)
-        );
-    };
-
-    const canManagePortfolios = () => {
-        const roleName = user?.role?.role_name || user?.role?.name;
-        return roleName && ["PMO", "PJM", "ADMIN", "DIR"].includes(roleName);
-    };
-
-    // Fetch user data function
-    const fetchUserData = async () => {
-        try {
-            const response = await axios.get("/api/auth/me", {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
-            });
-            setUser(response.data.user);
-        } catch (error) {
-            console.error("Error fetching user data:", error);
-            setUser(null);
-        }
-    };
+    // Every action is open until roles come from the backend.
+    const canManagePortfolios = () => true;
 
     useEffect(() => {
         const getParams = async () => {
@@ -169,29 +142,8 @@ const ProjectDetailsPage = ({
             setPortfolioId(resolvedParams.id);
         };
         getParams();
-        fetchUserData();
     }, [params]);
 
-    useEffect(() => {
-        if (!portfolioId) return;
-
-        setLoading(true);
-        axios
-            .get(`/api/portfolios/${portfolioId}`, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
-            })
-            .then((res) => {
-                console.log("Portfolio data fetched:", res.data);
-                setPortfolio(res.data);
-                setLoading(false);
-            })
-            .catch((err) => {
-                console.error("Error fetching portfolio data:", err);
-                setLoading(false);
-            });
-    }, [portfolioId]);
 
     // Get role-specific tabs
     const getRoleSpecificTabs = (role: string) => {
@@ -330,73 +282,14 @@ const ProjectDetailsPage = ({
         toast.info("Report generation coming soon!");
     };
 
-    const handleDeletePortfolio = async () => {
-        if (!portfolioId) return;
-
-        setIsDeleting(true);
-        try {
-            await axios.delete(`/api/portfolios/${portfolioId}`, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
-            });
-
-            toast.success("Portfolio deleted successfully");
-            router.push("/portfolios");
-        } catch (error: any) {
-            console.error("Error deleting portfolio:", error);
-            const errorMessage = error.response?.data?.message || error.response?.data?.error || "Failed to delete portfolio";
-            
-            if (error.response?.status === 403 && error.response?.data?.activeProjects) {
-                // Show detailed error about active projects
-                const activeProjects = error.response.data.activeProjects;
-                const projectList = activeProjects.map((p: any) => p.name).join(", ");
-                toast.error(
-                    `Cannot delete portfolio: ${activeProjects.length} active project(s) must be completed first. Projects: ${projectList}`,
-                    {
-                        duration: 8000,
-                    }
-                );
-            } else {
-            toast.error(errorMessage);
-            }
-        } finally {
-            setIsDeleting(false);
-            setShowDeleteConfirmation(false);
-        }
+    const handleDeletePortfolio = () => {
+        setShowDeleteConfirmation(false);
+        notConnected("Deleting the portfolio");
     };
-
-    // Check if user has permission to view portfolios
-    if (user && !canViewPortfolios()) {
-        return (
-            <ProtectedRoute>
-                <DashboardLayout
-                    onViewChange={setActiveView}
-                    activeView={activeView}
-                >
-                    <div className="flex items-center justify-center min-h-96">
-                        <div className="text-center">
-                            <Shield
-                                size={48}
-                                className="text-faint mx-auto mb-4"
-                            />
-                            <h3 className="text-lg font-medium text-ink mb-2">
-                                Access Restricted
-                            </h3>
-                            <p className="text-muted">
-                                You don't have permission to view this
-                                portfolio.
-                            </p>
-                        </div>
-                    </div>
-                </DashboardLayout>
-            </ProtectedRoute>
-        );
-    }
 
     if (loading) {
         return (
-            <ProtectedRoute>
+            <>
                 <DashboardLayout
                     onViewChange={setActiveView}
                     activeView={activeView}
@@ -405,13 +298,13 @@ const ProjectDetailsPage = ({
                         <Spinner size={48} className="text-bright-primary" />
                     </div>
                 </DashboardLayout>
-            </ProtectedRoute>
+            </>
         );
     }
 
     if (!portfolio) {
         return (
-            <ProtectedRoute>
+            <>
                 <DashboardLayout
                     onViewChange={setActiveView}
                     activeView={activeView}
@@ -432,7 +325,7 @@ const ProjectDetailsPage = ({
                         </button>
                     </div>
                 </DashboardLayout>
-            </ProtectedRoute>
+            </>
         );
     }
 
@@ -503,7 +396,7 @@ const ProjectDetailsPage = ({
     const roleSpecificActions = getRoleSpecificActions(activeView);
 
     return (
-        <ProtectedRoute>
+        <>
             <DashboardLayout
                 title={portfolio?.name ?? "Portfolio"}
                 subtitle={portfolio?.description}
@@ -1218,7 +1111,7 @@ const ProjectDetailsPage = ({
                     </div>
                 )}
             </DashboardLayout>
-        </ProtectedRoute>
+        </>
     );
 };
 

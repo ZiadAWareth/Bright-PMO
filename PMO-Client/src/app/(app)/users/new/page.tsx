@@ -3,10 +3,9 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import {
   CancelButton,
   Field,
@@ -41,8 +40,9 @@ const STATUS_OPTIONS = [
 export default function NewUserPage() {
   const router = useRouter();
 
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [submitting, setSubmitting] = useState(false);
+  // notConnected: the roles to choose from would be loaded here.
+  const [roles] = useState<Role[]>([]);
+  const submitting = false;
   const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
@@ -57,23 +57,6 @@ export default function NewUserPage() {
     phone_number: "",
     status: "active",
   });
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await axios.get("/api/roles", {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        });
-        if (!cancelled) setRoles(Array.isArray(res.data) ? res.data : []);
-      } catch {
-        if (!cancelled) toast.error("Could not load roles");
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const set = <K extends keyof typeof formData>(
     key: K,
@@ -99,7 +82,7 @@ export default function NewUserPage() {
     return null;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     const problem = validate();
@@ -109,39 +92,7 @@ export default function NewUserPage() {
     }
 
     setError(null);
-    setSubmitting(true);
-    try {
-      await axios.post(
-        "/api/users",
-        {
-          first_name: formData.first_name.trim(),
-          last_name: formData.last_name.trim(),
-          username: formData.username.trim(),
-          email: formData.email.trim(),
-          password: formData.password,
-          role_id: Number(formData.role_id),
-          department: formData.department.trim() || null,
-          phone_number: formData.phone_number.trim() || null,
-          status: formData.status,
-        },
-        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } },
-      );
-
-      toast.success("User created");
-      router.push("/users");
-    } catch (e) {
-      const err = e as {
-        response?: { data?: { error?: string; message?: string } };
-      };
-      const message =
-        err.response?.data?.error ??
-        err.response?.data?.message ??
-        "Failed to create user";
-      setError(message);
-      toast.error(message);
-    } finally {
-      setSubmitting(false);
-    }
+    notConnected("Creating a user");
   };
 
   const roleOptions = [
@@ -153,7 +104,7 @@ export default function NewUserPage() {
   ];
 
   return (
-    <ProtectedRoute>
+    <>
       <DashboardLayout hideHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <PageHeader
@@ -317,6 +268,6 @@ export default function NewUserPage() {
           </FormFooter>
         </form>
       </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 }

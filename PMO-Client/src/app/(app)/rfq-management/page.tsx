@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import axios from "axios";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { FilterBar, FilterSelect } from "@/components/ui/filter-bar";
@@ -43,7 +42,7 @@ import {
 } from "@/components/ui/tooltip";
 import { LoadingState, Spinner } from "@/components/ui/spinner";
 import { TabRow } from "@/components/ui/tab-row";
-import RoleGuard from "@/features/auth/components/RoleGuard";
+import { notConnected } from "@/lib/not-connected";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ViewToggle, type ListViewMode } from "@/components/ui/view-toggle";
 import { PersonCell } from "@/components/ui/person-cell";
@@ -214,11 +213,12 @@ const RFQManagementPage = () => {
   // (e.g. ?tab=vendors) so creating one returns to the right list.
   const initialTab = searchParams?.get("tab") ?? "overview";
   const [activeTab, setActiveTab] = useState(initialTab);
-  const [procurements, setProcurements] = useState<Procurement[]>([]);
-  const [rfqResponses, setRfqResponses] = useState<RFQResponse[]>([]);
-  const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [generatingRFQ, setGeneratingRFQ] = useState<number | null>(null);
+  // notConnected: procurements, RFQ responses and vendors would be loaded here.
+  const [procurements] = useState<Procurement[]>([]);
+  const [rfqResponses] = useState<RFQResponse[]>([]);
+  const [vendors] = useState<Vendor[]>([]);
+  const loading = false;
+  const [generatingRFQ] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [vendorSearch, setVendorSearch] = useState("");
   const [vendorCategoryFilter, setVendorCategoryFilter] = useState("all");
@@ -244,200 +244,14 @@ const RFQManagementPage = () => {
   const [selectedRFQResponse, setSelectedRFQResponse] =
     useState<RFQResponse | null>(null);
 
-  useEffect(() => {
-    setLoading(true);
-
-    // Fetch all RFQ-related data
-    Promise.all([
-      axios.get(`/api/procurements`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      }),
-      axios
-        .get(`/api/rfq-responses`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        })
-        .catch((error) => {
-          console.warn("No RFQ responses found yet:", error);
-          return { data: [] };
-        }),
-      axios.get(`/api/vendors`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      }),
-    ])
-      .then(([procRes, rfqRes, vendorRes]) => {
-        setProcurements(procRes.data);
-        setRfqResponses(rfqRes.data || []);
-        setVendors(vendorRes.data);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error("Error fetching data:", error);
-        toast.error("Failed to load RFQ data");
-        setLoading(false);
-      });
-  }, []);
-
-  const generateRFQ = async (procurementId: number) => {
-    try {
-      setGeneratingRFQ(procurementId);
-      
-      // Check if user is authenticated
-      const token = localStorage.getItem("token");
-      if (!token) {
-        toast.error("Authentication required. Please log in again.");
-        return;
-      }
-      
-      // Find the procurement to update
-      const procurement = procurements.find(
-        (p) => p.procurement_id === procurementId
-      );
-      if (!procurement) {
-        toast.error("Procurement not found");
-        return;
-      }
-
-      // Check if there are vendors available
-      if (vendors.length === 0) {
-        toast.error("No vendors available to send RFQ to. Please add vendors first.");
-        return;
-      }
-
-      console.log(`Generating RFQ for procurement ${procurementId} with ${vendors.length} vendors`);
-
-      // Update status to 'Tendering'
-      console.log('Updating procurement status to Tendering:', procurement);
-      const response = await axios.put(
-        `/api/procurements/${procurementId}`,
-        {
-          project_id: procurement.project_id,
-          wbs_id: procurement.wbs_id || null, // Handle case where wbs_id might not exist
-          type: procurement.type,
-          description: procurement.description,
-          estimated_cost: procurement.estimated_cost,
-          actual_cost: procurement.actual_cost,
-          status: "Tendering",
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (response.status === 200) {
-        // Create RFQ responses for each vendor
-        const rfqResponsePromises = vendors.map(async (vendor) => {
-          try {
-            const rfqResponseData = {
-              procurement_id: procurementId,
-              vendor_id: vendor.vendor_id,
-              quote_amount: procurement.estimated_cost, // Default to estimated cost
-              delivery_time: "30 days", // Default delivery time
-              technical_score: 0, // Default scores to be updated later
-              commercial_score: 0,
-              status: "Submitted",
-              notes: `RFQ automatically generated for ${vendor.name}`,
-            };
-
-            console.log(`Creating RFQ response for vendor ${vendor.name}:`, rfqResponseData);
-
-            const response = await axios.post(`/api/rfq-responses`, rfqResponseData, {
-              headers: { Authorization: `Bearer ${token}` },
-            });
-
-            console.log(`RFQ response created successfully for vendor ${vendor.name}:`, response.data);
-            return response;
-          } catch (error) {
-            console.error(`Failed to create RFQ response for vendor ${vendor.name}:`, error);
-            if (axios.isAxiosError(error)) {
-              console.error('Error response:', error.response?.data);
-              console.error('Error status:', error.response?.status);
-            }
-            throw error;
-          }
-        });
-
-        // Wait for all RFQ responses to be created
-        const rfqResponseResults = await Promise.allSettled(rfqResponsePromises);
-        
-        // Count successful and failed responses
-        const successfulResponses = rfqResponseResults.filter(
-          (result) => result.status === "fulfilled"
-        ).length;
-        const failedResponses = rfqResponseResults.filter(
-          (result) => result.status === "rejected"
-        ).length;
-
-        // Update the procurements list in state
-        setProcurements((prev) =>
-          prev.map((p) =>
-            p.procurement_id === procurementId
-              ? { ...p, status: "Tendering" }
-              : p
-          )
-        );
-
-        // Refresh RFQ responses data
-        try {
-          const rfqResponsesResponse = await axios.get(`/api/rfq-responses`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          setRfqResponses(rfqResponsesResponse.data || []);
-        } catch (error) {
-          console.warn("Failed to refresh RFQ responses:", error);
-        }
-
-        // Show appropriate success/warning message
-        if (failedResponses === 0) {
-          toast.success(
-            `RFQ generated successfully! Created ${successfulResponses} vendor responses. Procurement is now open for bidding.`
-          );
-        } else {
-          toast.warning(
-            `RFQ partially generated. Created ${successfulResponses} responses, but ${failedResponses} failed. Check console for details.`
-          );
-        }
-
-        // Log failed responses for debugging
-        rfqResponseResults.forEach((result, index) => {
-          if (result.status === "rejected") {
-            console.error(`Failed to create RFQ response for vendor ${vendors[index].name}:`, result.reason);
-          }
-        });
-      }
-    } catch (error) {
-      console.error("Error generating RFQ:", error);
-      toast.error("Failed to generate RFQ");
-    } finally {
-      setGeneratingRFQ(null);
-    }
-  };
+  const generateRFQ = (_procurementId: number) => notConnected("Generating the RFQ");
 
   const viewRFQResponses = (procurement: Procurement) => {
     setSelectedRFQProcurement(procurement);
     setShowRFQResponsesModal(true);
   };
 
-  const awardContract = async (response: RFQResponse) => {
-    try {
-      const res = await axios.post(
-        `/api/rfq-responses/${response.rfq_response_id}/award`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        }
-      );
-
-      if (res.status === 200) {
-        toast.success("Contract awarded successfully");
-        setShowRFQResponsesModal(false);
-        // Refresh the data
-        window.location.reload();
-      }
-    } catch (error) {
-      console.error("Error awarding contract:", error);
-      toast.error("Failed to award contract");
-    }
-  };
+  const awardContract = (_response: RFQResponse) => notConnected("Awarding the contract");
 
   const openProcurementDetails = (procurement: Procurement) => {
     setSelectedProcurement(procurement);
@@ -626,7 +440,6 @@ const RFQManagementPage = () => {
   ];
 
   return (
-    <RoleGuard route="/rfq-management" title="RFQ Management">
     <DashboardLayout
       title="RFQ Management"
       subtitle="Manage Request for Quotations across all projects."
@@ -2200,7 +2013,6 @@ const RFQManagementPage = () => {
         </div>
       )}
     </DashboardLayout>
-    </RoleGuard>
   );
 };
 

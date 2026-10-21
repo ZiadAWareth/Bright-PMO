@@ -186,101 +186,15 @@ export const useTaskDependencies = ({
     }
   };
 
-  /**
-   * Save all dependencies to the API after task creation
-   */
-  const saveDependencies = async (createdTaskId: number): Promise<void> => {
-    // Filter out any self-dependencies (safety check)
-    const validPredecessors = selectedPredecessors.filter(
-      (predId) => predId !== createdTaskId
-    );
+  // notConnected: these saved the selected predecessors (with type and lag) for
+  // a new task, and synced them for an edited one. The selections above are
+  // kept so the integration can send them.
+  const saveDependencies = async (_createdTaskId: number): Promise<void> => {};
 
-    if (validPredecessors.length !== selectedPredecessors.length) {
-      console.warn("Self-dependencies detected and filtered out during task creation");
-    }
-
-    if (validPredecessors.length === 0) {
-      return;
-    }
-
-    // Create all dependencies in parallel
-    await Promise.all(
-      validPredecessors.map((predId) =>
-        fetch(`/api/tasks/${createdTaskId}/dependencies`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: JSON.stringify({
-            predecessor_task_id: predId,
-            dependency_type: dependencyTypes[predId] || "finish_to_start",
-            lag_time: lagTimes[predId] || 0,
-          }),
-        })
-      )
-    );
-  };
-
-  /**
-   * Update dependencies for existing task (edit mode)
-   */
   const updateDependencies = async (
-    taskId: number,
-    existingDependencies: DependencyData[]
-  ): Promise<void> => {
-    // Get current predecessor IDs from existing dependencies
-    const currentPreds = existingDependencies.map((dep) => dep.predecessor_task_id);
-
-    // Filter out self-dependencies from selected predecessors
-    const validSelectedPredecessors = selectedPredecessors.filter(
-      (predId) => predId !== taskId
-    );
-
-    if (validSelectedPredecessors.length !== selectedPredecessors.length) {
-      console.warn("Self-dependencies detected and filtered out during task update");
-    }
-
-    // Determine which dependencies to add and remove
-    const toAdd = validSelectedPredecessors.filter(
-      (id) => !currentPreds.includes(id)
-    );
-    const toRemove = currentPreds.filter(
-      (id) => !validSelectedPredecessors.includes(id)
-    );
-
-    // Add new dependencies
-    await Promise.all(
-      toAdd.map((predId) =>
-        fetch(`/api/tasks/${taskId}/dependencies`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: JSON.stringify({
-            predecessor_task_id: predId,
-            dependency_type: dependencyTypes[predId] || "finish_to_start",
-            lag_time: lagTimes[predId] || 0,
-          }),
-        })
-      )
-    );
-
-    // Remove old dependencies
-    await Promise.all(
-      existingDependencies
-        .filter((dep) => toRemove.includes(dep.predecessor_task_id))
-        .map((dep) =>
-          fetch(`/api/tasks/${taskId}/dependencies/${dep.dependency_id}`, {
-            method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          })
-        )
-    );
-  };
+    _taskId: number,
+    _existingDependencies: DependencyData[]
+  ): Promise<void> => {};
 
   return {
     selectedPredecessors,

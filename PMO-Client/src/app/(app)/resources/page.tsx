@@ -1,5 +1,6 @@
 "use client";
 
+import { notConnected } from "@/lib/not-connected";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -40,7 +41,6 @@ import {
 } from "lucide-react";
 import { FilterBar, FilterSelect } from "@/components/ui/filter-bar";
 import { toast } from "sonner";
-import axios from "axios";
 import { LoadingState, Spinner } from "@/components/ui/spinner";
 import { useConfirm } from "@/components/ui/confirm-provider";
 import { Dropdown } from "@/components/ui/dropdown";
@@ -184,7 +184,7 @@ const ResourceManagementPage: React.FC = () => {
   const [availabilityFilter, setAvailabilityFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   /**
    * The department, type and status controls used to be declared but never
@@ -259,283 +259,11 @@ const ResourceManagementPage: React.FC = () => {
   ];
 
   const fetchWorkload = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch("/api/resources/workload", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        return;
-      }
-
-      const data = await response.json();
-
-      // Debug logging to identify overallocation issue
-      console.log("Workload API response:", data);
-      console.log("Summary overloaded_count:", data.summary?.overloaded_count);
-      console.log(
-        "Resources with overload status:",
-        data.resources?.filter((r: any) => r.status === "overloaded")
-      );
-      console.log(
-        "All resource statuses:",
-        data.resources?.map((r: any) => ({
-          id: r.resource_id,
-          status: r.status,
-          utilization: r.actual_utilization_rate,
-        }))
-      );
-
-      // Calculate average utilization from all resources
-      if (data.resources && data.resources.length > 0) {
-        const totalUtilization = data.resources.reduce(
-          (sum: number, resource: any) =>
-            sum + resource.actual_utilization_rate,
-          0
-        );
-        const average = totalUtilization / data.resources.length;
-        setAvgUtilization(Math.round(average * 100) / 100);
-
-        // Use the summary data from API for overallocation calculation
-        if (data.summary && data.summary.overloaded_count > 0) {
-          // Calculate average overallocation percentage for overloaded resources only
-          const overloadedResources = data.resources.filter(
-            (resource: any) => resource.status === "overloaded"
-          );
-
-          const totalOverallocation = overloadedResources.reduce(
-            (sum: number, resource: any) =>
-              sum + (resource.actual_utilization_rate - 100),
-            0
-          );
-          const avgOverallocation =
-            totalOverallocation / overloadedResources.length;
-          setOverallocationPercentage(
-            Math.round(avgOverallocation * 100) / 100
-          );
-          setOverloadedResourcesCount(data.summary.overloaded_count);
-        } else {
-          setOverallocationPercentage(0);
-          setOverloadedResourcesCount(0);
-        }
-      } else {
-        // Set default values for testing
-        setAvgUtilization(0);
-        setOverallocationPercentage(0);
-        setOverloadedResourcesCount(0);
-      }
-    } catch (error) {
-      // Set default values on error
-      setAvgUtilization(0);
-      setOverallocationPercentage(0);
-      setOverloadedResourcesCount(0);
-    }
+    // notConnected: loads the resources' workload (utilisation, overallocation).
   };
 
   const fetchResources = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch("/api/resources", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const data = await response.json();
-      setTotalResources(data.allResources.length);
-      setAvailableResources(data.availableResources.length);
-
-      // Fetch workload data to get real utilization rates
-      let utilizationMap = new Map();
-      try {
-        const workloadResponse = await fetch("/api/resources/workload", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        const workloadData = await workloadResponse.json();
-
-        // Create a map of resource utilization rates
-        if (workloadData.resources) {
-          workloadData.resources.forEach((resource: any) => {
-            utilizationMap.set(
-              resource.resource_id,
-              resource.actual_utilization_rate
-            );
-          });
-        }
-      } catch (workloadError) {
-        console.warn(
-          "Could not fetch workload data, using fallback calculation:",
-          workloadError
-        );
-      }
-
-      // Transform API data to match Grid View interface
-      const transformedResources: Resource[] = data.allResources.map(
-        (apiResource: any) => {
-          // Parse skills from JSON to array format expected by ResourceGrid
-          let skills: Skill[] = [];
-          let skillsData: any = null;
-          try {
-            if (typeof apiResource.skills === "string") {
-              skillsData = JSON.parse(apiResource.skills);
-            } else {
-              skillsData = apiResource.skills;
-            }
-
-            // Handle new skills format with Skills and Languages arrays
-            if (skillsData && typeof skillsData === "object") {
-              // Convert Skills array
-              if (skillsData.Skills && Array.isArray(skillsData.Skills)) {
-                skills.push(
-                  ...skillsData.Skills.map((skill: any) => ({
-                    name: skill.name || skill,
-                    level: skill.proficiency || "intermediate",
-                    category: skill.category || "Technical",
-                    verified: true,
-                    yearsExperience: skill.yearsExperience || 1,
-                  }))
-                );
-              }
-
-              // Convert Languages array
-              if (skillsData.Languages && Array.isArray(skillsData.Languages)) {
-                skills.push(
-                  ...skillsData.Languages.map((lang: any) => ({
-                    name: lang.name || lang,
-                    level: lang.proficiency || "intermediate",
-                    category: "Language",
-                    verified: true,
-                    yearsExperience: lang.yearsExperience || 1,
-                  }))
-                );
-              }
-            } else if (Array.isArray(skillsData)) {
-              // Handle old format if still present
-              skills = skillsData.map((skill: any) => ({
-                name: skill.name || skill,
-                level: skill.level || skill.proficiency || "intermediate",
-                category: skill.category || "General",
-                verified: skill.verified || true,
-                yearsExperience: skill.yearsExperience || 1,
-              }));
-            }
-          } catch (e) {
-            console.warn(
-              "Error parsing skills for resource:",
-              apiResource.resource_id,
-              e
-            );
-            // If parsing fails, create a basic skill from the skills field
-            skills = [
-              {
-                name: "General",
-                level: "intermediate",
-                category: "General",
-                verified: true,
-                yearsExperience: 1,
-              },
-            ];
-          }
-
-          // Ensure skills is always an array
-          if (!Array.isArray(skills)) {
-            skills = [];
-          }
-
-          // Extract languages for the languages field
-          const languages = skillsData?.Languages?.map(
-            (lang: any) => lang.name || lang
-          ) || ["Arabic", "English"];
-
-          // Parse name into firstName and lastName
-          const nameParts = apiResource.name.split(" ");
-          const firstName = nameParts[0] || "";
-          const lastName = nameParts.slice(1).join(" ") || "";
-
-          // Get real utilization rate from workload data, fallback to calculated value
-          const realUtilization = utilizationMap.get(apiResource.resource_id);
-          let utilization = 0;
-          let availability = 100;
-
-          if (realUtilization !== undefined && realUtilization >= 0) {
-            // Use real utilization data
-            utilization = Math.min(realUtilization, 100); // Cap at 100%
-            availability = Math.max(100 - utilization, 0); // Calculate availability
-          } else {
-            // Fallback to availability status-based calculation
-            switch (apiResource.availability_status) {
-              case "available":
-                utilization = 0;
-                availability = 100;
-                break;
-              case "busy":
-                utilization = Math.min(85, 100); // Cap at 100%
-                availability = Math.max(100 - utilization, 0);
-                break;
-              case "on_leave":
-                utilization = 0;
-                availability = 0;
-                break;
-              case "inactive":
-                utilization = 0;
-                availability = 0;
-                break;
-              default:
-                utilization = 0;
-                availability = 100;
-                break;
-            }
-          }
-
-          return {
-            id: apiResource.resource_id.toString(),
-            firstName,
-            lastName,
-            email: apiResource.email || "N/A",
-            phone: apiResource.phone_number || "N/A",
-            position: apiResource.role,
-            department: apiResource.department,
-            skills,
-            hourlyRate: apiResource.rate,
-            availability,
-            utilization,
-            currentProjects: [], // Will be populated from assignments if needed
-            totalCapacity: apiResource.capacity || 40,
-            allocatedHours: Math.round(
-              (utilization / 100) * (apiResource.capacity || 40)
-            ),
-            status:
-              apiResource.availability_status === "inactive"
-                ? "inactive"
-                : "active",
-            location: apiResource.location || "Muscat, Oman",
-            manager: "Department Manager",
-            startDate: new Date(apiResource.created_at),
-            profileImage: apiResource.profile_image,
-            certifications: [],
-            languages: languages,
-            costCenter: `${apiResource.department.toUpperCase()}-${
-              apiResource.resource_id
-            }`,
-            rating: apiResource.rating,
-            type: apiResource.type || "labor", // Add resource type
-            unit: apiResource.unit,
-            quantity: apiResource.quantity,
-          };
-        }
-      );
-
-      setResources(transformedResources);
-      setResourceRequests(getSampleResourceRequests());
-      setIsLoading(false);
-    } catch (error) {
-      console.error("Error refreshing resources:", error);
-      setIsLoading(false);
-    }
+    // notConnected: loads the resources and their workload.
   };
 
   const getSampleResourceRequests = (): ResourceRequest[] => {
@@ -746,23 +474,7 @@ const ResourceManagementPage: React.FC = () => {
   };
 
   const fetchResourceCalendar = async () => {
-    setIsLoadingCalendar(true);
-    try {
-      const response = await axios.get("/api/resourceAssignments", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-
-      // Transform the API data to match the calendar component structure
-      const transformedData = transformAssignmentsToCalendarData(response.data);
-      setResourceAllocations(transformedData);
-    } catch (error) {
-      console.error("Error fetching resource calendar:", error);
-      toast.error("Failed to fetch resource calendar data");
-    } finally {
-      setIsLoadingCalendar(false);
-    }
+    // notConnected: loads resource assignments for the calendar.
   };
 
   // Map assignment status to calendar colors
@@ -871,37 +583,7 @@ const ResourceManagementPage: React.FC = () => {
       tone: "danger",
     });
     if (!ok) return;
-
-    try {
-      // Get the auth token from localStorage
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        toast.error("Authentication required. Please log in again.");
-        return;
-      }
-
-      const response = await fetch(`/api/resources/${resource.id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (response.ok) {
-        toast.success("Resource deleted successfully");
-        fetchResources(); // Refresh the resource list
-      } else {
-        const errorData = await response.json();
-        toast.error(
-          `Failed to delete resource: ${errorData.error || "Unknown error"}`
-        );
-      }
-    } catch (error) {
-      console.error("Error deleting resource:", error);
-      toast.error("Failed to delete resource. Please try again.");
-    }
+    notConnected("Deleting the resource");
   };
 
   // Load initial data

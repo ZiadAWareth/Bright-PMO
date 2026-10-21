@@ -3,10 +3,9 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import {
   CancelButton,
   Field,
@@ -49,7 +48,7 @@ const RATING_OPTIONS = [
 export default function NewVendorPage() {
   const router = useRouter();
 
-  const [submitting, setSubmitting] = useState(false);
+  const submitting = false;
   const [error, setError] = useState<string | null>(null);
 
   const [name, setName] = useState("");
@@ -68,7 +67,7 @@ export default function NewVendorPage() {
     return null;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     const problem = validate();
@@ -78,42 +77,11 @@ export default function NewVendorPage() {
     }
 
     setError(null);
-    setSubmitting(true);
-    try {
-      const res = await axios.post(
-        "/api/vendors",
-        {
-          name: name.trim(),
-          contact_person: contactPerson.trim(),
-          contact_info: contactInfo.trim(),
-          address: address.trim(),
-          category: category.trim(),
-          performance_rating: parseFloat(performanceRating),
-        },
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        },
-      );
-
-      toast.success("Vendor added");
-      router.push("/rfq-management?tab=vendors");
-    } catch (e) {
-      const err = e as {
-        response?: { data?: { error?: string; message?: string } };
-      };
-      const message =
-        err.response?.data?.error ??
-        err.response?.data?.message ??
-        "Failed to add vendor";
-      setError(message);
-      toast.error(message);
-    } finally {
-      setSubmitting(false);
-    }
+    notConnected("Adding the vendor");
   };
 
   return (
-    <ProtectedRoute>
+    <>
       <DashboardLayout hideHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <PageHeader
@@ -217,6 +185,6 @@ export default function NewVendorPage() {
           </FormFooter>
         </form>
       </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 }

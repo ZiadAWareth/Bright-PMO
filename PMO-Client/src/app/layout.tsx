@@ -2,11 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
-import TokenRefresh from "@/features/auth/components/TokenRefresh";
 import { ConfirmProvider } from "@/components/ui/confirm-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { themeInitScript } from "@/lib/theme-script";
-import '@/lib/axios-config'; // Configure axios globally for cookie authentication
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -67,7 +65,6 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} antialiased`}
       >
         <ThemeProvider>
-          <TokenRefresh />
           <ConfirmProvider>{children}</ConfirmProvider>
           <Toaster />
         </ThemeProvider>

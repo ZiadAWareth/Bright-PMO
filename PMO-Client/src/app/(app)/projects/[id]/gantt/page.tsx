@@ -36,7 +36,7 @@ import {
   Info,
   AlertCircle,
 } from "lucide-react";
-import axios from "axios";
+import { notConnected } from "@/lib/not-connected";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
@@ -64,28 +64,16 @@ const ProjectGanttPage: React.FC = () => {
   const projectId = params?.id as string;
 
   const [userRole] = useState<UserRole>("admin");
-  const [user, setUser] = useState<User | null>(null);
+  // notConnected: the signed-in user would come from the backend.
+  const [user] = useState<User | null>(null);
   const [project, setProject] = useState<ProjectDetails | null>(null);
 
   // Permission checking function
   const canEditGantt = () => {
-    return user?.role?.name && ['PMO', 'PJM', 'ADMIN'].includes(user.role.name);
+    // Every action is open until roles come from the backend.
+    return true;
   };
 
-  // Fetch user data function
-  const fetchUserData = async () => {
-    try {
-      const response = await axios.get('/api/auth/me', {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-      setUser(response.data.user);
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-      setUser(null);
-    }
-  };
   const [tasks, setTasks] = useState<GanttTask[]>([]);
   const [viewMode, setViewMode] = useState<
     "days" | "weeks" | "months" | "quarters"
@@ -106,7 +94,7 @@ const ProjectGanttPage: React.FC = () => {
   >([]);
   const [workloadSummary, setWorkloadSummary] = useState<any>(null);
   const [loadingResourceView, setLoadingResourceView] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [showTimeline, setShowTimeline] = useState(true);
   const [timelineScale, setTimelineScale] = useState(100);
@@ -191,17 +179,8 @@ const ProjectGanttPage: React.FC = () => {
     return "todo";
   };
 
-  useEffect(() => {
-    fetchUserData();
-  }, []);
-
-  useEffect(() => {
-    if (projectId) {
-      fetchProjectData();
-      fetchWBSData();
-      fetchResources();
-    }
-  }, [projectId]);
+  // notConnected: the project (with its tasks and team), its WBS and the
+  // resources would be loaded here.
 
   // Fetch resource workloads when resource view is enabled
   useEffect(() => {
@@ -218,413 +197,39 @@ const ProjectGanttPage: React.FC = () => {
   // }, [resourceAssignments]);
 
   const fetchWBSData = async () => {
-    try {
-      const response = await axios.get(`/api/projects/${projectId}/wbs`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-      setWbsItems(response.data);
-    } catch (error) {
-      console.error("Error fetching WBS data:", error);
-      toast.error("Failed to load WBS data");
-    }
+    // notConnected: loads the project's WBS.
   };
 
   const fetchResources = async () => {
-    try {
-      const response = await axios.get("/api/resources", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-      setResources(response.data.availableResources);
-    } catch (error) {
-      console.error("Error fetching resources:", error);
-      toast.error("Failed to load resources");
-    }
+    // notConnected: loads the available resources.
   };
 
   const fetchResourceWorkloads = async () => {
-    if (!projectId) return;
-
-    setLoadingResourceView(true);
-    try {
-      const response = await axios.get(
-        `/api/resources/workload?project_id=${projectId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-      const workloadData: ResourceWorkloadResponse = response.data;
-      setResourceWorkloads(workloadData.resources);
-      setWorkloadSummary(workloadData.summary);
-      console.log("Resource workloads:", workloadData);
-    } catch (error) {
-      console.error("Error fetching resource workloads:", error);
-      toast.error("Failed to load resource workload data");
-      setResourceWorkloads([]);
-      setWorkloadSummary(null);
-    } finally {
-      setLoadingResourceView(false);
-    }
+    // notConnected: loads each resource's workload on this project.
   };
-
-  const extractResourceAssignments = (originalTasks: any[]) => {
-    // Extract all resource assignments from the original task data
-    const allAssignments: any[] = [];
-
-    originalTasks.forEach((task) => {
-      if (task.resourceAssignments && task.resourceAssignments.length > 0) {
-        task.resourceAssignments.forEach((assignment: any) => {
-          allAssignments.push({
-            ...assignment,
-            task_id: task.task_id, // Ensure task_id is included
-          });
-        });
-      }
-    });
-
-    setResourceAssignments(allAssignments);
-    console.log("el assignments ahe: ", allAssignments);
-  };
-
-  // updateTasksWithResourceAssignments function removed - resource assignments now come directly from API
 
   const fetchProjectData = async () => {
-    setIsLoading(true);
-    try {
-      // Fetch project details with WBS and tasks included
-      const projectResponse = await axios.get(`/api/projects/${projectId}`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-      const projectData = projectResponse.data;
-
-      console.log("Project Data:", projectData);
-      console.log("Project Tasks:", projectData.tasks);
-      console.log("Sample Task:", projectData.tasks?.[0]);
-
-      // Transform project data to match our interface
-      const transformedProject: ProjectDetails = {
-        id: projectData.project_id,
-        name: projectData.name,
-        description:
-          projectData.description || projectData.short_description || "",
-        status: projectData.status,
-        startDate: new Date(projectData.start_date),
-        endDate: new Date(projectData.planned_end_date || projectData.end_date),
-        progress: projectData.progress_percentage || 0,
-        manager: projectData.creator?.account?.first_name
-          ? `${projectData.creator.account.first_name} ${projectData.creator.account.last_name}`
-          : "Unknown",
-        budget: projectData.budget_amount || 0,
-        team:
-          projectData.team_members?.map((member: any) =>
-            member.user?.account?.first_name
-              ? `${member.user.account.first_name} ${member.user.account.last_name}`
-              : "Unknown"
-          ) || [],
-      };
-
-      setProject(transformedProject);
-
-      // Show only tasks with WBS information
-      const allTasks: GanttTask[] = [];
-
-      console.log("Project WBS:", projectData.wbs);
-      console.log("Project tasks:", projectData.tasks);
-
-      // Create a WBS lookup map for easier access
-      const wbsMap = new Map();
-      if (projectData.wbs) {
-        projectData.wbs.forEach((wbs: any) => {
-          wbsMap.set(wbs.wbs_id, wbs);
-        });
-      }
-
-      // Process only tasks (no WBS containers)
-      if (projectData.tasks && projectData.tasks.length > 0) {
-        projectData.tasks.forEach((task: any, index: number) => {
-          // Get the WBS this task belongs to
-          const parentWBS = task.wbs_id ? wbsMap.get(task.wbs_id) : null;
-
-          console.log(
-            `Task ${task.name} resourceAssignments:`,
-            task.resourceAssignments
-          );
-          console.log(
-            `Task ${task.name} critical path:`,
-            task.is_critical_path
-          );
-
-          const ganttTask: GanttTask = {
-            id: `task-${task.task_id}`,
-            wbsId: task.wbs?.wbs_code || parentWBS?.wbs_code || "UNASSIGNED",
-            name: task.name || "Unnamed Task",
-            description: task.description || "",
-            startDate: new Date(task.start_date || projectData.start_date),
-            endDate: new Date(
-              task.end_date || task.due_date || projectData.planned_end_date
-            ),
-            duration: calculateDuration(
-              new Date(task.start_date || projectData.start_date),
-              new Date(
-                task.end_date || task.due_date || projectData.planned_end_date
-              )
-            ),
-            progress: task.progress_percentage || 0,
-            status: getTaskStatus(task.progress_percentage || 0, task.status),
-            priority: task.priority || "medium",
-            assignedTo:
-              task.resourceAssignments?.map(
-                (ra: any) => ra.resource?.name || "Unknown Resource"
-              ) || [],
-            dependencies: [], // TODO: Add dependency mapping if available
-            projectId: projectData.project_id,
-            projectName: projectData.name,
-            isMilestone: task.is_milestone || false,
-            isOnCriticalPath: task.is_critical_path || false,
-            estimatedEffort: task.estimated_hours || 8,
-            actualEffort: task.actual_hours || 0,
-            resourceAllocation: 80,
-            cost: task.budget_amount || 0,
-            // Store WBS info for display
-            parentTaskId: undefined,
-            wbsName: parentWBS?.name || "Unassigned",
-          };
-
-          allTasks.push(ganttTask);
-        });
-      }
-
-      console.log("Transformed Tasks:", allTasks);
-      setTasks(allTasks);
-
-      // Extract resource assignments from original task data
-      if (projectData.tasks) {
-        extractResourceAssignments(projectData.tasks);
-        console.log("Resource Assignments:", resourceAssignments);
-      }
-
-      // Transform team members for resource allocation
-      const resourceAllocations: GanttResourceAllocation[] = (
-        projectData.team_members || []
-      ).map((member: any) => ({
-        userId: member.user?.user_id || member.id || "unknown",
-        userName: member.user?.account?.first_name
-          ? `${member.user.account.first_name} ${member.user.account.last_name}`
-          : "Unknown",
-        allocatedHours: member.workload || 80,
-        availableHours: 160, // Standard work hours per month
-        utilization: ((member.workload || 80) / 160) * 100,
-        conflicts: member.workload > 160 ? ["Overallocated"] : [],
-      }));
-
-      setResourceAllocations(resourceAllocations);
-
-      // Resource assignments are now included directly in task data from the API
-    } catch (error) {
-      console.error("Error fetching project data:", error);
-      // Set empty state if API fails
-      setProject({
-        id: projectId,
-        name: "Unknown Project",
-        description: "Failed to load project data",
-        status: "unknown",
-        startDate: new Date(),
-        endDate: new Date(),
-        progress: 0,
-        manager: "Unknown",
-        budget: 0,
-        team: [],
-      });
-      setTasks([]);
-      setResourceAllocations([]);
-    } finally {
-      setIsLoading(false);
-    }
+    // notConnected: loads the project with its tasks and team and builds the
+    // Gantt rows, resource allocations and assignments from them.
   };
 
   const handleCreateTask = async (taskData: any) => {
-    if (!canEditGantt()) {
-      toast.error("You don't have permission to create tasks");
-      return;
-    }
-
-    try {
-      setCreating(true);
-
-      const response = await axios.post("/api/tasks", taskData, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (response.status === 201) {
-        toast.success("Task created successfully!");
-        setShowCreateModal(false);
-        // Refresh the data
-        await fetchProjectData();
-      }
-    } catch (error: any) {
-      console.error("Error creating task:", error);
-      toast.error(error.response?.data?.error || "Failed to create task");
-    } finally {
-      setCreating(false);
-    }
+    notConnected("Creating a task");
   };
 
   const handleResourceAssignment = async (assignmentData: any) => {
-    if (!canEditGantt()) {
-      toast.error("You don't have permission to assign resources");
-      return;
-    }
-
-    try {
-      const response = await axios.post(
-        "/api/resourceAssignments",
-        assignmentData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-
-      if (response.data) {
-        toast.success("Resource assigned successfully");
-        setShowResourceModal(false);
-        setSelectedTaskForResource(null);
-        // Refresh data to show the new assignment
-        await fetchProjectData();
-      }
-    } catch (error: any) {
-      console.error("Error assigning resource:", error);
-      if (error.response?.status === 400) {
-        const errorData = error.response.data;
-
-        // Handle specific backend validation errors
-        if (errorData.reason === "resource_not_available") {
-          toast.error("Resource is not available for assignments");
-        } else if (errorData.reason === "capacity_exceeded") {
-          toast.error("Resource capacity exceeded for this time period");
-        } else if (errorData.conflictDetails) {
-          // Handle overlapping assignments
-          toast.error(
-            "Resource has conflicting assignments during this period"
-          );
-          if (errorData.alternatives && errorData.alternatives.length > 0) {
-            toast.info(
-              `${errorData.alternatives.length} alternative resources available`
-            );
-          }
-        } else if (errorData.details) {
-          // Handle planned hours vs required hours validation
-          if (
-            errorData.details.plannedHours &&
-            errorData.details.requiredHours
-          ) {
-            toast.error(
-              `Planned hours (${errorData.details.plannedHours}) exceed available time (${errorData.details.requiredHours} hours)`
-            );
-          } else if (errorData.details.capacity) {
-            toast.error(
-              `Resource capacity insufficient: ${errorData.details.capacity}h/day`
-            );
-          } else {
-            toast.error(
-              errorData.error || "Resource assignment validation failed"
-            );
-          }
-        } else {
-          toast.error(errorData.error || "Resource assignment failed");
-        }
-
-        // Handle alternative resource suggestions if available
-        if (errorData.alternatives && errorData.alternatives.length > 0) {
-          console.log("Alternative resources:", errorData.alternatives);
-          toast.info(
-            `${errorData.alternatives.length} alternative resources suggested`
-          );
-        }
-      } else {
-        toast.error("Failed to assign resource");
-      }
-    }
+    notConnected("Assigning a resource");
   };
 
   const handleResourceAssignmentUpdate = async (
-    assignmentId: number,
-    updateData: any
+    _assignmentId: number,
+    _updateData: any
   ) => {
-    if (!canEditGantt()) {
-      toast.error("You don't have permission to update resource assignments");
-      return;
-    }
-
-    try {
-      const response = await axios.put(
-        `/api/resourceAssignments/${assignmentId}`,
-        updateData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-
-      if (response.data) {
-        toast.success("Resource assignment updated successfully");
-        setShowResourceDetailModal(false);
-        setSelectedResourceAssignment(null);
-        // Refresh data to show the updated assignment
-        await fetchProjectData();
-      }
-    } catch (error: any) {
-      console.error("Error updating resource assignment:", error);
-      toast.error(
-        error.response?.data?.error || "Failed to update resource assignment"
-      );
-    }
+    notConnected("Updating the assignment");
   };
 
   const handleResourceAssignmentDelete = async (assignmentId: number) => {
-    if (!canEditGantt()) {
-      toast.error("You don't have permission to delete resource assignments");
-      return;
-    }
-
-    try {
-      const response = await axios.delete(
-        `/api/resourceAssignments/${assignmentId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-
-      if (response.status === 200) {
-        toast.success("Resource assignment deleted successfully");
-        setShowResourceDetailModal(false);
-        setSelectedResourceAssignment(null);
-        // Refresh data to show the updated assignment
-        await fetchProjectData();
-      }
-    } catch (error: any) {
-      console.error("Error deleting resource assignment:", error);
-      toast.error(
-        error.response?.data?.error || "Failed to delete resource assignment"
-      );
-    }
+    notConnected("Removing the assignment");
   };
 
   const handleResourceClick = (assigneeName: string, task: GanttTask) => {
@@ -644,40 +249,7 @@ const ProjectGanttPage: React.FC = () => {
   };
 
   const handleTaskStatusUpdate = async (taskId: string, newStatus: string) => {
-    if (!canEditGantt()) {
-      toast.error("You don't have permission to update task status");
-      return;
-    }
-
-    try {
-      const response = await axios.put(
-        `/api/tasks/${taskId.replace("task-", "")}`,
-        { status: newStatus },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-
-      if (response.data) {
-        toast.success("Task status updated successfully");
-        // Refresh data to show the updated status
-        await fetchProjectData();
-      }
-    } catch (error: any) {
-      console.error("Error updating task status:", error);
-      const errorData = error.response?.data;
-      if (errorData?.reasons && Array.isArray(errorData.reasons) && errorData.reasons.length > 0) {
-        // Show detailed dependency error messages
-        const errorMessage = errorData.error || "Cannot update task status";
-        const reasons = errorData.reasons.join(". ");
-        toast.error(`${errorMessage}: ${reasons}`);
-      } else {
-        toast.error(errorData?.error || "Failed to update task status");
-      }
-    }
+    notConnected("Updating the task status");
   };
 
   const handleDeleteConfirmation = (
@@ -693,56 +265,7 @@ const ProjectGanttPage: React.FC = () => {
   };
 
   const handleTaskDelete = async (taskId: string) => {
-    if (!canEditGantt()) {
-      toast.error("You don't have permission to delete tasks");
-      return;
-    }
-
-    try {
-      // Get user info from localStorage for headers
-      const token = localStorage.getItem("token");
-      const userRole = localStorage.getItem("userRole") || "admin";
-      const userId = localStorage.getItem("userId") || "1";
-
-      if (!token) {
-        toast.error("Authentication token missing. Please log in again.");
-        return;
-      }
-
-      const response = await axios.delete(
-        `/api/tasks/${taskId.replace("task-", "")}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-            "x-user-role": userRole,
-            "x-user-id": userId,
-          },
-        }
-      );
-
-      if (response.status === 200) {
-        toast.success("Task deleted successfully");
-        setSelectedTask(null);
-        // Refresh data to remove the deleted task
-        await fetchProjectData();
-      }
-    } catch (error: any) {
-      console.error("Error deleting task:", error);
-
-      let errorMessage = "Failed to delete task";
-      if (error.response?.status === 401) {
-        errorMessage = "Authentication failed. Please log in again.";
-      } else if (error.response?.status === 403) {
-        errorMessage = "You do not have permission to delete this task.";
-      } else if (error.response?.status === 404) {
-        errorMessage = "Task not found. It may have been already deleted.";
-      } else if (error.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      }
-
-      toast.error(errorMessage);
-    }
+    notConnected("Deleting the task");
   };
 
   const handleTaskEdit = (task: GanttTask) => {
@@ -760,54 +283,7 @@ const ProjectGanttPage: React.FC = () => {
   };
 
   const handleTaskUpdate = async (taskData: any) => {
-    if (!canEditGantt()) {
-      toast.error("You don't have permission to update tasks");
-      return;
-    }
-
-    try {
-      const response = await axios.put(
-        `/api/tasks/${taskToEdit?.id.replace("task-", "")}`,
-        taskData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-
-      if (response.data) {
-        toast.success("Task updated successfully");
-        setShowEditTaskModal(false);
-        setTaskToEdit(null);
-        setSelectedTask(null);
-        // Refresh data to show the updated task
-        await fetchProjectData();
-      }
-    } catch (error: any) {
-      console.error("Error updating task:", error);
-      const errorData = error.response?.data;
-      
-      // Handle dependency date violations
-      if (errorData?.violations && Array.isArray(errorData.violations) && errorData.violations.length > 0) {
-        const errorMessage = errorData.error || "Task dates violate dependency constraints";
-        const violations = errorData.violations.join(". ");
-        toast.error(errorMessage, {
-          description: violations + (errorData.canForce ? " You can set 'force: true' to override." : "")
-        });
-      }
-      // Handle dependency status violations
-      else if (errorData?.reasons && Array.isArray(errorData.reasons) && errorData.reasons.length > 0) {
-        const errorMessage = errorData.error || "Cannot update task status";
-        const reasons = errorData.reasons.join(". ");
-        toast.error(errorMessage, {
-          description: reasons
-        });
-      } else {
-        toast.error(errorData?.error || "Failed to update task");
-      }
-    }
+    notConnected("Updating the task");
   };
 
   const handleConfirmedDelete = async () => {
@@ -819,56 +295,6 @@ const ProjectGanttPage: React.FC = () => {
       }
       setShowDeleteConfirmation(false);
       setItemToDelete(null);
-    }
-  };
-
-  const getProjectData = async (id: string): Promise<ProjectDetails> => {
-    try {
-      const response = await axios.get(`/api/projects/${id}`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-
-      const projectData = response.data;
-      console.log(projectData);
-
-      return {
-        id: projectData.project_id,
-        name: projectData.name,
-        description:
-          projectData.description || projectData.short_description || "",
-        status: projectData.status,
-        startDate: new Date(projectData.start_date),
-        endDate: new Date(projectData.planned_end_date || projectData.end_date),
-        progress: projectData.progress_percentage || 0,
-        manager: projectData.creator?.account?.first_name
-          ? `${projectData.creator.account.first_name} ${projectData.creator.account.last_name}`
-          : "Unknown",
-        budget: projectData.budget_amount || 0,
-        team:
-          projectData.team_members?.map((member: any) =>
-            member.user?.account?.first_name
-              ? `${member.user.account.first_name} ${member.user.account.last_name}`
-              : "Unknown"
-          ) || [],
-      };
-    } catch (err) {
-      console.log(err);
-      // Return a default project
-      return {
-        id: id,
-        name: "Unknown Project",
-        description: "Failed to load project data",
-        status: "unknown",
-        startDate: new Date(),
-        endDate: new Date(),
-        progress: 0,
-        manager: "Unknown",
-        budget: 0,
-        team: [],
-      };
     }
   };
 
@@ -2136,56 +1562,7 @@ const ProjectGanttPage: React.FC = () => {
 
   // Critical path calculation function
   const calculateCriticalPath = async () => {
-    setCalculatingCriticalPath(true);
-    setCriticalPathError(null);
-
-    try {
-      console.log(`🔄 Calculating critical path for project ${projectId}`);
-
-      const response = await fetch(`/api/projects/${projectId}/critical-path`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-
-      const result = await response.json();
-
-      console.log("📊 Critical path calculation result:", result);
-
-      if (result.success) {
-        setCriticalPathCalculated(true);
-        setCriticalPathError(null);
-
-        console.log(
-          "✅ Critical path calculation successful, refreshing data..."
-        );
-
-        // Refresh project data to get updated critical path information
-        await fetchProjectData();
-
-        console.log(
-          "✅ Project data refreshed after critical path calculation"
-        );
-
-        // Analyze critical path risks and generate management actions
-        analyzeCriticalPathRisks();
-
-        toast.success("Critical path calculated successfully!");
-      } else {
-        setCriticalPathError(
-          result.error || "Failed to calculate critical path"
-        );
-        toast.error("Failed to calculate critical path");
-      }
-    } catch (err) {
-      console.error("❌ Critical path calculation error:", err);
-      setCriticalPathError("Network error occurred");
-      toast.error("Network error occurred while calculating critical path");
-    } finally {
-      setCalculatingCriticalPath(false);
-    }
+    notConnected("Calculating the critical path");
   };
 
   // Analyze critical path risks and generate management actions

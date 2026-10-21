@@ -1,11 +1,11 @@
 "use client";
 
+import { notConnected } from "@/lib/not-connected";
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AlertCircle, Minus, Plus, Save } from "lucide-react";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import {
   CancelButton,
   Field,
@@ -64,9 +64,11 @@ export default function EditResourcePage() {
   const params = useParams();
   const resourceId = params?.id as string;
 
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  // notConnected: the resource (to prefill the form) would be loaded here.
+  // Until then the form starts empty.
+  const loading = false;
+  const notFound = false;
+  const submitting = false;
   const [error, setError] = useState<string | null>(null);
 
   const [skills, setSkills] = useState<Skill[]>([]);
@@ -86,77 +88,6 @@ export default function EditResourcePage() {
     quantity: 0,
   });
 
-  useEffect(() => {
-    if (!resourceId) return;
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const res = await fetch(`/api/resources/${resourceId}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
-        if (!res.ok) {
-          if (!cancelled) setNotFound(true);
-          return;
-        }
-        const data = await res.json();
-        if (cancelled) return;
-
-        setFormData({
-          name: data.name ?? "",
-          type: data.type ?? "labor",
-          role: data.role ?? "",
-          rate: data.rate ?? 0,
-          capacity: data.capacity ?? 40,
-          availability_status: data.availability_status ?? "available",
-          department: data.department ?? "",
-          email: data.email ?? "",
-          phone_number: data.phone_number ?? "",
-          location: data.location ?? "",
-          rating: data.rating ?? 0,
-          unit: data.unit ?? "",
-          quantity: data.quantity ?? 0,
-        });
-
-        // Skills are stored as JSON holding separate Skills and Languages
-        // arrays; flatten them into one editable list here and split them
-        // apart again on submit.
-        if (data.type !== "material") {
-          try {
-            const raw =
-              typeof data.skills === "string"
-                ? JSON.parse(data.skills)
-                : (data.skills ?? {});
-            const flat: Skill[] = [
-              ...(Array.isArray(raw.Skills) ? raw.Skills : []),
-              ...(Array.isArray(raw.Languages)
-                ? raw.Languages.map((l: Record<string, unknown>) => ({
-                    name: String(l.name ?? ""),
-                    level: String(l.proficiency ?? l.level ?? "intermediate"),
-                    category: "language",
-                    yearsExperience: Number(l.yearsExperience ?? 1),
-                  }))
-                : []),
-            ];
-            setSkills(flat);
-          } catch {
-            setSkills([]);
-          }
-        }
-      } catch {
-        if (!cancelled) setNotFound(true);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [resourceId]);
-
   const set = <K extends keyof typeof formData>(
     key: K,
     value: (typeof formData)[K],
@@ -169,7 +100,7 @@ export default function EditResourcePage() {
       prev.map((s, i) => (i === index ? { ...s, ...patch } : s)),
     );
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.name.trim()) {
@@ -192,60 +123,12 @@ export default function EditResourcePage() {
     }
 
     setError(null);
-    setSubmitting(true);
-    try {
-      const skillsData = isMaterial
-        ? { Skills: [], Languages: [] }
-        : {
-            Skills: skills.filter((s) => s.category !== "language"),
-            Languages: skills
-              .filter((s) => s.category === "language")
-              .map((s) => ({
-                id: Date.now().toString() + Math.random(),
-                name: s.name,
-                proficiency: s.level,
-                category: "language",
-                yearsExperience: s.yearsExperience,
-              })),
-          };
-
-      const res = await fetch(`/api/resources/${resourceId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({
-          ...formData,
-          name: formData.name.trim(),
-          skills: skillsData,
-          updated_at: new Date().toISOString(),
-        }),
-      });
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        const message =
-          body?.error ?? body?.message ?? "Failed to update resource";
-        setError(message);
-        toast.error(message);
-        return;
-      }
-
-      toast.success("Resource updated");
-      router.push(`/resources/${resourceId}`);
-    } catch {
-      const message = "Failed to update resource";
-      setError(message);
-      toast.error(message);
-    } finally {
-      setSubmitting(false);
-    }
+    notConnected("Updating the resource");
   };
 
   if (loading) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout hideHeader>
           <div className="space-y-6">
             <PageHeader
@@ -261,13 +144,13 @@ export default function EditResourcePage() {
             </div>
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
   if (notFound) {
     return (
-      <ProtectedRoute>
+      <>
         <DashboardLayout hideHeader>
           <div className="space-y-6">
             <PageHeader
@@ -297,12 +180,12 @@ export default function EditResourcePage() {
             </FormSection>
           </div>
         </DashboardLayout>
-      </ProtectedRoute>
+      </>
     );
   }
 
   return (
-    <ProtectedRoute>
+    <>
       <DashboardLayout hideHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <PageHeader
@@ -620,6 +503,6 @@ export default function EditResourcePage() {
           </FormFooter>
         </form>
       </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 }
