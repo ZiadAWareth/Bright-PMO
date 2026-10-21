@@ -1,11 +1,12 @@
 /**
  * Permissions for the legacy roles on the new backend (Soul's RolesAndPermissions).
  *
- * A STARTING POINT, derived from the legacy rules: the page access in
- * PMO-Client/src/lib/route-access.ts and the API restrictions in
- * PMO-Legacy-API/src/middleware.ts. The legacy API let any signed-in user call
- * almost everything, so this is already stricter. Review it with the business,
- * then tune it here (and re-run the migration) or in Soul's admin panel.
+ * A STARTING POINT, derived from the legacy rules (both files on the dev branch):
+ * the page access in PMO-Client/src/lib/route-access.ts and the API
+ * restrictions in PMO-Legacy-API/src/middleware.ts. The legacy API let any
+ * signed-in user call almost everything, so this is already stricter. Review it
+ * with the business, then tune it here and re-run the migration (a re-run
+ * overwrites changes made to these roles in Soul's admin panel).
  *
  * Soul's permissions are yes/no per entity and action, with no "own rows" scope,
  * so "a PJM edits only their projects" is not expressible here; that is custom

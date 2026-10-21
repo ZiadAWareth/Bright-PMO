@@ -1,22 +1,36 @@
 # Legacy data -> new backend
 
-Scripts that copy data from the legacy database (`PMO-Legacy-API`) into the
-new backend's database (`PMO-Soul-Backend`). They live here, outside the Soul
-folder, so regenerating the backend never overwrites them.
+Scripts that copy data from the legacy database into the new backend's
+database (`PMO-Soul-Backend`). They live here, outside the Soul folder, so
+regenerating the backend never overwrites them.
+
+The folder is self-contained: the legacy app (`PMO-Legacy-API`, still on the
+`dev` branch) is not needed. `legacy/schema.prisma` is a read-only copy of the
+legacy schema, and `npm run generate` creates a client for it in
+`legacy/client/`. Writes use `PMO-Soul-Backend`'s generated client, so they
+always match the new backend's schema.
 
 Every script is **safe to re-run**: rows are matched (by email, name or unique
-key) and updated, never duplicated. Each one has `--dry-run`, which reports what
-it would do and changes nothing. They read the two databases' addresses from
-each app's `.env` and print counts only, never personal data or secrets.
+key) and updated, never duplicated. Each one has a dry run, which reports what
+it would do and changes nothing. They print counts only, never personal data or
+secrets.
+
+## Set up (once)
+
+1. Copy `.env.example` to `.env` and fill in both database addresses: the
+   legacy database (`bright-pmo`) and the new backend's (`pmo_soul`, the same
+   as `DATABASE_URL` in `PMO-Soul-Backend/.env`).
+2. `npm install` here, then `npm run generate` (npm 11 may skip the install
+   script that generates the legacy client).
+3. `PMO-Soul-Backend` needs its dependencies installed and its Prisma client
+   generated (see its README). It does not need to be running.
 
 ## Run
 
-Both apps' dependencies must be installed and their Prisma clients generated.
-Neither app needs to be running.
-
 ```
-node migration/legacy-to-soul.mjs --dry-run
-node migration/legacy-to-soul.mjs
+cd migration
+npm run migrate:dry
+npm run migrate
 ```
 
 Users must sign in again afterwards: permissions are read into the token at

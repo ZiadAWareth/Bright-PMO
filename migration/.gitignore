@@ -1,0 +1,5 @@
+# The generated client for the legacy schema
+legacy/client/
+
+# Keep the settings template (the root .gitignore ignores .env*)
+!.env.example

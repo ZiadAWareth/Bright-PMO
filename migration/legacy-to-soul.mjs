@@ -3,12 +3,14 @@
  * roles and users. Safe to re-run: every row is matched and updated, never
  * duplicated.
  *
- *   node migration/legacy-to-soul.mjs --dry-run   # report only, change nothing
- *   node migration/legacy-to-soul.mjs             # apply, in one transaction
+ *   npm run migrate:dry    # report only, change nothing
+ *   npm run migrate        # apply, in one transaction
  *
- * Reads PMO-Legacy-API/.env and PMO-Soul-Backend/.env for the two databases,
- * and uses each app's own generated Prisma client. Prints counts, never
- * personal data or secrets.
+ * Reads both database addresses from migration/.env. The legacy database is
+ * read through the client generated from legacy/schema.prisma (npm install
+ * generates it); the new one through PMO-Soul-Backend's generated client, so
+ * writes match the backend's schema exactly. Prints counts, never personal
+ * data or secrets.
  */
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
@@ -16,7 +18,8 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { LEGACY_ROLES, permissionsFor } from './role-matrix.mjs';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const ROOT = path.resolve(HERE, '..');
 const DRY_RUN = process.argv.includes('--dry-run');
 
 const ORGANIZATION = {
@@ -28,21 +31,27 @@ const ORGANIZATION = {
 /** The seeded template role whose shape (entities and actions) new roles copy. */
 const TEMPLATE_ROLE = 'Organisation Admin';
 
-function databaseUrl(app) {
-  const env = readFileSync(path.join(ROOT, app, '.env'), 'utf8');
-  const match = env.match(/^DATABASE_URL\s*=\s*"?([^"\r\n]+)"?/m);
-  if (!match) throw new Error(`No DATABASE_URL in ${app}/.env`);
+function setting(name) {
+  const env = readFileSync(path.join(HERE, '.env'), 'utf8');
+  const match = env.match(new RegExp(String.raw`^${name}\s*=\s*"?([^"\r\n]+)"?`, 'm'));
+  if (!match) throw new Error(`No ${name} in migration/.env (see .env.example)`);
   return match[1];
 }
 
-function prismaClientOf(app) {
-  const require = createRequire(path.join(ROOT, app, 'package.json'));
-  const { PrismaClient } = require('@prisma/client');
-  return new PrismaClient({ datasources: { db: { url: databaseUrl(app) } } });
+function legacyClient() {
+  const require = createRequire(import.meta.url);
+  const { PrismaClient } = require('./legacy/client');
+  return new PrismaClient({ datasources: { db: { url: setting('LEGACY_DATABASE_URL') } } });
 }
 
-const legacy = prismaClientOf('PMO-Legacy-API');
-const soul = prismaClientOf('PMO-Soul-Backend');
+function soulClient() {
+  const require = createRequire(path.join(ROOT, 'PMO-Soul-Backend', 'package.json'));
+  const { PrismaClient } = require('@prisma/client');
+  return new PrismaClient({ datasources: { db: { url: setting('SOUL_DATABASE_URL') } } });
+}
+
+const legacy = legacyClient();
+const soul = soulClient();
 
 const USER_STATUS = { active: 'active', inactive: 'inactive', suspended: 'suspended' };
 const isBcrypt = (hash) => /^\$2[aby]\$\d\d\$/.test(hash ?? '');

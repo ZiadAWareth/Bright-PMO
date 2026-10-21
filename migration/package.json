@@ -1,0 +1,17 @@
+{
+  "name": "pmo-migration",
+  "private": true,
+  "description": "Copies data from the legacy database into the new backend's database.",
+  "scripts": {
+    "postinstall": "prisma generate --schema legacy/schema.prisma",
+    "generate": "prisma generate --schema legacy/schema.prisma",
+    "migrate": "node legacy-to-soul.mjs",
+    "migrate:dry": "node legacy-to-soul.mjs --dry-run"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.6.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.6.0"
+  }
+}
